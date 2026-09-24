@@ -1,0 +1,47 @@
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Cloudflare Workers / OpenNext
+.wrangler/
+.open-next/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build
+dist/
+build/
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Configuración local de Claude Code (si aparece, no compartida)
+.claude/settings.local.json
+
+# Skills instaladas con `npx skills add` — symlinks a .agents/skills/ con ruta
+# absoluta de esta máquina; reproducibles desde skills-lock.json en cualquier
+# máquina con `npx skills add <source> --skill <nombre>`.
+.agents/skills/
+.claude/skills/auditar-drift
+.claude/skills/caveman
+.claude/skills/generar-prd-conversacional
+.claude/skills/generar-tech-design
+.claude/skills/revision-adversarial
