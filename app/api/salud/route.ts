@@ -10,3 +10,5 @@ export async function GET() {
     return NextResponse.json({ estado: "error" }, { status: 500 });
   }
 }
+
+const errorDeTipoDeliberado: number = "esto no es un numero";
