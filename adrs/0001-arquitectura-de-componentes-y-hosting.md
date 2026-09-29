@@ -28,6 +28,12 @@ Internet → Cloudflare (WAF, rate limiting, Turnstile)
                         ambos → Supabase (Postgres + RLS, Auth, Storage) → Resend
 ```
 
+## Reemplazada
+
+**(2026-09-28):** el cliente decidió cambiar el despliegue de Cloudflare Workers a Vercel. Esta
+ADR queda como registro histórico de la decisión original; la arquitectura vigente está en
+[ADR-0020](0020-arquitectura-de-componentes-y-hosting-vercel.md).
+
 ## Alternativas consideradas
 
 *(agregado retroactivamente el 2026-09-23, a partir de un hallazgo de revisión adversarial: esta

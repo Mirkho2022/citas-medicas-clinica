@@ -33,3 +33,10 @@ usabilidad, no de seguridad: la autoridad real de acceso a los datos es RLS
   «Requisitos no funcionales» en [TECH-DESIGN.md](../TECH-DESIGN.md)) esto se traduce en latencia
   percibida más alta que con un estado de cliente optimista, lo que pone presión sobre el objetivo
   de p95 < 500ms.
+
+## Reemplazada
+
+**(2026-09-28):** la sesión por cookies vía `@supabase/ssr` ya no aplica tras el cambio a Neon (sin
+Auth propia). Reemplazada por [ADR-0022](0022-autenticacion-y-sesion-clerk.md) (sesión vía Clerk).
+El principio de fondo de esta ADR — estado autoritativo en el servidor, RLS como autoridad real de
+acceso y no la redirección del layout — no cambia.

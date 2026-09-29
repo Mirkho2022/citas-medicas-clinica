@@ -3,21 +3,28 @@
 Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
 Reemplaza el proceso actual (Excel + Google Forms para citas, papel para historias clínicas).
 
-**Estado actual: existen [PRD.md](PRD.md) y [TECH-DESIGN.md](TECH-DESIGN.md).
-No hay código ni repositorio git todavía.**
+**Estado actual: existen [PRD.md](PRD.md), [TECH-DESIGN.md](TECH-DESIGN.md) y repositorio git
+inicializado. Todavía no hay código de aplicación.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
 con los ADR en [adrs/](adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
 
 ## Stack (decidido)
 
-Next.js 15 (App Router) + TypeScript sobre **Cloudflare Workers** (`@opennextjs/cloudflare`),
-con **Supabase** (PostgreSQL + Auth + Storage) como base de datos. Notificaciones **solo por
-email** vía Resend, disparadas por Cloudflare Cron Triggers. Detalle completo y justificación en
-TECH-DESIGN.md.
+Next.js 15 (App Router) + TypeScript sobre **Vercel** (target nativo, sin adaptador), con **Neon**
+(PostgreSQL serverless) como base de datos, **Clerk** para autenticación/sesión/MFA y **Vercel
+Blob** para adjuntos clínicos. Notificaciones **solo por email** vía Resend, disparadas por Vercel
+Cron Jobs. Detalle completo y justificación en TECH-DESIGN.md y en los ADR 0020–0027 (reemplazan
+el stack original sobre Cloudflare Workers + Supabase, registrado en ADR-0001, 0002, 0007 y 0009
+como histórico).
 
-La clave `service_role` de Supabase solo se usa en el Worker de cron y en CI — nunca en el Worker
-de la aplicación ni en el navegador, porque omite RLS.
+No existe un equivalente directo a `service_role` de Supabase: el aislamiento de la credencial con
+más alcance se hace por rol de Postgres (`cron_notificaciones`, `GRANT` mínimo solo sobre
+`notificaciones`/`citas`), usado solo en los Route Handlers de cron y en CI — nunca en el código
+que sirve tráfico de usuario. El contexto de usuario para RLS (rol, ID) ya no llega vía
+`auth.jwt()`/`auth.uid()` de Supabase, sino por `SET LOCAL` a través de un único wrapper de acceso
+a datos (ver [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)) — ningún código debe consultar
+Postgres sin pasar por ese wrapper.
 
 ## Decisiones aún abiertas (no las inventes: pregunta)
 
@@ -98,9 +105,10 @@ debe ser rápida para el médico.
   usuario y mensajes de error.
 - El PRD se genera y edita con la skill `generar-prd-conversacional` — si hay que actualizarlo,
   úsala en lugar de editarlo a mano.
-- Las migraciones viven en `supabase/migrations/*.sql`, versionadas en git y solo hacia adelante.
-  Nunca cambios manuales en producción, y nunca `supabase db reset` contra producción: destruye
-  datos clínicos.
+- Las migraciones viven en `migrations/*.sql` (`node-pg-migrate`, ver
+  [ADR-0027](adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
+  Nunca cambios manuales en producción, y nunca restaurar el branch principal de Neon a un estado
+  previo en producción: destruye datos clínicos.
 - Toda tabla nueva en el esquema `public` nace con RLS activada y con su prueba pgTAP negativa
   (que el rol equivocado *no* ve el dato). Una tabla sin RLS aquí es una filtración de datos
   clínicos.

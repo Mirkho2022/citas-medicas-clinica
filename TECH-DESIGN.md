@@ -37,43 +37,59 @@ principal declarado del proyecto y toda la arquitectura se ordena alrededor de �
 
 ## Arquitectura de componentes
 
-- **Worker de aplicación** (Next.js 15 App Router sobre Cloudflare Workers vía
-  `@opennextjs/cloudflare`): sirve las cuatro superficies — portal de autoservicio del paciente,
-  panel administrativo, panel clínico, panel de turnos — bajo un único despliegue. Usa la clave
-  anónima de Supabase; RLS es la autoridad de acceso a datos.
-- **Worker de cron**: ejecuta los Cloudflare Cron Triggers de notificaciones (recordatorio 24h,
-  reintentos). Es el único lugar donde vive la clave `service_role` de Supabase.
-- **Cloudflare** (borde): WAF, rate limiting, Turnstile — delante de ambos Workers.
-- **Supabase**: PostgreSQL 15+ con RLS, Auth (con custom access token hook para el rol), Storage
-  (adjuntos clínicos y escaneos de historia).
-- **Resend**: envío de correo transaccional, detrás de una interfaz de proveedor.
+**Stack revisado el 2026-09-28** — el cliente cambió el despliegue de Cloudflare Workers a Vercel
+y la base de datos de Supabase a Neon. Ver [ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)
+a [ADR-0027](adrs/0027-herramienta-de-migraciones.md) para el detalle de cada pieza reemplazada;
+ADR-0001, 0002, 0007 y 0009 quedan como registro histórico de las decisiones originales, con una
+nota de reemplazo al final de cada uno.
+
+- **Proyecto Vercel** (Next.js 15 App Router, sin adaptador — Vercel es el target nativo de
+  Next.js): sirve las cuatro superficies — portal de autoservicio del paciente, panel
+  administrativo, panel clínico, panel de turnos — bajo un único despliegue. Usa el rol de
+  Postgres `app_user`; RLS es la autoridad de acceso a datos
+  ([ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)).
+- **Vercel Cron Jobs**: ejecutan los Route Handlers de notificaciones (recordatorio 24h,
+  reintentos), usando el rol de Postgres `cron_notificaciones` — sin privilegios sobre
+  `atenciones`/`antecedentes` ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)).
+- **Clerk**: autenticación, MFA/TOTP de personal, invitaciones, sesión por cookies
+  ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)).
+- **Vercel BotID + Upstash Ratelimit**: anti-bots en registro/reserva y límite de intentos en rutas
+  de autenticación ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)).
+- **Neon**: PostgreSQL 15+ con RLS, branching (staging) y PITR (backups)
+  ([ADR-0021](adrs/0021-base-de-datos-neon.md)).
+- **Vercel Blob**: adjuntos clínicos (escaneos de respaldo), acceso vía URL firmada de corta
+  duración generada tras verificar `medico_tiene_paciente()`
+  ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)).
+- **Resend**: envío de correo transaccional, detrás de una interfaz de proveedor (sin cambios).
 
 ```
                    Internet
                       │
         ┌─────────────▼──────────────┐
-        │   Cloudflare (WAF, rate    │
-        │   limiting, Turnstile)     │
+        │  Vercel BotID (registro,   │
+        │  reserva) + Upstash        │
+        │  Ratelimit (rutas de auth) │
         └─────────────┬──────────────┘
                       │
-     ┌────────────────▼─────────────────┐        ┌──────────────────┐
-     │  Worker: Next.js (OpenNext)      │        │  Worker: cron    │
-     │  - RSC / Server Actions          │        │  - recordatorios │
-     │  - sesión por cookies            │        │  - reintentos    │
-     │    (@supabase/ssr, clave anónima)│        │                  │
-     └────────┬─────────────────────────┘        └────────┬─────────┘
-              │ PostgREST + Auth                          │ service_role
-              │ (RLS aplicada)                            │ (RLS omitida)
+     ┌────────────────▼─────────────────┐        ┌───────────────────┐
+     │  Proyecto Vercel: Next.js        │        │  Vercel Cron Jobs │
+     │  - RSC / Server Actions          │        │  - recordatorios  │
+     │  - sesión por cookies (Clerk)    │        │  - reintentos     │
+     │  - rol Postgres: app_user        │        │  rol: cron_notif. │
+     └────────┬─────────────────────────┘        └────────┬──────────┘
+              │ driver serverless de Neon                 │ driver serverless
+              │ (RLS aplicada, contexto vía SET LOCAL)     │ (sin RLS, GRANT mínimo)
      ┌────────▼───────────────────────────────────────────▼─────────┐
-     │  Supabase                                                     │
-     │  PostgreSQL (RLS) · Auth · Storage (adjuntos clínicos)        │
+     │  Neon — PostgreSQL (RLS, branching, PITR)                     │
      └───────────────────────────────────────────────────────────────┘
-                      │
-                      └──► Resend (correo transaccional)
+                      │                              │
+                      └──► Resend (correo)           └──► Vercel Blob (adjuntos)
 ```
 
-**Regla no negociable:** la clave `service_role` solo existe en el Worker de cron y en CI. Nunca se
-expone al navegador ni se usa en el Worker de la aplicación, porque omite RLS por completo.
+**Regla no negociable (equivalente a la de `service_role` en el diseño original):** el rol de
+Postgres `cron_notificaciones` solo existe en los Route Handlers de cron y en CI. Nunca se usa en
+el código que sirve tráfico de usuario, y sus `GRANT` se limitan estrictamente a `notificaciones`
+y `citas` — ver [ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md).
 
 Todo el sistema es nuevo; no hay componentes heredados de otro sistema (el reemplazo de Excel/papel
 es un problema de migración de datos, ver «Migración desde Excel y papel», no de integración con un
@@ -83,30 +99,33 @@ sistema existente).
 
 | Capa | Tecnología | Nota |
 |---|---|---|
-| Runtime | Cloudflare Workers, `nodejs_compat` activado | `compatibility_date` fijada en `wrangler.toml` |
+| Runtime / hosting | Vercel | Target nativo de Next.js, sin adaptador ([ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)) |
 | App | Next.js 15 App Router, React 19, TypeScript estricto | `strict: true`; sin `any` en la capa de datos |
-| Adaptador | `@opennextjs/cloudflare` | Build y deploy con `wrangler` |
-| Datos | `@supabase/supabase-js`, `@supabase/ssr` | Cliente de servidor con cookies; nunca cliente de navegador para datos clínicos |
+| Datos | `@neondatabase/serverless` | Driver serverless de Neon; nunca cliente de navegador para datos clínicos ([ADR-0021](adrs/0021-base-de-datos-neon.md)) |
+| Autenticación | `@clerk/nextjs` | MFA/TOTP, invitaciones, sesión ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) |
+| Almacenamiento | `@vercel/blob` | Adjuntos clínicos vía URL firmada ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
+| Anti-bots / rate limiting | Vercel BotID, Upstash Ratelimit + Redis | ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
 | UI | Tailwind CSS, shadcn/ui, `react-hook-form` | |
 | Validación | Zod | Esquemas en `lib/schemas/`, compartidos |
 | Fechas | `date-fns` + `date-fns-tz` | Formateo siempre con zona `America/Lima` |
 | Correo | Resend SDK | Detrás de `lib/notificaciones/proveedor.ts` |
-| Migraciones | Supabase CLI (`supabase/migrations/*.sql`) | Versionadas en git; nunca cambios manuales en producción |
+| Cron | Vercel Cron Jobs (`vercel.json`) | Plan Pro ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) |
+| Migraciones | `node-pg-migrate` (`migrations/*.sql`) | Versionadas en git; nunca cambios manuales en producción ([ADR-0027](adrs/0027-herramienta-de-migraciones.md)) |
 | Tests | Vitest, Playwright, pgTAP | pgTAP es obligatorio para políticas RLS |
 
 ## Decisiones de arquitectura
 
 | # | Decisión | Estado |
 |---|---|---|
-| [ADR-0001](adrs/0001-arquitectura-de-componentes-y-hosting.md) | Arquitectura de componentes y hosting | Aceptado |
-| [ADR-0002](adrs/0002-base-de-datos-y-autenticacion.md) | Base de datos y autenticación (Supabase) | Aceptado |
-| [ADR-0003](adrs/0003-control-de-acceso-a-historias-clinicas.md) | Control de acceso a historias clínicas (RLS + rol en JWT) | Aceptado |
+| [ADR-0001](adrs/0001-arquitectura-de-componentes-y-hosting.md) | Arquitectura de componentes y hosting (Cloudflare) | Reemplazado por ADR-0020 |
+| [ADR-0002](adrs/0002-base-de-datos-y-autenticacion.md) | Base de datos y autenticación (Supabase) | Reemplazado por ADR-0021, 0022, 0024 |
+| [ADR-0003](adrs/0003-control-de-acceso-a-historias-clinicas.md) | Control de acceso a historias clínicas (RLS + rol en JWT) | Aceptado (mecanismo de contexto reemplazado por ADR-0023) |
 | [ADR-0004](adrs/0004-stack-de-frontend-y-validacion.md) | Stack de frontend y validación | Aceptado |
 | [ADR-0005](adrs/0005-modelo-de-datos-y-prevencion-de-doble-reserva.md) | Modelo de datos y prevención de doble reserva | Aceptado |
 | [ADR-0006](adrs/0006-contratos-de-api-via-server-actions.md) | Contratos de API vía Server Actions | Aceptado |
-| [ADR-0007](adrs/0007-manejo-de-estado-y-sesion.md) | Manejo de estado y sesión | Aceptado |
+| [ADR-0007](adrs/0007-manejo-de-estado-y-sesion.md) | Manejo de estado y sesión (Supabase) | Reemplazado por ADR-0022 |
 | [ADR-0008](adrs/0008-resiliencia-y-manejo-de-errores.md) | Resiliencia y manejo de errores | Aceptado |
-| [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md) | Canal y programación de notificaciones | Aceptado |
+| [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md) | Canal y programación de notificaciones (Cloudflare Cron) | Aceptado (programación reemplazada por ADR-0025) |
 | [ADR-0010](adrs/0010-calculo-de-disponibilidad-de-slots.md) | Cálculo de disponibilidad de slots | Aceptado |
 | [ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md) | Reasignación de citas por baja médica | Aceptado |
 | [ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md) | Alcance de la ventana de cancelación de 1 hora | Aceptado |
@@ -117,6 +136,14 @@ sistema existente).
 | [ADR-0017](adrs/0017-disparo-de-notificaciones-transaccionales.md) | Disparo de notificaciones transaccionales y guarda de recordatorios vencidos | Aceptado |
 | [ADR-0018](adrs/0018-visibilidad-de-notificaciones-fallidas.md) | Visibilidad operativa de notificaciones fallidas | Aceptado |
 | [ADR-0019](adrs/0019-migracion-de-datos-excel-y-papel.md) | Migración de datos desde Excel y papel | Aceptado |
+| [ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md) | Arquitectura de componentes y hosting en Vercel | Aceptado |
+| [ADR-0021](adrs/0021-base-de-datos-neon.md) | Base de datos: Neon | Aceptado |
+| [ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md) | Autenticación y sesión: Clerk | Aceptado |
+| [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md) | Contexto de usuario para RLS sin helpers de Supabase | Aceptado |
+| [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) | Almacenamiento de adjuntos clínicos: Vercel Blob | Aceptado |
+| [ADR-0025](adrs/0025-notificaciones-cron-vercel.md) | Notificaciones: cron en Vercel Cron Jobs | Aceptado |
+| [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) | Controles de borde: anti-bots y rate limiting | Aceptado |
+| [ADR-0027](adrs/0027-herramienta-de-migraciones.md) | Herramienta de migraciones: node-pg-migrate | Aceptado |
 
 Los ADR 0001–0011 registran las decisiones de arquitectura base del proyecto (hosting, base de
 datos, control de acceso, stack de frontend, modelo de datos, contratos de API, estado y sesión,
@@ -130,6 +157,16 @@ clínicas (0016), disparo y guarda de notificaciones (0017), visibilidad de noti
 (0018), y formalización de la migración de datos (0019). ADR-0001, ADR-0002 y ADR-0012 recibieron
 además enmiendas menores de esa misma revisión (alternativas consideradas y un riesgo residual
 documentado, respectivamente), sin cambiar la decisión original.
+
+**Cambio de stack (2026-09-28):** el cliente decidió reemplazar Cloudflare Workers por Vercel y
+Supabase por Neon. Los ADR 0020–0027 registran cada pieza reemplazada (hosting, base de datos,
+autenticación, contexto de RLS, almacenamiento, cron, controles de borde, migraciones) con sus
+propias alternativas consideradas. Los ADR 0001, 0002, 0007 y 0009 quedan como registro histórico
+de las decisiones originales — cada uno tiene una nota de reemplazo al final apuntando al ADR
+vigente. ADR-0003 (control de acceso a historias clínicas) **no** se reemplaza: su lógica de
+negocio sigue vigente sin cambios; solo el mecanismo de transporte del contexto de usuario cambia
+(ADR-0023). Lo mismo aplica a ADR-0009: el canal (Resend) no cambia, solo el motor de cron
+(ADR-0025).
 
 ## Modelo de datos
 
@@ -151,15 +188,19 @@ create type tipo_antecedente    as enum ('personal_patologico','quirurgico','ale
 ### Identidad y personas
 
 ```sql
--- Espejo de auth.users con el rol de la aplicación.
+-- Sincronizada desde Clerk vía webhook (user.created/user.updated), no un espejo de
+-- auth.users de Supabase. clerk_user_id es el id que Clerk asigna (string, no uuid).
 create table perfiles (
-  id        uuid primary key references auth.users(id) on delete cascade,
-  rol       rol_usuario not null default 'paciente',
-  nombres   text not null,
-  apellidos text not null,
-  activo    boolean not null default true,
-  creado_en timestamptz not null default now()
+  id             uuid primary key default gen_random_uuid(),
+  clerk_user_id  text unique not null,
+  rol            rol_usuario not null default 'paciente',
+  nombres        text not null,
+  apellidos      text not null,
+  activo         boolean not null default true,
+  creado_en      timestamptz not null default now()
 );
+
+create index perfiles_clerk_user_id_idx on perfiles (clerk_user_id);
 
 create table pacientes (
   id               uuid primary key default gen_random_uuid(),
@@ -478,43 +519,50 @@ escribe desde la Server Action que abre una historia clínica.
 
 ## Seguridad y control de acceso
 
-### Rol en el token
+### Rol en el token y contexto de usuario en Postgres
 
-El rol se inyecta en el JWT mediante un *custom access token hook* de Supabase Auth, para que las
-políticas RLS no tengan que consultar `perfiles` en cada fila evaluada.
+El rol se guarda en `publicMetadata.rol` del usuario de Clerk y se expone en `sessionClaims`
+mediante un JWT template de Clerk — el equivalente funcional del *custom access token hook* de
+Supabase ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)). Neon no tiene `auth.jwt()`/
+`auth.uid()`: cada transacción recibe el contexto vía `SET LOCAL`, poblado por un único wrapper de
+acceso a datos que ningún código puede evitar ([ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)):
 
-```sql
-create or replace function public.custom_access_token_hook(event jsonb)
-returns jsonb
-language plpgsql stable
-as $$
-declare
-  v_rol text;
-begin
-  select rol::text into v_rol from public.perfiles where id = (event->>'user_id')::uuid;
-  return jsonb_set(event, '{claims,user_role}', to_jsonb(coalesce(v_rol, 'paciente')));
-end;
-$$;
+```ts
+// lib/db/with-user-context.ts — único punto de entrada a la base de datos.
+export async function withUserContext<T>(
+  callback: (tx: Transaction) => Promise<T>
+): Promise<T> {
+  const { userId, sessionClaims } = auth(); // Clerk
+  return db.transaction(async (tx) => {
+    const perfilId = await perfilIdParaUsuarioClerk(tx, userId);
+    await tx.execute(sql`select set_config('app.current_user_id', ${perfilId}, true)`);
+    await tx.execute(sql`select set_config('app.current_user_role', ${sessionClaims.rol}, true)`);
+    return callback(tx);
+  });
+}
 ```
 
-Consecuencia operativa: un cambio de rol **no surte efecto hasta que el token se refresca**. Al
-desactivar o degradar a un usuario hay que revocar sus sesiones (`auth.admin.signOut`), no solo
-actualizar la fila.
+Consecuencia operativa: un cambio de rol **no surte efecto hasta que la sesión de Clerk se
+refresca**. Al desactivar o degradar a un usuario hay que revocar sus sesiones activas vía la API
+de Clerk (`banUser`/revocar sesiones), no solo actualizar la fila en `perfiles`.
 
 ### Funciones de apoyo
 
 ```sql
 -- Paciente correspondiente al usuario autenticado.
+-- current_setting(..., true) devuelve NULL en vez de error si no se pobló (ADR-0023).
 create or replace function public.paciente_actual()
 returns uuid
 language sql stable security definer set search_path = ''
 as $$
-  select p.id from public.pacientes p where p.perfil_id = (select auth.uid());
+  select p.id from public.pacientes p
+  where p.perfil_id = (select current_setting('app.current_user_id', true)::uuid);
 $$;
 
 -- ¿El médico autenticado tiene a este paciente a su cargo?
 -- Única fuente: asignaciones_paciente_medico, vigente. Se elimina la rama directa
 -- sobre citas (sin expiración) que tenía el diseño original — ver ADR-0016.
+-- current_user_id viene del contexto poblado por withUserContext() — ver ADR-0023.
 create or replace function public.medico_tiene_paciente(p_paciente uuid)
 returns boolean
 language sql stable security definer set search_path = ''
@@ -524,7 +572,7 @@ as $$
     from public.asignaciones_paciente_medico a
     join public.medicos m on m.id = a.medico_id
     where a.paciente_id = p_paciente
-      and m.perfil_id = (select auth.uid())
+      and m.perfil_id = (select current_setting('app.current_user_id', true)::uuid)
       and a.vigente_desde <= current_date
       and (a.vigente_hasta is null or a.vigente_hasta >= current_date)
   );
@@ -543,10 +591,11 @@ sistema es una filtración de datos clínicos.
 alter table atenciones enable row level security;
 
 -- El médico solo lee atenciones de pacientes a su cargo.
+-- current_setting(...) reemplaza auth.jwt()/auth.uid() de Supabase — ver ADR-0023.
 create policy "medico lee atenciones de sus pacientes"
 on atenciones for select to authenticated
 using (
-  (select auth.jwt() ->> 'user_role') = 'medico'
+  (select current_setting('app.current_user_role', true)) = 'medico'
   and public.medico_tiene_paciente(paciente_id)
 );
 
@@ -554,9 +603,9 @@ using (
 create policy "medico registra atenciones"
 on atenciones for insert to authenticated
 with check (
-  (select auth.jwt() ->> 'user_role') = 'medico'
+  (select current_setting('app.current_user_role', true)) = 'medico'
   and public.medico_tiene_paciente(paciente_id)
-  and medico_id = (select id from public.medicos where perfil_id = (select auth.uid()))
+  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
 );
 
 -- El administrativo NO lee contenido clínico. Nunca.
@@ -574,15 +623,15 @@ alter table asignaciones_paciente_medico enable row level security;
 -- gestión manual del administrativo (asignarPacienteAMedico).
 create policy "administrativo gestiona asignaciones"
 on asignaciones_paciente_medico for all to authenticated
-using ((select auth.jwt() ->> 'user_role') = 'administrativo')
-with check ((select auth.jwt() ->> 'user_role') = 'administrativo');
+using ((select current_setting('app.current_user_role', true)) = 'administrativo')
+with check ((select current_setting('app.current_user_role', true)) = 'administrativo');
 
 -- El médico solo ve sus propias asignaciones (ej. para un futuro "mis pacientes").
 create policy "medico lee sus propias asignaciones"
 on asignaciones_paciente_medico for select to authenticated
 using (
-  (select auth.jwt() ->> 'user_role') = 'medico'
-  and medico_id = (select id from public.medicos where perfil_id = (select auth.uid()))
+  (select current_setting('app.current_user_role', true)) = 'medico'
+  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
 );
 
 -- El paciente no tiene ninguna política sobre esta tabla.
@@ -594,10 +643,11 @@ alter table notificaciones enable row level security;
 -- Visibilidad de notificaciones fallidas para revisión manual (ADR-0018).
 create policy "administrativo lee notificaciones"
 on notificaciones for select to authenticated
-using ((select auth.jwt() ->> 'user_role') = 'administrativo');
+using ((select current_setting('app.current_user_role', true)) = 'administrativo');
 
--- Ningún otro rol tiene política de lectura. El Worker de cron usa service_role,
--- que omite RLS por diseño (ADR-0001), y es quien inserta/actualiza estas filas.
+-- Ningún otro rol tiene política de lectura. Los Route Handlers de cron usan el rol
+-- de Postgres cron_notificaciones (ADR-0020), con GRANT directo sobre esta tabla —
+-- no pasan por RLS porque no son un usuario autenticado de la aplicación.
 ```
 
 ```sql
@@ -606,14 +656,14 @@ alter table citas enable row level security;
 create policy "paciente ve sus citas"
 on citas for select to authenticated
 using (
-  (select auth.jwt() ->> 'user_role') = 'paciente'
+  (select current_setting('app.current_user_role', true)) = 'paciente'
   and paciente_id = public.paciente_actual()
 );
 
 create policy "paciente reserva su cita"
 on citas for insert to authenticated
 with check (
-  (select auth.jwt() ->> 'user_role') = 'paciente'
+  (select current_setting('app.current_user_role', true)) = 'paciente'
   and paciente_id = public.paciente_actual()
   and origen = 'portal'
   and inicio > now()
@@ -621,20 +671,20 @@ with check (
 
 create policy "administrativo gestiona todas las citas"
 on citas for all to authenticated
-using ((select auth.jwt() ->> 'user_role') = 'administrativo')
-with check ((select auth.jwt() ->> 'user_role') = 'administrativo');
+using ((select current_setting('app.current_user_role', true)) = 'administrativo')
+with check ((select current_setting('app.current_user_role', true)) = 'administrativo');
 
 create policy "medico ve su agenda"
 on citas for select to authenticated
 using (
-  (select auth.jwt() ->> 'user_role') = 'medico'
-  and medico_id = (select id from public.medicos where perfil_id = (select auth.uid()))
+  (select current_setting('app.current_user_role', true)) = 'medico'
+  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
 );
 ```
 
-`(select auth.uid())` y `(select auth.jwt())` van envueltos en subconsulta a propósito: así
-PostgreSQL los evalúa una vez por consulta (InitPlan) en lugar de una vez por fila. En una agenda con
-miles de citas la diferencia es de órdenes de magnitud.
+`(select current_setting(...))` va envuelto en subconsulta a propósito, igual que antes con
+`auth.uid()`/`auth.jwt()`: así PostgreSQL lo evalúa una vez por consulta (InitPlan) en lugar de una
+vez por fila. En una agenda con miles de citas la diferencia es de órdenes de magnitud.
 
 ### Escalada de privilegios
 
@@ -648,7 +698,7 @@ returns trigger language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.rol is distinct from old.rol
-     and coalesce((select auth.jwt() ->> 'user_role'), '') <> 'administrativo' then
+     and coalesce((select current_setting('app.current_user_role', true)), '') <> 'administrativo' then
     raise exception 'No autorizado para cambiar el rol de un usuario' using errcode = '42501';
   end if;
   return new;
@@ -660,20 +710,28 @@ create trigger perfiles_bloquear_rol
   for each row execute function public.bloquear_cambio_de_rol();
 ```
 
+El webhook de Clerk que sincroniza `perfiles` (`user.created`/`user.updated`,
+[ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) corre con un tercer rol de Postgres dedicado
+(`sync_identidad`, `GRANT` solo sobre `perfiles`), distinto de `app_user` y de
+`cron_notificaciones` — ni sujeto a RLS de usuario final ni con alcance sobre historias clínicas.
+Es el único camino, junto con el propio administrativo, que puede escribir `perfiles.rol`.
+
 Las cuentas de personal (administrativo, médico, enfermera) **no se auto-registran**: las crea un
-administrativo por invitación. El registro público solo produce rol `paciente`.
+administrativo por invitación vía la API de Clerk. El registro público solo produce rol
+`paciente`.
 
 ### Controles adicionales
 
 | Control | Implementación |
 |---|---|
-| MFA para personal | TOTP de Supabase Auth, obligatorio para roles no-paciente |
-| Bots en el portal | Cloudflare Turnstile en registro y reserva |
-| Fuerza bruta | Rate limiting de Cloudflare en rutas de auth: 5 intentos / 15 min por IP |
-| Cifrado | TLS en tránsito; cifrado en reposo de Supabase; backups cifrados |
-| Adjuntos clínicos | Supabase Storage con bucket privado y políticas equivalentes a las de `atenciones` |
-| Secretos | Variables de Worker en Cloudflare; ninguna clave en el repositorio |
+| MFA para personal | TOTP de Clerk, obligatorio para roles no-paciente ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) |
+| Bots en el portal | Vercel BotID en registro y reserva ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
+| Fuerza bruta | Upstash Ratelimit en rutas de auth: 5 intentos / 15 min por IP ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
+| Cifrado | TLS en tránsito; cifrado en reposo de Neon; backups (PITR) cifrados |
+| Adjuntos clínicos | Vercel Blob privado, acceso vía URL firmada de corta duración tras verificar `medico_tiene_paciente()` — la Server Action es la autoridad de acceso, no RLS ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
+| Secretos | Variables de entorno de Vercel; ninguna clave en el repositorio |
 | Cabeceras | CSP estricta, HSTS, `X-Frame-Options: DENY` |
+| WAF genérico de borde | No reemplazado 1:1 tras salir de Cloudflare — riesgo aceptado, ver [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) |
 
 ## Reglas de negocio: dónde vive cada una
 
@@ -691,16 +749,19 @@ nunca es el único lugar que impide la violación.
 | Médico sin acceso a pacientes ajenos | Políticas RLS + `medico_tiene_paciente()` | Base de datos |
 | Acceso médico expira automáticamente (6 meses desde la cita) | Trigger `extender_asignacion_por_cita()` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) | Base de datos |
 | Doctor de baja o emergencia: reasignación | `bloqueos_agenda` + flujo de reasignación masiva ([ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md)) | Aplicación |
-| Recordatorio un día antes | Cron Trigger + tabla `notificaciones` | Worker |
+| Recordatorio un día antes | Vercel Cron Job + tabla `notificaciones` ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) | Route Handler |
 
 ### Doble reserva
 
 ```ts
 // lib/citas/reservar.ts
-const { error } = await supabase.from('citas').insert(nuevaCita);
-
-if (error?.code === '23P01') {            // exclusion_violation
-  return { ok: false, mensaje: 'Registro de cita ya agendado' };
+try {
+  await withUserContext((tx) => tx.insert(citas).values(nuevaCita));
+} catch (error) {
+  if (isPostgresError(error, '23P01')) {  // exclusion_violation
+    return { ok: false, mensaje: 'Registro de cita ya agendado' };
+  }
+  throw error;
 }
 ```
 
@@ -735,7 +796,7 @@ begin
         using errcode = 'P0001';
     end if;
     new.cancelada_en  := now();
-    new.cancelada_por := (select auth.uid());
+    new.cancelada_por := (select current_setting('app.current_user_id', true)::uuid);
   end if;
   return new;
 end;
@@ -901,7 +962,8 @@ Sin materialización mientras el volumen lo permita.
 
 1. Al crear una cita, la Server Action inserta una fila en `notificaciones` con
    `tipo='recordatorio_24h'` y `programada_para = inicio - interval '1 day'`.
-2. El Worker de cron corre a las **08:00 America/Lima** (`0 13 * * *` UTC) y toma las
+2. El Vercel Cron Job diario corre a las **08:00 America/Lima** (`0 13 * * *` UTC,
+   [ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) y toma las
    notificaciones pendientes cuya `programada_para` ya pasó **y** cuya cita todavía no ocurrió
    (`citas.inicio > now()`) — la segunda condición evita enviar un "recordatorio" de una cita que
    ya pasó cuando la reserva se hizo con menos de 24h de anticipación
@@ -923,11 +985,15 @@ con menos de 3 intentos, con backoff — mismo mecanismo para las tres, sin lóg
 La unicidad `(cita_id, tipo)` es la garantía de idempotencia: si el cron se ejecuta dos veces o un
 reintento se solapa, el paciente no recibe dos correos.
 
-```toml
-# wrangler.toml
-[triggers]
-crons = ["0 13 * * *", "0 * * * *"]
+```json
+{
+  "crons": [
+    { "path": "/api/cron/recordatorios", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/reintentos",    "schedule": "0 * * * *" }
+  ]
+}
 ```
+*(`vercel.json`, plan Pro — ver [ADR-0025](adrs/0025-notificaciones-cron-vercel.md))*
 
 ### Contenido
 
@@ -953,7 +1019,7 @@ y el objetivo de reducir tiempos de espera se degrada silenciosamente.
 | Disponibilidad | 99.5% en horario de atención de la clínica |
 | Latencia | p95 < 500 ms en carga de agenda y búsqueda de slots |
 | Concurrencia | 50 usuarios simultáneos de personal + picos del portal |
-| Backups | PITR de Supabase (mínimo 7 días) + export diario cifrado a almacenamiento independiente |
+| Backups | PITR de Neon (mínimo 7 días, [ADR-0021](adrs/0021-base-de-datos-neon.md)) + export diario cifrado a almacenamiento independiente |
 | RPO / RTO | RPO ≤ 5 min; RTO ≤ 4 h |
 | Retención de historias clínicas | **Pendiente de definición legal** (ver «Riesgos técnicos abiertos», P-1) |
 | Accesibilidad | WCAG 2.1 AA; objetivos táctiles ≥ 44 px; contraste alto en el portal |
@@ -966,17 +1032,20 @@ y el objetivo de reducir tiempos de espera se degrada silenciosamente.
 
 | Entorno | Base de datos | App |
 |---|---|---|
-| Local | `supabase start` (Docker) | `next dev` |
-| Staging | Branch de Supabase | Worker de preview de Cloudflare |
-| Producción | Proyecto Supabase | Worker de producción |
+| Local | Branch de Neon de desarrollo personal | `next dev` |
+| Staging | Branch de Neon efímero por PR ([ADR-0021](adrs/0021-base-de-datos-neon.md)) | Deployment de preview de Vercel |
+| Producción | Branch principal de Neon | Deployment de producción de Vercel |
 
 ### Pipeline
 
-GitHub Actions en cada PR: typecheck → lint → tests unitarios → `supabase db reset` + pgTAP →
-Playwright contra preview. En merge a `main`: `supabase db push` y `wrangler deploy`.
+GitHub Actions en cada PR: typecheck → lint → tests unitarios → crear branch de Neon efímero →
+`node-pg-migrate up` + pgTAP → Playwright contra el preview de Vercel → destruir el branch al
+cerrar el PR. En merge a `main`: `node-pg-migrate up` contra el branch principal de Neon, luego
+deploy de Vercel ([ADR-0027](adrs/0027-herramienta-de-migraciones.md)).
 
-Las migraciones solo avanzan hacia adelante. Un `supabase db reset` en producción destruye datos
-clínicos: la operación queda bloqueada en CI y prohibida manualmente.
+Las migraciones solo avanzan hacia adelante. Restaurar el branch principal de Neon a un estado
+previo en producción destruye datos clínicos: la operación queda prohibida manualmente, igual que
+`supabase db reset` lo estaba en el diseño original.
 
 ### Pruebas
 
@@ -984,19 +1053,21 @@ clínicos: la operación queda bloqueada en CI y prohibida manualmente.
 equivocado *no* ve el dato:
 
 ```sql
--- supabase/tests/rls_atenciones.test.sql
+-- tests/pgtap/rls_atenciones.test.sql
+-- set_config(...) simula lo que withUserContext() hace en producción (ADR-0023).
 begin;
 select plan(2);
 
-set local role authenticated;
-set local request.jwt.claims to '{"sub":"<uuid-medico-B>","user_role":"medico"}';
+select set_config('app.current_user_id', '<uuid-medico-B>', true);
+select set_config('app.current_user_role', 'medico', true);
 
 select is_empty(
   $$ select 1 from atenciones where paciente_id = '<uuid-paciente-de-medico-A>' $$,
   'Un médico no accede a historias de pacientes que no tiene a cargo'
 );
 
-set local request.jwt.claims to '{"sub":"<uuid-administrativo>","user_role":"administrativo"}';
+select set_config('app.current_user_id', '<uuid-administrativo>', true);
+select set_config('app.current_user_role', 'administrativo', true);
 select is_empty(
   $$ select 1 from atenciones $$,
   'El administrativo no accede a contenido clínico'
@@ -1036,7 +1107,8 @@ Sobre la fase 4: [ADR-0013](adrs/0013-definicion-de-historia-clinica-digitalizad
 "historia digitalizada" como híbrido — se estructuran en el sistema los antecedentes
 ([ADR-0015](adrs/0015-modelo-de-antecedentes-del-paciente.md)) y los diagnósticos activos del
 paciente (los datos que el médico consulta en tiempo real durante una atención), y el resto del
-expediente en papel se adjunta como escaneo (PDF) en Supabase Storage como respaldo. Una historia
+expediente en papel se adjunta como escaneo (PDF) en Vercel Blob
+([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) como respaldo. Una historia
 cuenta como "digitalizada" para el criterio de éxito del 60% cuando tiene al menos un registro
 estructurado de antecedentes o diagnósticos activos (con o sin adjunto de respaldo).
 
@@ -1176,14 +1248,20 @@ pierde información. La fecha de corte la fija la clínica.
   auditoría) basta o se exige firma electrónica certificada, y si alojar datos clínicos fuera de
   Perú es admisible. No se puede cerrar el diseño del módulo de historias clínicas para producción
   ni descartar reabrir
-  [ADR-0002](adrs/0002-base-de-datos-y-autenticacion.md)/[ADR-0001](adrs/0001-arquitectura-de-componentes-y-hosting.md)
-  (hosting) sin resolver esto primero. **Cómo avanzar:** contratar a un abogado especializado en
-  protección de datos de salud/historia clínica electrónica en Perú y llevarle tres preguntas
-  puntuales (plazo de retención exigido, si la firma lógica satisface la norma o exige firma
-  electrónica certificada, si el alojamiento fuera de Perú es admisible para datos clínicos).
-  Mientras se resuelve, el plan de implementación (ver «Plan de implementación sugerido» más abajo)
-  ya aísla esto: todo lo demás (H1-H5, H7) puede construirse y probarse en paralelo; solo H6 no debe
-  entrar en producción con datos reales de pacientes antes de tener respuesta.
+  [ADR-0021](adrs/0021-base-de-datos-neon.md)/[ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)
+  (hosting de la base de datos) sin resolver esto primero. **Cómo avanzar:** contratar a un abogado
+  especializado en protección de datos de salud/historia clínica electrónica en Perú y llevarle
+  tres preguntas puntuales (plazo de retención exigido, si la firma lógica satisface la norma o
+  exige firma electrónica certificada, si el alojamiento fuera de Perú es admisible para datos
+  clínicos — confirmar la región de Neon contratada contra la respuesta). Mientras se resuelve, el
+  plan de implementación (ver «Plan de implementación sugerido» más abajo) ya aísla esto: todo lo
+  demás (H1-H5, H7) puede construirse y probarse en paralelo; solo H6 no debe entrar en producción
+  con datos reales de pacientes antes de tener respuesta.
+  **Nota (2026-09-28):** el cambio a Clerk ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md))
+  agrega una pregunta relacionada pero distinta: Clerk aloja datos de *identidad* (nombre, email,
+  teléfono de pacientes peruanos) fuera de Perú por defecto — no es dato clínico, pero conviene
+  incluirlo en la misma consulta legal si la norma peruana también regula datos personales de
+  pacientes más allá de lo estrictamente clínico.
 - **P-5 (depende de P-1, no resoluble en este documento):** si la firma lógica no es suficiente
   ante la norma peruana, puede requerirse integración con un proveedor de firma electrónica
   certificada (en Perú, un PSC acreditado por INDECOPI, o Firma Perú de RENIEC). **Cómo avanzar
@@ -1236,7 +1314,7 @@ pierde información. La fecha de corte la fija la clínica.
 
 | Hito | Contenido | Depende de |
 |---|---|---|
-| H1 | Esqueleto: Next.js sobre Workers, Supabase, Auth, roles, CI | — |
+| H1 | Esqueleto: Next.js sobre Vercel, Neon, Clerk, roles, CI | — |
 | H2 | Esquema completo + RLS + suite pgTAP | H1 |
 | H3 | Agenda: disponibilidades, slots, reserva con anticruce (panel administrativo) | H2 |
 | H4 | Portal del paciente: registro, búsqueda, reserva, cancelación | H3 |

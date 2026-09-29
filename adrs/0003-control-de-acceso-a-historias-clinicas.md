@@ -48,3 +48,10 @@ partir de una sola cita confirmada/atendida. Se corrigió en
 [ADR-0016](0016-vigencia-de-asignacion-paciente-medico.md): la función ya no tiene esa rama;
 depende únicamente de `asignaciones_paciente_medico`, que ahora vence a los 6 meses salvo
 asignación manual explícita.
+
+**Nota (2026-09-28):** el mecanismo de contexto (`auth.jwt()`/`auth.uid()` de Supabase) que las
+políticas RLS de esta ADR usan para leer el rol y el usuario actual ya no aplica tras el cambio de
+base de datos a Neon — reemplazado en [ADR-0023](0023-contexto-de-usuario-para-rls.md). La lógica
+de negocio de esta ADR (aislamiento por médico a cargo, auditoría de lecturas, bloqueo de escalada
+de rol) sigue vigente sin cambios; solo cambia cómo Postgres recibe esa información en cada
+consulta.

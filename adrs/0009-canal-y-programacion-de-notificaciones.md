@@ -32,3 +32,11 @@ America/Lima envía las pendientes vencidas, y un cron horario reintenta las fal
   75% de autogestión del portal se ve afectado sin que el sistema lo detecte por sí solo. Mitigado
   parcialmente por exigir dominio propio con SPF/DKIM/DMARC verificado, pero no elimina el riesgo
   de que el paciente simplemente no lea el correo.
+
+## Reemplazada (parcialmente)
+
+**(2026-09-28):** Cloudflare Cron Triggers ya no aplica tras el cambio de despliegue a Vercel —
+reemplazado por [ADR-0025](0025-notificaciones-cron-vercel.md) (Vercel Cron Jobs). El canal (email
+vía Resend, tras `lib/notificaciones/proveedor.ts`) y el disparo transaccional de
+[ADR-0017](0017-disparo-de-notificaciones-transaccionales.md) no cambian — solo el motor que
+ejecuta el barrido diario y el reintento horario.

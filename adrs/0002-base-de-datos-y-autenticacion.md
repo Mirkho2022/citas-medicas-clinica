@@ -18,6 +18,14 @@ persona.
 **Supabase** (PostgreSQL 15+, Auth, Storage) como base de datos, autenticación y almacenamiento de
 adjuntos clínicos.
 
+## Reemplazada
+
+**(2026-09-28):** el cliente decidió cambiar de Supabase a Neon. Esta ADR queda como registro
+histórico de la decisión original; las decisiones vigentes están separadas por pieza:
+[ADR-0021](0021-base-de-datos-neon.md) (base de datos), [ADR-0022](0022-autenticacion-y-sesion-clerk.md)
+(autenticación) y [ADR-0024](0024-almacenamiento-de-adjuntos-vercel-blob.md) (almacenamiento) — Neon,
+a diferencia de Supabase, no agrupa las tres en un solo proveedor.
+
 ## Alternativas consideradas
 
 *(agregado retroactivamente el 2026-09-23, a partir de un hallazgo de revisión adversarial: esta
