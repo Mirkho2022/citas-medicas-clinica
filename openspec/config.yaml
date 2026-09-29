@@ -1,32 +1,88 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
+  Reemplaza Excel + Google Forms (citas) y papel (historias clínicas). Estado: sin código de
+  aplicación aún — PRD.md, TECH-DESIGN.md y adrs/ ya existen y son la fuente de verdad. Antes de
+  proponer un cambio, léelos (CLAUDE.md los resume pero no los sustituye).
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Stack decidido (no reabrir): Next.js 15 (App Router) + TypeScript en Vercel, Neon (Postgres
+  serverless) con Neon RLS Authorize (pg_session_jwt + JWT de Clerk) para el contexto de usuario,
+  Clerk (auth/sesión/MFA), Vercel Blob (adjuntos clínicos), Resend + Vercel Cron (notificaciones,
+  solo email). Detalle en TECH-DESIGN.md y ADR 0020-0028.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Roles e invariante central (no reabrir sin pedido del cliente):
+    - Administrativo: agenda/reprograma/cancela citas de cualquier paciente.
+    - Médico: ve sus turnos y citas; registra/consulta historias clínicas SOLO de sus pacientes
+      a cargo (aislamiento por RLS en base de datos, no solo en capa de aplicación).
+    - Enfermera: consulta su turno y con qué médico/servicio trabaja. Nada más.
+    - Paciente: reserva/cancela SU propia cita vía portal de autoservicio. Sin acceso a historias
+      clínicas ni funciones administrativas.
+
+  Reglas de negocio obligatorias:
+    - Doble reserva: constraint en BD (a prueba de concurrencia) + mensaje exacto
+      "Registro de cita ya agendado".
+    - Cancelación: bloqueada dentro de la 1 hora previa a la cita, para TODOS los roles incluido
+      administrativo (ADR-0012). Advertir de esta ventana al momento de reservar.
+    - Historia clínica: nunca con campos vacíos o datos inválidos; los datos que vienen del
+      registro del paciente son de solo lectura desde la historia clínica.
+    - Doctor de baja o emergencia: reasignación de sus citas a otro médico (flujo explícito).
+    - Notificación automática al paciente un día antes de la cita (email vía Resend/cron).
+    - Identificación de paciente: valida DNI y Carné de Extranjería, no solo DNI.
+
+  Decisión abierta que SÍ bloquea (no inventar respuesta, preguntar): marco legal peruano de
+  historia clínica electrónica (NTS del MINSA) — retención, firma electrónica vs. firma lógica,
+  y si los datos clínicos pueden alojarse fuera de Perú. Bloquea producción del módulo de
+  historias clínicas. Lista completa de riesgos abiertos en "Riesgos técnicos abiertos" de
+  TECH-DESIGN.md.
+
+  Fuera de alcance de esta versión — no proponerlo: pagos/facturación en línea, telemedicina,
+  integración con laboratorios o farmacias, inventario, multi-sede, reportes/analítica de BI.
+
+  Convenciones: UI, documentación y mensajes de error en español. Fechas siempre timestamptz en
+  BD, renderizadas en America/Lima. Migraciones en migrations/*.sql (node-pg-migrate), solo hacia
+  adelante, nunca cambios manuales en producción ni restore del branch principal de Neon. Toda
+  tabla nueva en `public` nace con RLS activada y su prueba pgTAP negativa (rol equivocado no ve
+  el dato).
+
+  Hoja de ruta sugerida (TECH-DESIGN.md, "Plan de implementación sugerido") — úsala para
+  secuenciar los changes salvo que el cliente pida otro orden:
+    H1 esqueleto (Next.js/Vercel/Neon/Clerk/roles/CI) → H2 esquema + RLS + pgTAP → H3 agenda y
+    reserva (panel administrativo) → H4 portal del paciente → H5 notificaciones → H6 historias
+    clínicas (bloqueado por la decisión legal) → H7 turnos de enfermería y dashboard → H8
+    migración de datos y capacitación.
+
+rules:
+  proposal:
+    - Indicar a qué hito (H1-H8) de TECH-DESIGN.md corresponde el cambio, o justificar por qué
+      queda fuera de esa secuencia.
+    - Si el cambio toca acceso a historias clínicas o RLS, decirlo explícitamente en el
+      proposal — es el riesgo principal declarado del proyecto y merece revisión aparte.
+    - Si el cambio depende de la decisión legal peruana aún abierta (historia clínica), decirlo
+      y dejar claro que no puede pasar a producción hasta resolverse.
+    - Referenciar el/los ADR relevantes si la decisión de diseño ya está tomada; si el cambio
+      requiere una decisión de arquitectura nueva, no la decidas dentro del proposal — créala
+      como ADR aparte (skill `architecture`) y linkéala.
+  specs:
+    - Redactar en español, igual que PRD.md, TECH-DESIGN.md y los ADR.
+    - Todo requisito que dependa de RLS debe incluir explícitamente el caso negativo (qué rol NO
+      debe poder ver el dato).
+  tasks:
+    - Toda tabla nueva en el esquema `public` incluye como tarea explícita su prueba pgTAP
+      negativa, no solo la migración.
+    - Las migraciones son archivos nuevos en migrations/*.sql; nunca editar una migración ya
+      aplicada.
+
+operations:
+  apply:
+    guidance:
+      - No implementar el módulo de historias clínicas en modo apto para producción mientras la
+        decisión legal (NTS MINSA) siga abierta; si se construye en paralelo, dejarlo detrás de
+        un entorno/flag que impida datos clínicos reales.
+      - Antes de cerrar una tarea que crea una tabla nueva, confirmar que RLS quedó activada y
+        que existe su prueba pgTAP negativa.
+  archive:
+    guidance:
+      - Al sincronizar specs, verificar que no contradigan CLAUDE.md ni los ADR vigentes; si el
+        cambio reabre algo ya decidido, marcarlo para revisión humana en vez de sobreescribirlo
+        en silencio.
