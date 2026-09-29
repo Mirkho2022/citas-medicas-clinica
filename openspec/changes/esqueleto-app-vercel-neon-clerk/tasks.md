@@ -4,7 +4,7 @@
 
 - [x] 1.1 Crear el proyecto Next.js 15 (App Router) + TypeScript con lint y typecheck
       configurados; verificar con `npm run build` y `npm run lint` sin errores.
-- [ ] 1.2 Crear el proyecto en Vercel enlazado al repositorio y desplegar el scaffold inicial;
+- [x] 1.2 Crear el proyecto en Vercel enlazado al repositorio y desplegar el scaffold inicial;
       verificar que la URL de producción responde 200 en `/`.
 - [ ] 1.3 Crear el proyecto en Neon (sin tablas) para desarrollo, con `DATABASE_URL` configurada
       en local y en Vercel; verificar conectando desde `next dev`.
@@ -56,7 +56,7 @@
 
 ## 6. Pipeline de CI
 
-- [ ] 6.1 Configurar el workflow de GitHub Actions para pull requests: typecheck → lint → build;
+- [x] 6.1 Configurar el workflow de GitHub Actions para pull requests: typecheck → lint → build;
       verificar que corre en un PR de prueba y falla si se introduce un error de tipos
       deliberado.
 - [ ] 6.2 Agregar el paso de branch efímero de Neon por PR con `node-pg-migrate up` (sin
