@@ -2,13 +2,13 @@
 
 ## Estado
 
-Aceptado — a partir de un hallazgo de revisión adversarial del diseño sobre
-[ADR-0009](0009-canal-y-programacion-de-notificaciones.md).
+Aceptado — a partir de un hallazgo de revisión adversarial del diseño sobre la decisión original de
+canal y programación de notificaciones (ver `git log` — ese ADR ya no se mantiene como activo).
 
 ## Contexto
 
 `notificaciones.tipo` incluye `'recordatorio_24h'`, `'confirmacion_reserva'` y `'cancelacion'`,
-pero el «Flujo» descrito en [ADR-0009](0009-canal-y-programacion-de-notificaciones.md) y en
+pero el «Flujo» descrito originalmente y en
 [TECH-DESIGN.md](../TECH-DESIGN.md) solo detalla la programación de `recordatorio_24h`
 (`programada_para = inicio - 1 día`, barrido por el cron diario de las 08:00). No queda
 especificado cómo se disparan `confirmacion_reserva` y `cancelacion` — si dependieran del mismo
@@ -31,7 +31,7 @@ hay guarda que evite enviar un "recordatorio" de una cita que ya pasó.
 - Cada intento (síncrono o no) deja una fila en `notificaciones`, para mantener un solo lugar de
   historial y reutilizar la infraestructura de reintento que ya existe:
   - `recordatorio_24h`: se inserta como `pendiente` con `programada_para = inicio - 1 día` — sin
-    cambios respecto a ADR-0009, la sigue enviando el cron diario.
+    cambios respecto al diseño original, la sigue enviando el cron diario.
   - `confirmacion_reserva` / `cancelacion`: se insertan **después** de intentar el envío síncrono,
     con `programada_para = now()` y el `estado` ya resuelto — `'enviada'` (con `proveedor_id`) si
     el envío tuvo éxito, o `'fallida'` (con `error`, `intentos = 1`) si no. Nunca se insertan como
@@ -59,7 +59,7 @@ where n.tipo = 'recordatorio_24h'
 ## Consecuencias
 
 - El paciente recibe la confirmación de su reserva y el aviso de cancelación de forma inmediata,
-  no en el siguiente barrido de cron — cierra la ambigüedad que dejaba ADR-0009.
+  no en el siguiente barrido de cron — cierra la ambigüedad que dejaba el diseño original.
 - Un fallo de Resend en el envío síncrono no bloquea ni revierte la operación de negocio, y se
   recupera solo vía el mismo reintento horario que ya cubre `recordatorio_24h` — no se duplica
   lógica de reintento.

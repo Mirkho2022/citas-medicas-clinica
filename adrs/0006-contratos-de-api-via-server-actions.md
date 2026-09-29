@@ -6,7 +6,7 @@ Aceptado
 
 ## Contexto
 
-Con un único componente desplegable ([ADR 0001](0001-arquitectura-de-componentes-y-hosting.md)),
+Con un único componente desplegable ([ADR 0020](0020-arquitectura-de-componentes-y-hosting-vercel.md)),
 no hay dos servicios independientes que necesiten un contrato de red entre sí. Aun así, hace falta
 definir cómo el cliente (formularios, portal) invoca mutaciones — reservar, cancelar, registrar
 una atención — de forma que la validación de servidor sea siempre la autoridad y que ningún error

@@ -30,10 +30,11 @@ alter table notificaciones enable row level security;
 
 create policy "administrativo lee notificaciones"
 on notificaciones for select to authenticated
-using ((select auth.jwt() ->> 'user_role') = 'administrativo');
+using ((select auth.session() ->> 'rol') = 'administrativo');
 
--- Ningún otro rol tiene política de lectura. El Worker de cron usa service_role,
--- que omite RLS por diseño (ADR-0001), y es quien inserta/actualiza estas filas.
+-- Ningún otro rol tiene política de lectura. Los Route Handlers de cron usan el rol
+-- de Postgres cron_notificaciones (ver ADR-0020), con GRANT directo sobre esta tabla —
+-- no pasan por RLS porque no son un usuario autenticado de la aplicación.
 ```
 
 ## Consecuencias

@@ -2,9 +2,8 @@
 
 ## Estado
 
-Aceptado — reemplaza la parte de base de datos de
-[ADR-0002](0002-base-de-datos-y-autenticacion.md), a partir de un cambio de stack decidido por el
-cliente.
+Aceptado — reemplaza la decisión original de base de datos (Supabase, ver `git log` — el ADR que la
+registraba ya no se mantiene como activo), a partir de un cambio de stack decidido por el cliente.
 
 ## Contexto
 

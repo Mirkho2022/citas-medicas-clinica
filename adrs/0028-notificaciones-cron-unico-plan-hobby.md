@@ -2,16 +2,16 @@
 
 ## Estado
 
-Aceptado — reemplaza [ADR-0025](0025-notificaciones-cron-vercel.md), a partir de una corrección de
-alcance del cliente: el proyecto es un MVP académico, no un despliegue de producción para la
-clínica, y no debe requerir un plan de pago de Vercel.
+Aceptado — a partir de una corrección de alcance del cliente: el proyecto es un MVP académico, no
+un despliegue de producción para la clínica, y no debe requerir un plan de pago de Vercel.
 
 ## Contexto
 
-[ADR-0025](0025-notificaciones-cron-vercel.md) exigía plan Pro de Vercel específicamente porque el
-diseño necesitaba dos frecuencias de cron (diaria a las 08:00 para recordatorios, horaria para
-reintentos) — el plan Hobby limita los *cron jobs* a una ejecución diaria. Para un MVP de clase, esa
-exigencia de plan de pago ya no es proporcional al alcance real del proyecto.
+Un diseño anterior (ver `git log` — ese ADR ya no se mantiene como activo) exigía plan Pro de
+Vercel específicamente porque necesitaba dos frecuencias de cron (diaria a las 08:00 para
+recordatorios, horaria para reintentos) — el plan Hobby limita los *cron jobs* a una ejecución
+diaria. Para un MVP de clase, esa exigencia de plan de pago no es proporcional al alcance real del
+proyecto.
 
 ## Decisión
 
@@ -50,7 +50,7 @@ cancelación, guarda contra recordatorios vencidos) no cambia.
   MVP de clase: agrega una cuenta/proveedor más (con su propia curva de configuración) solo para
   conservar una cadencia de reintento que, a esta escala, no aporta un beneficio observable frente
   a un reintento diario.
-- **Plan Pro de Vercel de todas formas** — la opción original de ADR-0025. Se descartó porque el
+- **Plan Pro de Vercel de todas formas** — la opción del diseño anterior. Se descartó porque el
   cliente confirmó explícitamente que no necesita ni quiere una cuenta de pago para este proyecto.
 
 ## Consecuencias
@@ -60,8 +60,7 @@ cancelación, guarda contra recordatorios vencidos) no cambia.
 - **Trade-off:** el reintento de una notificación fallida pasa de cadencia horaria a diaria — si el
   primer envío de Resend falla, el paciente puede esperar hasta ~24h (en vez de ~1h) para el
   reintento automático. Aceptable para un MVP de clase; si este proyecto pasara a producción real
-  para la clínica, este es exactamente el punto a reconsiderar junto con el plan Pro
-  ([ADR-0025](0025-notificaciones-cron-vercel.md) queda documentada para ese escenario).
+  para la clínica, este es exactamente el punto a reconsiderar junto con el plan Pro.
 - La descripción de "reintento horario" en [ADR-0008](0008-resiliencia-y-manejo-de-errores.md)
   queda desactualizada para el alcance de MVP — la lógica de reintento (contador `intentos`,
   backoff, tope de 3 intentos) no cambia, solo la frecuencia con la que se ejecuta.

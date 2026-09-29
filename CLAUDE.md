@@ -14,17 +14,17 @@ sustituye.
 Next.js 15 (App Router) + TypeScript sobre **Vercel** (target nativo, sin adaptador), con **Neon**
 (PostgreSQL serverless) como base de datos, **Clerk** para autenticación/sesión/MFA y **Vercel
 Blob** para adjuntos clínicos. Notificaciones **solo por email** vía Resend, disparadas por Vercel
-Cron Jobs. Detalle completo y justificación en TECH-DESIGN.md y en los ADR 0020–0027 (reemplazan
-el stack original sobre Cloudflare Workers + Supabase, registrado en ADR-0001, 0002, 0007 y 0009
-como histórico).
+Cron Jobs. Detalle completo y justificación en TECH-DESIGN.md y en los ADR 0020–0028. Solo se
+mantienen como ADRs activos los que describen el stack vigente — el diseño pasó antes por
+Cloudflare Workers + Supabase; ese historial vive en `git log`, no en ADRs sueltos.
 
 No existe un equivalente directo a `service_role` de Supabase: el aislamiento de la credencial con
 más alcance se hace por rol de Postgres (`cron_notificaciones`, `GRANT` mínimo solo sobre
 `notificaciones`/`citas`), usado solo en los Route Handlers de cron y en CI — nunca en el código
-que sirve tráfico de usuario. El contexto de usuario para RLS (rol, ID) ya no llega vía
-`auth.jwt()`/`auth.uid()` de Supabase, sino por `SET LOCAL` a través de un único wrapper de acceso
-a datos (ver [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)) — ningún código debe consultar
-Postgres sin pasar por ese wrapper.
+que sirve tráfico de usuario. El contexto de usuario para RLS (rol, ID) llega vía Neon RLS
+Authorize (`pg_session_jwt` + JWT de Clerk, funciones `auth.user_id()`/`auth.session()` — ver
+[ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)) — ninguna consulta autenticada debe abrirse
+sin el `authToken` de la sesión de Clerk adjunto.
 
 ## Decisiones aún abiertas (no las inventes: pregunta)
 

@@ -2,9 +2,9 @@
 
 ## Estado
 
-Aceptado — reemplaza la parte de autenticación de
-[ADR-0002](0002-base-de-datos-y-autenticacion.md) y todo [ADR-0007](0007-manejo-de-estado-y-sesion.md),
-a partir de un cambio de stack decidido por el cliente.
+Aceptado — reemplaza las decisiones originales de autenticación (Supabase Auth) y de sesión
+(`@supabase/ssr`) — ver `git log`, esos ADR ya no se mantienen como activos — a partir de un cambio
+de stack decidido por el cliente.
 
 ## Contexto
 
@@ -35,7 +35,7 @@ ya lo resuelva.
   la API de Clerk en cada consulta.
 - Sesión: cookies gestionadas por el middleware de `@clerk/nextjs`. Cada grupo de rutas sigue
   verificando el rol en servidor para redirigir (usabilidad, no seguridad — la autoridad real sigue
-  siendo RLS, sin cambios respecto al principio de ADR-0007 original).
+  siendo RLS, sin cambios respecto al principio del diseño original).
 - Revocar acceso de un usuario (ej. un médico que deja la clínica): se usa la API de Clerk para
   banear/cerrar sesión (`clerkClient.users.banUser` + invalidar sesiones activas), reemplazando
   `auth.admin.signOut` de Supabase.

@@ -2,12 +2,13 @@
 
 ## Estado
 
-Aceptado — reemplaza [ADR-0001](0001-arquitectura-de-componentes-y-hosting.md), a partir de un
-cambio de stack decidido por el cliente (despliegue en Vercel en vez de Cloudflare Workers).
+Aceptado — reemplaza la decisión original de hosting (ver `git log` — ese ADR ya no se mantiene
+como activo), a partir de un cambio de stack decidido por el cliente (despliegue en Vercel en vez
+de Cloudflare Workers).
 
 ## Contexto
 
-[ADR-0001](0001-arquitectura-de-componentes-y-hosting.md) resolvía dos problemas a la vez: dónde
+La decisión original resolvía dos problemas a la vez: dónde
 corren las cuatro superficies de la aplicación, y cómo aislar la clave `service_role` de Supabase
 (que bypasea RLS) del tráfico de usuario — con un segundo Worker de Cloudflare dedicado solo al
 cron. Con el cambio de stack (base de datos Neon, sin Supabase), ya no existe el concepto de
@@ -25,7 +26,7 @@ más alcance ya no se hace separando procesos/despliegues, sino separando **role
 - `app_user` — el rol que usa la aplicación para servir tráfico de usuario. Sujeto a RLS en todas
   las tablas de `public`, sin excepción.
 - `cron_notificaciones` — el rol que usan los Route Handlers de cron
-  ([ADR-0025](0025-notificaciones-cron-vercel.md)). Tiene `GRANT` explícito y mínimo solo sobre
+  ([ADR-0028](0028-notificaciones-cron-unico-plan-hobby.md)). Tiene `GRANT` explícito y mínimo solo sobre
   `notificaciones` (lectura/escritura completa) y `citas` (solo lectura, para el join que verifica
   si la cita ya ocurrió) — **no** tiene ningún privilegio sobre `atenciones`, `antecedentes` ni
   `accesos_historia`. No bypasea RLS de forma general como hacía `service_role`; simplemente no
@@ -48,7 +49,8 @@ Vercel (proyecto único)
   de entorno compartidas sin necesidad: el aislamiento por rol de Postgres (GRANTs mínimos) da la
   misma garantía de fondo — que el cron no pueda leer historias clínicas — sin ese costo operativo.
 - **Un solo proyecto sin separar credenciales** (la app y el cron usan el mismo rol de Postgres) —
-  es lo más simple de configurar, pero repite exactamente el riesgo que ADR-0001 buscaba evitar: si
+  es lo más simple de configurar, pero repite exactamente el riesgo que la decisión original de
+  hosting buscaba evitar: si
   el rol único tiene que poder escribir `notificaciones` para cualquier paciente, ese mismo alcance
   queda disponible a cualquier código que corra en el proceso de la aplicación, incluida una
   vulnerabilidad de inyección en una Server Action.

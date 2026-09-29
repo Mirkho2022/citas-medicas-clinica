@@ -37,11 +37,9 @@ principal declarado del proyecto y toda la arquitectura se ordena alrededor de �
 
 ## Arquitectura de componentes
 
-**Stack revisado el 2026-09-28** — el cliente cambió el despliegue de Cloudflare Workers a Vercel
-y la base de datos de Supabase a Neon. Ver [ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)
-a [ADR-0027](adrs/0027-herramienta-de-migraciones.md) para el detalle de cada pieza reemplazada;
-ADR-0001, 0002, 0007 y 0009 quedan como registro histórico de las decisiones originales, con una
-nota de reemplazo al final de cada uno.
+**Stack vigente** (Vercel + Neon + Clerk) — decisiones registradas en ADR-0020 a 0028. El diseño
+pasó antes por Cloudflare Workers + Supabase; ese historial vive en `git log`, no en ADRs activos,
+para mantener el conjunto de ADRs alineado con lo que realmente se va a construir.
 
 - **Proyecto Vercel** (Next.js 15 App Router, sin adaptador — Vercel es el target nativo de
   Next.js): sirve las cuatro superficies — portal de autoservicio del paciente, panel
@@ -79,7 +77,7 @@ nota de reemplazo al final de cada uno.
      │  - rol Postgres: app_user        │        │  rol: cron_notif. │
      └────────┬─────────────────────────┘        └────────┬──────────┘
               │ driver serverless de Neon                 │ driver serverless
-              │ (RLS aplicada, contexto vía SET LOCAL)     │ (sin RLS, GRANT mínimo)
+              │ (RLS + Neon RLS Authorize/Clerk)          │ (sin RLS, GRANT mínimo)
      ┌────────▼───────────────────────────────────────────▼─────────┐
      │  Neon — PostgreSQL (RLS, branching, PITR)                     │
      └───────────────────────────────────────────────────────────────┘
@@ -118,15 +116,11 @@ sistema existente).
 
 | # | Decisión | Estado |
 |---|---|---|
-| [ADR-0001](adrs/0001-arquitectura-de-componentes-y-hosting.md) | Arquitectura de componentes y hosting (Cloudflare) | Reemplazado por ADR-0020 |
-| [ADR-0002](adrs/0002-base-de-datos-y-autenticacion.md) | Base de datos y autenticación (Supabase) | Reemplazado por ADR-0021, 0022, 0024 |
-| [ADR-0003](adrs/0003-control-de-acceso-a-historias-clinicas.md) | Control de acceso a historias clínicas (RLS + rol en JWT) | Aceptado (mecanismo de contexto reemplazado por ADR-0023) |
+| [ADR-0003](adrs/0003-control-de-acceso-a-historias-clinicas.md) | Control de acceso a historias clínicas (RLS) | Aceptado |
 | [ADR-0004](adrs/0004-stack-de-frontend-y-validacion.md) | Stack de frontend y validación | Aceptado |
 | [ADR-0005](adrs/0005-modelo-de-datos-y-prevencion-de-doble-reserva.md) | Modelo de datos y prevención de doble reserva | Aceptado |
 | [ADR-0006](adrs/0006-contratos-de-api-via-server-actions.md) | Contratos de API vía Server Actions | Aceptado |
-| [ADR-0007](adrs/0007-manejo-de-estado-y-sesion.md) | Manejo de estado y sesión (Supabase) | Reemplazado por ADR-0022 |
 | [ADR-0008](adrs/0008-resiliencia-y-manejo-de-errores.md) | Resiliencia y manejo de errores | Aceptado |
-| [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md) | Canal y programación de notificaciones (Cloudflare Cron) | Aceptado (programación reemplazada por ADR-0028) |
 | [ADR-0010](adrs/0010-calculo-de-disponibilidad-de-slots.md) | Cálculo de disponibilidad de slots | Aceptado |
 | [ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md) | Reasignación de citas por baja médica | Aceptado |
 | [ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md) | Alcance de la ventana de cancelación de 1 hora | Aceptado |
@@ -140,41 +134,35 @@ sistema existente).
 | [ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md) | Arquitectura de componentes y hosting en Vercel | Aceptado |
 | [ADR-0021](adrs/0021-base-de-datos-neon.md) | Base de datos: Neon | Aceptado |
 | [ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md) | Autenticación y sesión: Clerk | Aceptado |
-| [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md) | Contexto de usuario para RLS sin helpers de Supabase | Aceptado |
+| [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md) | Contexto de usuario para RLS: Neon RLS (Clerk) | Aceptado |
 | [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) | Almacenamiento de adjuntos clínicos: Vercel Blob | Aceptado |
-| [ADR-0025](adrs/0025-notificaciones-cron-vercel.md) | Notificaciones: cron en Vercel Cron Jobs (plan Pro) | Reemplazado por ADR-0028 |
-| [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md) | Notificaciones: un solo cron diario (plan Hobby) | Aceptado |
 | [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) | Controles de borde: anti-bots y rate limiting | Aceptado |
 | [ADR-0027](adrs/0027-herramienta-de-migraciones.md) | Herramienta de migraciones: node-pg-migrate | Aceptado |
+| [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md) | Notificaciones: un solo cron diario (plan Hobby) | Aceptado |
 
-Los ADR 0001–0011 registran las decisiones de arquitectura base del proyecto (hosting, base de
-datos, control de acceso, stack de frontend, modelo de datos, contratos de API, estado y sesión,
-resiliencia, notificaciones, disponibilidad y reasignación por baja médica). Los ADR 0012–0014
-resuelven, con decisión explícita del cliente, tres puntos que quedaban abiertos en el diseño
-inicial: el alcance por rol de la ventana de cancelación, la definición operativa de "historia
-clínica digitalizada" y la fuente del catálogo CIE-10. El ADR 0015 resuelve una brecha de modelo de
-datos detectada al combinar 0012–0014 entre sí (ver «Riesgos técnicos abiertos»). Los ADR 0016–0019
-cierran los hallazgos de una revisión adversarial del diseño: vigencia del acceso a historias
-clínicas (0016), disparo y guarda de notificaciones (0017), visibilidad de notificaciones fallidas
-(0018), y formalización de la migración de datos (0019). ADR-0001, ADR-0002 y ADR-0012 recibieron
-además enmiendas menores de esa misma revisión (alternativas consideradas y un riesgo residual
-documentado, respectivamente), sin cambiar la decisión original.
+Solo se listan los ADR vigentes — los que describen lo que realmente se va a construir. El diseño
+pasó antes por un stack distinto (Cloudflare Workers + Supabase, con planes de pago de Vercel para
+el cron); esas decisiones descartadas no se mantienen como ADRs activos, pero siguen accesibles en
+el historial de git (`git log --all -- adrs/`) para quien necesite el porqué de un número salteado
+en la numeración.
 
-**Cambio de stack (2026-09-28):** el cliente decidió reemplazar Cloudflare Workers por Vercel y
-Supabase por Neon. Los ADR 0020–0027 registran cada pieza reemplazada (hosting, base de datos,
-autenticación, contexto de RLS, almacenamiento, cron, controles de borde, migraciones) con sus
-propias alternativas consideradas. Los ADR 0001, 0002, 0007 y 0009 quedan como registro histórico
-de las decisiones originales — cada uno tiene una nota de reemplazo al final apuntando al ADR
-vigente. ADR-0003 (control de acceso a historias clínicas) **no** se reemplaza: su lógica de
-negocio sigue vigente sin cambios; solo el mecanismo de transporte del contexto de usuario cambia
-(ADR-0023). Lo mismo aplica a ADR-0009: el canal (Resend) no cambia, solo el motor de cron.
+Los ADR 0003–0006, 0008 y 0010–0011 registran las decisiones de arquitectura base del proyecto que
+no dependen del proveedor de hosting/base de datos (control de acceso, stack de frontend, modelo de
+datos, contratos de API, resiliencia, disponibilidad, reasignación por baja médica). Los ADR
+0012–0014 resuelven, con decisión explícita del cliente, tres puntos que quedaban abiertos en el
+diseño inicial: el alcance por rol de la ventana de cancelación, la definición operativa de
+"historia clínica digitalizada" y la fuente del catálogo CIE-10. El ADR 0015 resuelve una brecha de
+modelo de datos detectada al combinar 0012–0014 entre sí (ver «Riesgos técnicos abiertos»). Los ADR
+0016–0019 cierran los hallazgos de una revisión adversarial del diseño: vigencia del acceso a
+historias clínicas (0016), disparo y guarda de notificaciones (0017), visibilidad de notificaciones
+fallidas (0018), y formalización de la migración de datos (0019).
 
-**Corrección de alcance (2026-09-28):** el cliente aclaró que este proyecto es un MVP académico, no
-un despliegue de producción para la clínica — no requiere planes de pago. ADR-0025 (que exigía plan
-Pro de Vercel) queda reemplazada por [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)
-(un solo cron diario, plan Hobby). El resto del stack (Neon, Clerk, Vercel Blob, Upstash) opera
-dentro de niveles gratuitos sin necesitar una decisión adicional — ver «Riesgos técnicos abiertos»
-para el único punto de atención que queda (retención de PITR en Neon).
+Los ADR 0020–0028 registran el stack de infraestructura vigente (Vercel + Neon + Clerk): hosting,
+base de datos, autenticación, contexto de RLS, almacenamiento, cron, controles de borde y
+migraciones, cada uno con sus propias alternativas consideradas. ADR-0028 (un solo cron diario, sin
+plan de pago) refleja que este proyecto es un MVP académico, no un despliegue de producción para la
+clínica. ADR-0023 pasó por su propia revisión: la primera versión proponía un mecanismo casero
+(`SET LOCAL`); la vigente usa la integración nativa de Neon con Clerk (`pg_session_jwt`).
 
 ## Modelo de datos
 
@@ -530,25 +518,25 @@ escribe desde la Server Action que abre una historia clínica.
 ### Rol en el token y contexto de usuario en Postgres
 
 El rol se guarda en `publicMetadata.rol` del usuario de Clerk y se expone en `sessionClaims`
-mediante un JWT template de Clerk — el equivalente funcional del *custom access token hook* de
-Supabase ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)). Neon no tiene `auth.jwt()`/
-`auth.uid()`: cada transacción recibe el contexto vía `SET LOCAL`, poblado por un único wrapper de
-acceso a datos que ningún código puede evitar ([ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)):
+mediante un JWT template de Clerk. Neon valida ese JWT **dentro de la base de datos** vía **Neon
+RLS Authorize** (extensión `pg_session_jwt`, configurada una vez en la consola de Neon con la JWKS
+de Clerk) — sin `auth.jwt()`/`auth.uid()` de Supabase, pero con un reemplazo casi directo:
+`auth.user_id()` (el `sub` del JWT) y `auth.session()` (claims completos) ver
+[ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md).
 
 ```ts
-// lib/db/with-user-context.ts — único punto de entrada a la base de datos.
-export async function withUserContext<T>(
-  callback: (tx: Transaction) => Promise<T>
-): Promise<T> {
-  const { userId, sessionClaims } = auth(); // Clerk
-  return db.transaction(async (tx) => {
-    const perfilId = await perfilIdParaUsuarioClerk(tx, userId);
-    await tx.execute(sql`select set_config('app.current_user_id', ${perfilId}, true)`);
-    await tx.execute(sql`select set_config('app.current_user_role', ${sessionClaims.rol}, true)`);
-    return callback(tx);
-  });
+// lib/db/cliente-autenticado.ts — conveniencia de código, no el límite de seguridad:
+// la verificación del JWT ocurre dentro de Postgres, no en este helper.
+export async function clienteAutenticado() {
+  const { getToken } = auth(); // Clerk
+  const authToken = await getToken();
+  return neon(process.env.DATABASE_AUTHENTICATED_URL!, { authToken });
 }
 ```
+
+`auth.user_id()` da el ID de Clerk (texto), no el `perfiles.id` interno (uuid) que el resto del
+esquema referencia — de ahí `perfil_actual()`/`paciente_actual()`/`medico_actual()` en «Funciones de
+apoyo» más abajo.
 
 Consecuencia operativa: un cambio de rol **no surte efecto hasta que la sesión de Clerk se
 refresca**. Al desactivar o degradar a un usuario hay que revocar sus sesiones activas vía la API
@@ -557,20 +545,24 @@ de Clerk (`banUser`/revocar sesiones), no solo actualizar la fila en `perfiles`.
 ### Funciones de apoyo
 
 ```sql
+-- Resuelve el perfil interno (uuid) a partir del ID de Clerk (auth.user_id(), texto) — ver ADR-0023.
+create or replace function public.perfil_actual()
+returns uuid language sql stable security definer set search_path = ''
+as $$ select pf.id from public.perfiles pf where pf.clerk_user_id = auth.user_id(); $$;
+
 -- Paciente correspondiente al usuario autenticado.
--- current_setting(..., true) devuelve NULL en vez de error si no se pobló (ADR-0023).
 create or replace function public.paciente_actual()
-returns uuid
-language sql stable security definer set search_path = ''
-as $$
-  select p.id from public.pacientes p
-  where p.perfil_id = (select current_setting('app.current_user_id', true)::uuid);
-$$;
+returns uuid language sql stable security definer set search_path = ''
+as $$ select p.id from public.pacientes p where p.perfil_id = public.perfil_actual(); $$;
+
+-- Médico correspondiente al usuario autenticado.
+create or replace function public.medico_actual()
+returns uuid language sql stable security definer set search_path = ''
+as $$ select m.id from public.medicos m where m.perfil_id = public.perfil_actual(); $$;
 
 -- ¿El médico autenticado tiene a este paciente a su cargo?
 -- Única fuente: asignaciones_paciente_medico, vigente. Se elimina la rama directa
 -- sobre citas (sin expiración) que tenía el diseño original — ver ADR-0016.
--- current_user_id viene del contexto poblado por withUserContext() — ver ADR-0023.
 create or replace function public.medico_tiene_paciente(p_paciente uuid)
 returns boolean
 language sql stable security definer set search_path = ''
@@ -578,9 +570,8 @@ as $$
   select exists (
     select 1
     from public.asignaciones_paciente_medico a
-    join public.medicos m on m.id = a.medico_id
     where a.paciente_id = p_paciente
-      and m.perfil_id = (select current_setting('app.current_user_id', true)::uuid)
+      and a.medico_id = public.medico_actual()
       and a.vigente_desde <= current_date
       and (a.vigente_hasta is null or a.vigente_hasta >= current_date)
   );
@@ -599,11 +590,11 @@ sistema es una filtración de datos clínicos.
 alter table atenciones enable row level security;
 
 -- El médico solo lee atenciones de pacientes a su cargo.
--- current_setting(...) reemplaza auth.jwt()/auth.uid() de Supabase — ver ADR-0023.
+-- auth.session() (Neon RLS Authorize / pg_session_jwt) reemplaza auth.jwt() de Supabase — ADR-0023.
 create policy "medico lee atenciones de sus pacientes"
 on atenciones for select to authenticated
 using (
-  (select current_setting('app.current_user_role', true)) = 'medico'
+  (select auth.session() ->> 'rol') = 'medico'
   and public.medico_tiene_paciente(paciente_id)
 );
 
@@ -611,9 +602,9 @@ using (
 create policy "medico registra atenciones"
 on atenciones for insert to authenticated
 with check (
-  (select current_setting('app.current_user_role', true)) = 'medico'
+  (select auth.session() ->> 'rol') = 'medico'
   and public.medico_tiene_paciente(paciente_id)
-  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
+  and medico_id = public.medico_actual()
 );
 
 -- El administrativo NO lee contenido clínico. Nunca.
@@ -631,15 +622,15 @@ alter table asignaciones_paciente_medico enable row level security;
 -- gestión manual del administrativo (asignarPacienteAMedico).
 create policy "administrativo gestiona asignaciones"
 on asignaciones_paciente_medico for all to authenticated
-using ((select current_setting('app.current_user_role', true)) = 'administrativo')
-with check ((select current_setting('app.current_user_role', true)) = 'administrativo');
+using ((select auth.session() ->> 'rol') = 'administrativo')
+with check ((select auth.session() ->> 'rol') = 'administrativo');
 
 -- El médico solo ve sus propias asignaciones (ej. para un futuro "mis pacientes").
 create policy "medico lee sus propias asignaciones"
 on asignaciones_paciente_medico for select to authenticated
 using (
-  (select current_setting('app.current_user_role', true)) = 'medico'
-  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
+  (select auth.session() ->> 'rol') = 'medico'
+  and medico_id = public.medico_actual()
 );
 
 -- El paciente no tiene ninguna política sobre esta tabla.
@@ -651,7 +642,7 @@ alter table notificaciones enable row level security;
 -- Visibilidad de notificaciones fallidas para revisión manual (ADR-0018).
 create policy "administrativo lee notificaciones"
 on notificaciones for select to authenticated
-using ((select current_setting('app.current_user_role', true)) = 'administrativo');
+using ((select auth.session() ->> 'rol') = 'administrativo');
 
 -- Ningún otro rol tiene política de lectura. Los Route Handlers de cron usan el rol
 -- de Postgres cron_notificaciones (ADR-0020), con GRANT directo sobre esta tabla —
@@ -664,14 +655,14 @@ alter table citas enable row level security;
 create policy "paciente ve sus citas"
 on citas for select to authenticated
 using (
-  (select current_setting('app.current_user_role', true)) = 'paciente'
+  (select auth.session() ->> 'rol') = 'paciente'
   and paciente_id = public.paciente_actual()
 );
 
 create policy "paciente reserva su cita"
 on citas for insert to authenticated
 with check (
-  (select current_setting('app.current_user_role', true)) = 'paciente'
+  (select auth.session() ->> 'rol') = 'paciente'
   and paciente_id = public.paciente_actual()
   and origen = 'portal'
   and inicio > now()
@@ -679,20 +670,21 @@ with check (
 
 create policy "administrativo gestiona todas las citas"
 on citas for all to authenticated
-using ((select current_setting('app.current_user_role', true)) = 'administrativo')
-with check ((select current_setting('app.current_user_role', true)) = 'administrativo');
+using ((select auth.session() ->> 'rol') = 'administrativo')
+with check ((select auth.session() ->> 'rol') = 'administrativo');
 
 create policy "medico ve su agenda"
 on citas for select to authenticated
 using (
-  (select current_setting('app.current_user_role', true)) = 'medico'
-  and medico_id = (select id from public.medicos where perfil_id = (select current_setting('app.current_user_id', true)::uuid))
+  (select auth.session() ->> 'rol') = 'medico'
+  and medico_id = public.medico_actual()
 );
 ```
 
-`(select current_setting(...))` va envuelto en subconsulta a propósito, igual que antes con
-`auth.uid()`/`auth.jwt()`: así PostgreSQL lo evalúa una vez por consulta (InitPlan) en lugar de una
-vez por fila. En una agenda con miles de citas la diferencia es de órdenes de magnitud.
+`(select auth.session() ->> 'rol')` va envuelto en subconsulta a propósito, igual que antes con
+`auth.uid()`/`auth.jwt()` de Supabase: así PostgreSQL lo evalúa una vez por consulta (InitPlan) en
+lugar de una vez por fila. En una agenda con miles de citas la diferencia es de órdenes de
+magnitud.
 
 ### Escalada de privilegios
 
@@ -706,7 +698,7 @@ returns trigger language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.rol is distinct from old.rol
-     and coalesce((select current_setting('app.current_user_role', true)), '') <> 'administrativo' then
+     and coalesce((select auth.session() ->> 'rol'), '') <> 'administrativo' then
     raise exception 'No autorizado para cambiar el rol de un usuario' using errcode = '42501';
   end if;
   return new;
@@ -764,7 +756,8 @@ nunca es el único lugar que impide la violación.
 ```ts
 // lib/citas/reservar.ts
 try {
-  await withUserContext((tx) => tx.insert(citas).values(nuevaCita));
+  const sql = await clienteAutenticado();
+  await sql`insert into citas ${toPgValues(nuevaCita)}`;
 } catch (error) {
   if (isPostgresError(error, '23P01')) {  // exclusion_violation
     return { ok: false, mensaje: 'Registro de cita ya agendado' };
@@ -804,7 +797,7 @@ begin
         using errcode = 'P0001';
     end if;
     new.cancelada_en  := now();
-    new.cancelada_por := (select current_setting('app.current_user_id', true)::uuid);
+    new.cancelada_por := public.perfil_actual();
   end if;
   return new;
 end;
@@ -1064,20 +1057,23 @@ equivocado *no* ve el dato:
 
 ```sql
 -- tests/pgtap/rls_atenciones.test.sql
--- set_config(...) simula lo que withUserContext() hace en producción (ADR-0023).
+-- Con Neon RLS Authorize, el contexto lo valida pg_session_jwt contra un JWT real —
+-- no un simple set_config(). El test necesita firmar un JWT de prueba contra una
+-- JWKS de test (no la de Clerk de producción) registrada aparte en el proyecto/branch
+-- de pruebas, y pasarlo a la sesión con la función que pg_session_jwt exponga para
+-- esto — NOMBRE Y FORMA EXACTA A CONFIRMAR en su documentación/código fuente al
+-- implementar H2 (ver trade-off explícito en ADR-0023; no inventar el nombre aquí).
 begin;
 select plan(2);
 
-select set_config('app.current_user_id', '<uuid-medico-B>', true);
-select set_config('app.current_user_role', 'medico', true);
+-- <inicializar sesión con JWT de prueba de medico-B, firmado con la clave de test>
 
 select is_empty(
   $$ select 1 from atenciones where paciente_id = '<uuid-paciente-de-medico-A>' $$,
   'Un médico no accede a historias de pacientes que no tiene a cargo'
 );
 
-select set_config('app.current_user_id', '<uuid-administrativo>', true);
-select set_config('app.current_user_role', 'administrativo', true);
+-- <inicializar sesión con JWT de prueba de administrativo, firmado con la clave de test>
 select is_empty(
   $$ select 1 from atenciones $$,
   'El administrativo no accede a contenido clínico'
@@ -1277,7 +1273,7 @@ pierde información. La fecha de corte la fija la clínica.
   certificada (en Perú, un PSC acreditado por INDECOPI, o Firma Perú de RENIEC). **Cómo avanzar
   mientras tanto:** aislar `firmarAtencion` detrás de una interfaz de proveedor
   (`lib/firma/proveedor.ts`), igual que ya se hizo con notificaciones
-  ([ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md)), para que la implementación
+  ([ADR-0017](adrs/0017-disparo-de-notificaciones-transaccionales.md)), para que la implementación
   actual (firma lógica) pueda reemplazarse por un proveedor certificado sin rediseñar el flujo de
   atención ni sus datos — el costo de esta cobertura es mínimo y evita quedar bloqueado si P-1 se
   resuelve en contra de la firma lógica.
@@ -1332,7 +1328,7 @@ pierde información. La fecha de corte la fija la clínica.
   alcance del PRD). **Cómo avanzar:** revisar manualmente la tasa de entrega/apertura en el panel de
   Resend durante los primeros meses de uso; si es consistentemente baja, activar la vía ya prevista
   (interfaz de proveedor en
-  [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md)) para sumar WhatsApp o SMS — eso sí
+  [ADR-0017](adrs/0017-disparo-de-notificaciones-transaccionales.md)) para sumar WhatsApp o SMS — eso sí
   sería una decisión de alcance nueva a validar con el cliente, no algo a construir por anticipado.
 
 ## Plan de implementación sugerido
