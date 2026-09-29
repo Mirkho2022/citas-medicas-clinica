@@ -59,3 +59,10 @@ paciente sin estar autenticado como nadie en particular.
   específicamente por necesitar dos frecuencias de cron distintas — si en algún momento se
   evaluara bajar de plan por costo, el cron horario de reintentos sería lo primero en verse
   afectado.
+
+## Reemplazada
+
+**(2026-09-28):** el cliente confirmó que este proyecto es un MVP académico y no requiere plan de
+pago de Vercel. Reemplazada por [ADR-0028](0028-notificaciones-cron-unico-plan-hobby.md) (un solo
+cron diario, plan Hobby). Esta ADR queda documentada como la opción a retomar si el proyecto pasara
+a producción real para la clínica.

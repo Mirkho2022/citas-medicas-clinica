@@ -48,9 +48,10 @@ nota de reemplazo al final de cada uno.
   administrativo, panel clínico, panel de turnos — bajo un único despliegue. Usa el rol de
   Postgres `app_user`; RLS es la autoridad de acceso a datos
   ([ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)).
-- **Vercel Cron Jobs**: ejecutan los Route Handlers de notificaciones (recordatorio 24h,
-  reintentos), usando el rol de Postgres `cron_notificaciones` — sin privilegios sobre
-  `atenciones`/`antecedentes` ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)).
+- **Vercel Cron Jobs**: un solo cron diario ejecuta el Route Handler de notificaciones
+  (recordatorio 24h y reintentos), usando el rol de Postgres `cron_notificaciones` — sin
+  privilegios sobre `atenciones`/`antecedentes`
+  ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)).
 - **Clerk**: autenticación, MFA/TOTP de personal, invitaciones, sesión por cookies
   ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)).
 - **Vercel BotID + Upstash Ratelimit**: anti-bots en registro/reserva y límite de intentos en rutas
@@ -109,7 +110,7 @@ sistema existente).
 | Validación | Zod | Esquemas en `lib/schemas/`, compartidos |
 | Fechas | `date-fns` + `date-fns-tz` | Formateo siempre con zona `America/Lima` |
 | Correo | Resend SDK | Detrás de `lib/notificaciones/proveedor.ts` |
-| Cron | Vercel Cron Jobs (`vercel.json`) | Plan Pro ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) |
+| Cron | Vercel Cron Jobs (`vercel.json`) | Un solo cron diario, plan Hobby ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) |
 | Migraciones | `node-pg-migrate` (`migrations/*.sql`) | Versionadas en git; nunca cambios manuales en producción ([ADR-0027](adrs/0027-herramienta-de-migraciones.md)) |
 | Tests | Vitest, Playwright, pgTAP | pgTAP es obligatorio para políticas RLS |
 
@@ -125,7 +126,7 @@ sistema existente).
 | [ADR-0006](adrs/0006-contratos-de-api-via-server-actions.md) | Contratos de API vía Server Actions | Aceptado |
 | [ADR-0007](adrs/0007-manejo-de-estado-y-sesion.md) | Manejo de estado y sesión (Supabase) | Reemplazado por ADR-0022 |
 | [ADR-0008](adrs/0008-resiliencia-y-manejo-de-errores.md) | Resiliencia y manejo de errores | Aceptado |
-| [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md) | Canal y programación de notificaciones (Cloudflare Cron) | Aceptado (programación reemplazada por ADR-0025) |
+| [ADR-0009](adrs/0009-canal-y-programacion-de-notificaciones.md) | Canal y programación de notificaciones (Cloudflare Cron) | Aceptado (programación reemplazada por ADR-0028) |
 | [ADR-0010](adrs/0010-calculo-de-disponibilidad-de-slots.md) | Cálculo de disponibilidad de slots | Aceptado |
 | [ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md) | Reasignación de citas por baja médica | Aceptado |
 | [ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md) | Alcance de la ventana de cancelación de 1 hora | Aceptado |
@@ -141,7 +142,8 @@ sistema existente).
 | [ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md) | Autenticación y sesión: Clerk | Aceptado |
 | [ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md) | Contexto de usuario para RLS sin helpers de Supabase | Aceptado |
 | [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) | Almacenamiento de adjuntos clínicos: Vercel Blob | Aceptado |
-| [ADR-0025](adrs/0025-notificaciones-cron-vercel.md) | Notificaciones: cron en Vercel Cron Jobs | Aceptado |
+| [ADR-0025](adrs/0025-notificaciones-cron-vercel.md) | Notificaciones: cron en Vercel Cron Jobs (plan Pro) | Reemplazado por ADR-0028 |
+| [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md) | Notificaciones: un solo cron diario (plan Hobby) | Aceptado |
 | [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) | Controles de borde: anti-bots y rate limiting | Aceptado |
 | [ADR-0027](adrs/0027-herramienta-de-migraciones.md) | Herramienta de migraciones: node-pg-migrate | Aceptado |
 
@@ -165,8 +167,14 @@ propias alternativas consideradas. Los ADR 0001, 0002, 0007 y 0009 quedan como r
 de las decisiones originales — cada uno tiene una nota de reemplazo al final apuntando al ADR
 vigente. ADR-0003 (control de acceso a historias clínicas) **no** se reemplaza: su lógica de
 negocio sigue vigente sin cambios; solo el mecanismo de transporte del contexto de usuario cambia
-(ADR-0023). Lo mismo aplica a ADR-0009: el canal (Resend) no cambia, solo el motor de cron
-(ADR-0025).
+(ADR-0023). Lo mismo aplica a ADR-0009: el canal (Resend) no cambia, solo el motor de cron.
+
+**Corrección de alcance (2026-09-28):** el cliente aclaró que este proyecto es un MVP académico, no
+un despliegue de producción para la clínica — no requiere planes de pago. ADR-0025 (que exigía plan
+Pro de Vercel) queda reemplazada por [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)
+(un solo cron diario, plan Hobby). El resto del stack (Neon, Clerk, Vercel Blob, Upstash) opera
+dentro de niveles gratuitos sin necesitar una decisión adicional — ver «Riesgos técnicos abiertos»
+para el único punto de atención que queda (retención de PITR en Neon).
 
 ## Modelo de datos
 
@@ -749,7 +757,7 @@ nunca es el único lugar que impide la violación.
 | Médico sin acceso a pacientes ajenos | Políticas RLS + `medico_tiene_paciente()` | Base de datos |
 | Acceso médico expira automáticamente (6 meses desde la cita) | Trigger `extender_asignacion_por_cita()` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) | Base de datos |
 | Doctor de baja o emergencia: reasignación | `bloqueos_agenda` + flujo de reasignación masiva ([ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md)) | Aplicación |
-| Recordatorio un día antes | Vercel Cron Job + tabla `notificaciones` ([ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) | Route Handler |
+| Recordatorio un día antes | Vercel Cron Job + tabla `notificaciones` ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) | Route Handler |
 
 ### Doble reserva
 
@@ -963,7 +971,7 @@ Sin materialización mientras el volumen lo permita.
 1. Al crear una cita, la Server Action inserta una fila en `notificaciones` con
    `tipo='recordatorio_24h'` y `programada_para = inicio - interval '1 day'`.
 2. El Vercel Cron Job diario corre a las **08:00 America/Lima** (`0 13 * * *` UTC,
-   [ADR-0025](adrs/0025-notificaciones-cron-vercel.md)) y toma las
+   [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) y toma las
    notificaciones pendientes cuya `programada_para` ya pasó **y** cuya cita todavía no ocurrió
    (`citas.inicio > now()`) — la segunda condición evita enviar un "recordatorio" de una cita que
    ya pasó cuando la reserva se hizo con menos de 24h de anticipación
@@ -979,8 +987,11 @@ Sin materialización mientras el volumen lo permita.
 2. Se inserta una fila en `notificaciones` con `programada_para = now()` y el `estado` ya resuelto
    (`'enviada'` o `'fallida'` directamente) — nunca como `'pendiente'`.
 
-**Reintentos (ambos casos):** un cron horario reintenta toda notificación en `estado='fallida'`
-con menos de 3 intentos, con backoff — mismo mecanismo para las tres, sin lógica duplicada.
+**Reintentos (ambos casos):** el mismo cron diario reintenta toda notificación en `estado='fallida'`
+con menos de 3 intentos, con backoff — mismo mecanismo para las tres, sin lógica duplicada. La
+cadencia es diaria, no horaria, para mantener el proyecto dentro del plan gratuito de Vercel
+([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)); un fallo de envío puede esperar
+hasta ~24h para su reintento automático — aceptable para el alcance de MVP.
 
 La unicidad `(cita_id, tipo)` es la garantía de idempotencia: si el cron se ejecuta dos veces o un
 reintento se solapa, el paciente no recibe dos correos.
@@ -988,12 +999,11 @@ reintento se solapa, el paciente no recibe dos correos.
 ```json
 {
   "crons": [
-    { "path": "/api/cron/recordatorios", "schedule": "0 13 * * *" },
-    { "path": "/api/cron/reintentos",    "schedule": "0 * * * *" }
+    { "path": "/api/cron/notificaciones", "schedule": "0 13 * * *" }
   ]
 }
 ```
-*(`vercel.json`, plan Pro — ver [ADR-0025](adrs/0025-notificaciones-cron-vercel.md))*
+*(`vercel.json`, plan Hobby — ver [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md))*
 
 ### Contenido
 
@@ -1019,7 +1029,7 @@ y el objetivo de reducir tiempos de espera se degrada silenciosamente.
 | Disponibilidad | 99.5% en horario de atención de la clínica |
 | Latencia | p95 < 500 ms en carga de agenda y búsqueda de slots |
 | Concurrencia | 50 usuarios simultáneos de personal + picos del portal |
-| Backups | PITR de Neon (mínimo 7 días, [ADR-0021](adrs/0021-base-de-datos-neon.md)) + export diario cifrado a almacenamiento independiente |
+| Backups | PITR de Neon, nivel gratuito para el MVP — ventana exacta a confirmar, no asumir 7 días ([ADR-0021](adrs/0021-base-de-datos-neon.md)) + export diario cifrado a almacenamiento independiente |
 | RPO / RTO | RPO ≤ 5 min; RTO ≤ 4 h |
 | Retención de historias clínicas | **Pendiente de definición legal** (ver «Riesgos técnicos abiertos», P-1) |
 | Accesibilidad | WCAG 2.1 AA; objetivos táctiles ≥ 44 px; contraste alto en el portal |
@@ -1294,6 +1304,21 @@ pierde información. La fecha de corte la fija la clínica.
 - ~~Notificaciones fallidas sin ruta de visibilidad~~ — **resuelto**: vista dedicada en el panel
   administrativo y RLS para `notificaciones` (que no tenía ninguna), en
   [ADR-0018](adrs/0018-visibilidad-de-notificaciones-fallidas.md).
+- **P-9 (bajo, propio del alcance de MVP):** el proyecto corre en niveles gratuitos (Vercel Hobby,
+  Neon free, Clerk free, Upstash free) — no se ha verificado la ventana exacta de retención de
+  PITR del plan gratuito de Neon vigente al momento de crear el proyecto (el diseño original
+  apuntaba a 7 días, asumiendo un plan de pago; ver [ADR-0021](adrs/0021-base-de-datos-neon.md)).
+  Sin impacto real para un MVP de clase — el riesgo es solo documentarlo antes de asumir un número
+  de retención que el plan gratuito quizás no ofrezca. **Cómo avanzar:** confirmar la ventana de
+  PITR del plan gratuito al crear el proyecto en Neon; si el proyecto pasa a producción real, es
+  el momento de contratar el nivel de retención adecuado.
+- **Adjuntos clínicos fuera de la autoridad de RLS (Vercel Blob):** ver el trade-off explícito en
+  [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) — para los adjuntos, la
+  autoridad de acceso es la Server Action que firma la URL, no una política RLS de Postgres. Es
+  una excepción puntual a la regla no negociable de [CLAUDE.md](CLAUDE.md) ("el aislamiento... debe
+  aplicarse en la base de datos"), inherente a salir de un storage sobre Postgres — ningún storage
+  de blobs (Vercel Blob, S3, R2) tiene RLS a nivel de fila. La función que firma URLs de adjuntos
+  merece la misma revisión explícita que las políticas RLS de `atenciones`.
 - **P-6 (excluido a propósito, no acción requerida ahora):** gestión de consultorios no está en el
   PRD — no construir esto hoy (regla de [CLAUDE.md](CLAUDE.md), "Alcance — no lo amplíes"). Si en el
   futuro la clínica confirma que tiene menos consultorios que médicos, la extensión es mecánica y ya

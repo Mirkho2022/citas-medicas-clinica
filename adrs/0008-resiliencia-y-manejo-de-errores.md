@@ -33,3 +33,9 @@ su operación, y qué pasa cuando el envío de un correo falla.
   excepción; si se agrega una nueva restricción en base de datos (un nuevo `CHECK` o `EXCLUDE`) y
   no se replica su mapeo en la Server Action correspondiente, el usuario vuelve a ver el error
   crudo de Postgres hasta que alguien lo note.
+
+**Nota (2026-09-28):** la cadencia "horaria" del reintento de notificaciones fallidas queda
+desactualizada para el alcance de MVP académico — pasa a ser diaria (mismo cron que envía los
+recordatorios) para no requerir plan de pago de Vercel. Ver
+[ADR-0028](0028-notificaciones-cron-unico-plan-hobby.md). La lógica de reintento en sí (contador
+`intentos`, backoff, tope de 3 intentos) no cambia.

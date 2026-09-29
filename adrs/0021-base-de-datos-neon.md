@@ -28,8 +28,12 @@ sin cambios en esa parte del diseño.
   desde funciones serverless de vida corta, sin tener que operar un pooler externo.
 - **Staging:** un branch de Neon por entorno de *preview* de Vercel (análogo a los branches de
   Supabase que reemplaza) — se crea/destruye junto con el deployment de preview.
-- **Backups:** point-in-time recovery de Neon, con retención mínima de 7 días — mismo objetivo que
-  tenía el diseño original con Supabase.
+- **Backups:** point-in-time recovery de Neon. El diseño original apuntaba a una retención mínima
+  de 7 días (mismo objetivo que con Supabase); para este MVP académico se usa el nivel gratuito de
+  Neon tal cual, sin pagar por extender la ventana de retención — confirmar la ventana exacta
+  vigente al crear el proyecto en vez de asumir los 7 días (ver «Riesgos técnicos abiertos» en
+  TECH-DESIGN.md). Si el proyecto pasara a producción real, ahí sí conviene contratar el nivel de
+  retención que la operación de la clínica exija.
 
 ## Alternativas consideradas
 
