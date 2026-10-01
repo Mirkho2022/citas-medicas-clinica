@@ -30,6 +30,10 @@
       verificar contra el escenario "Acceso denegado sin sesión".
 - [ ] 3.5 Verificar credenciales inválidas: confirmar que un intento de login con credenciales
       incorrectas no establece sesión (escenario "Credenciales inválidas").
+- [ ] 3.6 Exigir MFA a los roles `administrativo`, `medico` y `enfermera` (dirigir a
+      configurarlo antes de dar acceso a su área) y confirmar que `paciente` no lo requiere;
+      verificar con una cuenta de personal sin MFA configurado y una de paciente (escenarios
+      "Personal sin MFA es dirigido a configurarlo" y "Paciente no requiere MFA").
 
 ## 4. Registro público con rol forzado a paciente
 

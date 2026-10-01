@@ -55,6 +55,20 @@ invitación. No SHALL existir ninguna ruta de autorregistro capaz de producir es
 - **WHEN** se invita a una persona con rol `medico` (o `administrativo`/`enfermera`)
 - **THEN** al aceptar la invitación, su cuenta queda creada con ese rol exacto
 
+### Requirement: MFA obligatorio para personal
+Todo usuario con rol `administrativo`, `medico` o `enfermera` SHALL tener autenticación de
+múltiple factor (MFA) activa para acceder a su área. El rol `paciente` no SHALL estar obligado a
+configurar MFA.
+
+#### Scenario: Personal sin MFA es dirigido a configurarlo
+- **WHEN** un usuario con rol `administrativo`, `medico` o `enfermera` inicia sesión sin tener
+  MFA configurado
+- **THEN** el sistema lo dirige a configurar MFA antes de darle acceso a su área
+
+#### Scenario: Paciente no requiere MFA
+- **WHEN** un usuario con rol `paciente` inicia sesión
+- **THEN** el sistema no le exige configurar MFA
+
 ### Requirement: Acceso bloqueado sin autenticación
 Un usuario no autenticado no SHALL poder acceder a ninguna área protegida de la aplicación.
 
