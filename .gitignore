@@ -47,4 +47,14 @@ Thumbs.db
 .claude/skills/revision-adversarial
 .claude/skills/find-skills
 .claude/skills/architecture
+.claude/skills/clerk
+.claude/skills/clerk-backend-api
+.claude/skills/clerk-cli
+.claude/skills/clerk-custom-ui
+.claude/skills/clerk-nextjs-patterns
+.claude/skills/clerk-setup
+.claude/skills/clerk-testing
+.claude/skills/clerk-webhooks
 .neon
+.clerk/
+.mcp.json
