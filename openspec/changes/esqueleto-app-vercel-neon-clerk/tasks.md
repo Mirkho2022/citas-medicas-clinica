@@ -6,12 +6,12 @@
       configurados; verificar con `npm run build` y `npm run lint` sin errores.
 - [x] 1.2 Crear el proyecto en Vercel enlazado al repositorio y desplegar el scaffold inicial;
       verificar que la URL de producción responde 200 en `/`.
-- [ ] 1.3 Crear el proyecto en Neon (sin tablas) para desarrollo, con `DATABASE_URL` configurada
+- [x] 1.3 Crear el proyecto en Neon (sin tablas) para desarrollo, con `DATABASE_URL` configurada
       en local y en Vercel; verificar conectando desde `next dev`.
 
 ## 2. Conexión a Neon
 
-- [ ] 2.1 Implementar un Route Handler de salud que ejecute `SELECT 1` contra Neon vía
+- [x] 2.1 Implementar un Route Handler de salud que ejecute `SELECT 1` contra Neon vía
       `@neondatabase/serverless`; verificar que responde 200 en local y en el deployment de
       Vercel.
 
