@@ -39,9 +39,9 @@
 
 ## 4. Registro público con rol forzado a paciente
 
-- [ ] 4.1 Implementar la ruta `/registro` de autorregistro, que solo puede producir cuentas de
+- [x] 4.1 Implementar la ruta `/registro` de autorregistro, que solo puede producir cuentas de
       paciente; verificar contra el escenario "Registro público asigna rol paciente".
-- [ ] 4.2 Implementar el webhook `user.created` de Clerk que fija `publicMetadata.rol =
+- [x] 4.2 Implementar el webhook `user.created` de Clerk que fija `publicMetadata.rol =
       'paciente'` del lado del servidor tras un alta pública, sin escribir en Postgres (ver
       design.md - Decisions); verificar contra el escenario "Intento de manipular el rol en el
       registro" enviando un rol distinto en el payload de registro y confirmando que la cuenta
