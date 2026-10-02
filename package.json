@@ -20,6 +20,7 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@clerk/eslint-plugin": "^0.2.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

@@ -50,6 +50,19 @@ salud (`SELECT 1`) con una única variable `DATABASE_URL`, sin distinguir todav�
 `app_user` y `cron_notificaciones` de ADR-0020 (esa separación de roles de Postgres tampoco tiene
 sentido sin tablas que proteger).
 
+**Protección de las áreas por rol: a nivel de recurso (`await auth.protect()` en cada página),
+no vía middleware con `createRouteMatcher`.** Clerk deprecó ese patrón explícitamente: el
+path-matching en middleware puede divergir de cómo el framework resuelve las rutas, y ya produjo
+un CVE real ([GHSA-vqx2-fgx2-5wq9](https://github.com/clerk/javascript/security/advisories/GHSA-vqx2-fgx2-5wq9))
+más varios bypasses de middleware a nivel de framework divulgados en 2025 — exactamente el tipo
+de falla que CLAUDE.md pide tratar con más cuidado al tocar control de acceso. Cada página de rol
+(`/administrativo`, `/medico`, `/enfermera`, `/paciente`) llama `auth.protect()` en su propio
+Server Component; el middleware vuelve a ser `clerkMiddleware()` sin lógica de autorización. Se
+agrega `@clerk/eslint-plugin` (regla `require-auth-protection`, versión fijada por ser
+experimental) con `protected: ['**']` y las rutas públicas explícitas (`/`, `/iniciar-sesion`,
+`/registro`, `/api/salud`) para que cualquier página nueva sin protección falle el lint en vez de
+quedar expuesta en silencio.
+
 **Redirección por rol es UX, no control de acceso** — consistente con ADR-0022 ("no es
 seguridad, la autoridad real sigue siendo RLS"). En H1 esto es literal: no hay ningún dato
 sensible detrás de los placeholders por rol, así que la ausencia de una autoridad de datos real

@@ -26,8 +26,10 @@
 - [ ] 3.3 Crear las cuatro páginas de destino mínimas (`/administrativo`, `/medico`,
       `/enfermera`, `/paciente`) y la redirección por rol tras el login; verificar contra el
       escenario "Inicio de sesión exitoso" con una cuenta de prueba por rol.
-- [ ] 3.4 Bloquear con el middleware el acceso a las áreas protegidas para usuarios sin sesión;
-      verificar contra el escenario "Acceso denegado sin sesión".
+- [ ] 3.4 Bloquear el acceso a las áreas protegidas para usuarios sin sesión con `auth.protect()`
+      a nivel de recurso en cada página (no vía middleware/`createRouteMatcher`, deprecado por
+      Clerk — ver design.md), más la regla de lint `@clerk/eslint-plugin` que falla si una página
+      nueva queda sin protección; verificar contra el escenario "Acceso denegado sin sesión".
 - [ ] 3.5 Verificar credenciales inválidas: confirmar que un intento de login con credenciales
       incorrectas no establece sesión (escenario "Credenciales inválidas").
 - [ ] 3.6 Exigir MFA a los roles `administrativo`, `medico` y `enfermera` (dirigir a
