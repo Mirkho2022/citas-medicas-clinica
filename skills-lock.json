@@ -73,6 +73,12 @@
       "skillPath": "skills/find-skills/SKILL.md",
       "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
     },
+    "generar-backlog": {
+      "source": "adminoryslabs/Armory",
+      "sourceType": "github",
+      "skillPath": "skills/generar-backlog/SKILL.md",
+      "computedHash": "d224928e49ef42e394d1d8ef1e87bc62d785dab38386ec0a62c90b1b98b141b5"
+    },
     "generar-prd-conversacional": {
       "source": "adminoryslabs/Armory",
       "sourceType": "github",
