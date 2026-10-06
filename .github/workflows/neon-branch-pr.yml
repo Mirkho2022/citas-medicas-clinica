@@ -1,0 +1,72 @@
+name: Neon branch por PR
+
+# Un branch efímero de Neon por PR (TECH-DESIGN.md, "Entornos, CI/CD y pruebas"):
+# se crea al abrir/actualizar el PR, recibe `node-pg-migrate up` y se destruye al
+# cerrarlo. Las acciones de Neon van fijadas por SHA porque reciben NEON_API_KEY.
+#
+# Requiere en GitHub: secreto NEON_API_KEY y variable NEON_PROJECT_ID.
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-branch-pr-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  migrar:
+    # Los PR desde forks no reciben secretos; solo se corre para ramas del propio repo.
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Calcular expiración del branch (respaldo si el cierre del PR no lo borra)
+        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
+      # ATENCIÓN: el branch copia los datos de `production`. `branch_type: schema-only`
+      # lo evitaría, pero la API de Neon responde 412 con él en el plan Free (verificado
+      # en el PR #3). Hoy no hay datos; ANTES de cargar datos clínicos reales hay que
+      # resolverlo (plan de pago, o parent_branch hacia un branch base sin datos).
+      - name: Crear branch de Neon
+        id: neon
+        uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # v6.3.1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          parent_branch: production
+          branch_name: preview/pr-${{ github.event.number }}
+          expires_at: ${{ env.EXPIRES_AT }}
+
+      - name: Aplicar migraciones al branch efímero
+        run: npm run migrate -- up
+        env:
+          # Conexión directa (no pooled): las migraciones no deben pasar por PgBouncer.
+          DATABASE_URL: ${{ steps.neon.outputs.db_url }}
+
+  destruir:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Destruir branch de Neon del PR
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3.2.1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: preview/pr-${{ github.event.number }}

@@ -65,7 +65,7 @@
 - [x] 6.1 Configurar el workflow de GitHub Actions para pull requests: typecheck → lint → build;
       verificar que corre en un PR de prueba y falla si se introduce un error de tipos
       deliberado.
-- [ ] 6.2 Agregar el paso de branch efímero de Neon por PR con `node-pg-migrate up` (sin
+- [x] 6.2 Agregar el paso de branch efímero de Neon por PR con `node-pg-migrate up` (sin
       migraciones todavía) y su destrucción al cerrar el PR; verificar que el branch se crea y se
       destruye correctamente en un PR de prueba.
 - [ ] 6.3 Configurar el workflow de merge a `main`: `node-pg-migrate up` contra el branch

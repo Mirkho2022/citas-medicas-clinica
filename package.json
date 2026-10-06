@@ -7,9 +7,11 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate": "node-pg-migrate"
   },
   "dependencies": {
+    "@clerk/backend": "^3.22.0",
     "@clerk/nextjs": "^7.9.9",
     "@hookform/resolvers": "^3",
     "@neondatabase/serverless": "^1.1.0",
@@ -28,6 +30,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.26",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

@@ -3,10 +3,10 @@
 Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
 Reemplaza el proceso actual (Excel + Google Forms para citas, papel para historias clínicas).
 
-**Estado actual: existen [PRD.md](PRD.md), [TECH-DESIGN.md](TECH-DESIGN.md) y repositorio git
+**Estado actual: existen [PRD.md](docs/PRD.md), [TECH-DESIGN.md](docs/TECH-DESIGN.md) y repositorio git
 inicializado. Todavía no hay código de aplicación.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
-con los ADR en [adrs/](adrs/)). Este archivo resume las reglas que el código debe respetar, no las
+con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
 
 ## Stack (decidido)
@@ -14,7 +14,7 @@ sustituye.
 Next.js 15 (App Router) + TypeScript sobre **Vercel** (target nativo, sin adaptador), con **Neon**
 (PostgreSQL serverless) como base de datos, **Clerk** para autenticación/sesión/MFA y **Vercel
 Blob** para adjuntos clínicos. Notificaciones **solo por email** vía Resend, disparadas por Vercel
-Cron Jobs. Detalle completo y justificación en TECH-DESIGN.md y en los ADR 0020–0028. Solo se
+Cron Jobs. Detalle completo y justificación en docs/TECH-DESIGN.md y en los ADR 0020–0028. Solo se
 mantienen como ADRs activos los que describen el stack vigente — el diseño pasó antes por
 Cloudflare Workers + Supabase; ese historial vive en `git log`, no en ADRs sueltos.
 
@@ -23,7 +23,7 @@ más alcance se hace por rol de Postgres (`cron_notificaciones`, `GRANT` mínimo
 `notificaciones`/`citas`), usado solo en los Route Handlers de cron y en CI — nunca en el código
 que sirve tráfico de usuario. El contexto de usuario para RLS (rol, ID) llega vía Neon RLS
 Authorize (`pg_session_jwt` + JWT de Clerk, funciones `auth.user_id()`/`auth.session()` — ver
-[ADR-0023](adrs/0023-contexto-de-usuario-para-rls.md)) — ninguna consulta autenticada debe abrirse
+[ADR-0023](docs/adrs/0023-contexto-de-usuario-para-rls.md)) — ninguna consulta autenticada debe abrirse
 sin el `authToken` de la sesión de Clerk adjunto.
 
 ## Decisiones aún abiertas (no las inventes: pregunta)
@@ -38,15 +38,15 @@ Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y qu
 formalizadas como ADR — no las reabras sin que el cliente lo pida:
 
 - **Ventana de cancelación de 1 h**: aplica a **todos los roles**, incluido el administrativo
-  ([ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
+  ([ADR-0012](docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
 - **Definición de "historia clínica digitalizada"**: híbrido — antecedentes y diagnósticos
   activos estructurados en el sistema, el resto del expediente en papel como escaneo de respaldo
-  ([ADR-0013](adrs/0013-definicion-de-historia-clinica-digitalizada.md)).
+  ([ADR-0013](docs/adrs/0013-definicion-de-historia-clinica-digitalizada.md)).
 - **Catálogo CIE-10**: catálogo completo, fuente MINSA/SUSALUD con la OMS como respaldo, cargado
-  por migración de datos ([ADR-0014](adrs/0014-catalogo-cie-10.md)).
+  por migración de datos ([ADR-0014](docs/adrs/0014-catalogo-cie-10.md)).
 
 La lista completa (incluidos riesgos aceptados o excluidos a propósito, como P-6 y P-7) está en
-"Riesgos técnicos abiertos" de TECH-DESIGN.md. Si una tarea depende de uno de estos puntos,
+"Riesgos técnicos abiertos" de docs/TECH-DESIGN.md. Si una tarea depende de uno de estos puntos,
 plantéalo y termina el resto del trabajo.
 
 ## Roles y permisos (invariante central del sistema)
@@ -105,8 +105,11 @@ debe ser rápida para el médico.
   usuario y mensajes de error.
 - El PRD se genera y edita con la skill `generar-prd-conversacional` — si hay que actualizarlo,
   úsala en lugar de editarlo a mano.
+- Los documentos de referencia (`PRD.md`, `TECH-DESIGN.md`, `adrs/`) viven en [docs/](docs/). Las
+  skills (`generar-prd-conversacional`, `generar-tech-design`, `generar-backlog`, `auditar-drift`,
+  `revision-adversarial`) asumen esos archivos en la raíz: al usarlas, indícales la ruta `docs/`.
 - Las migraciones viven en `migrations/*.sql` (`node-pg-migrate`, ver
-  [ADR-0027](adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
+  [ADR-0027](docs/adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
   Nunca cambios manuales en producción, y nunca restaurar el branch principal de Neon a un estado
   previo en producción: destruye datos clínicos.
 - Toda tabla nueva en el esquema `public` nace con RLS activada y con su prueba pgTAP negativa

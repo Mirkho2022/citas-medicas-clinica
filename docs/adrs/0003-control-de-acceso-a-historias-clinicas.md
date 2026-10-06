@@ -8,7 +8,7 @@ cualquier cambio futuro sobre ella merece revisión explícita, no solo un PR no
 ## Contexto
 
 El PRD prohíbe que un médico acceda a historias de pacientes que no tiene a cargo, y prohíbe por
-completo el acceso del administrativo y del paciente al contenido clínico. [CLAUDE.md](../CLAUDE.md)
+completo el acceso del administrativo y del paciente al contenido clínico. [CLAUDE.md](../../CLAUDE.md)
 exige que ese aislamiento se aplique **en la base de datos**, no solo en la capa de aplicación.
 Hace falta definir cómo la base de datos sabe, fila por fila, qué médico tiene a cargo a qué
 paciente, sin pagar el costo de una subconsulta a `perfiles` en cada fila evaluada.

@@ -7,7 +7,7 @@ fecha: "2026-09-21"
 # Technical Design Document: Sistema de Gestión de Citas e Historias Clínicas Electrónicas
 
 **Tipo de proyecto:** Greenfield — no existe código ni repositorio git todavía (ver
-[CLAUDE.md](CLAUDE.md)). Este documento define arquitectura, modelo de datos, seguridad, reglas de
+[CLAUDE.md](../CLAUDE.md)). Este documento define arquitectura, modelo de datos, seguridad, reglas de
 negocio, superficie de la aplicación y plan de implementación, y formaliza las decisiones de
 arquitectura como ADRs trazables.
 
@@ -143,7 +143,7 @@ sistema existente).
 Solo se listan los ADR vigentes — los que describen lo que realmente se va a construir. El diseño
 pasó antes por un stack distinto (Cloudflare Workers + Supabase, con planes de pago de Vercel para
 el cron); esas decisiones descartadas no se mantienen como ADRs activos, pero siguen accesibles en
-el historial de git (`git log --all -- adrs/`) para quien necesite el porqué de un número salteado
+el historial de git (`git log --all -- adrs/ docs/adrs/`) para quien necesite el porqué de un número salteado
 en la numeración.
 
 Los ADR 0003–0006, 0008 y 0010–0011 registran las decisiones de arquitectura base del proyecto que
@@ -1245,7 +1245,7 @@ pierde información. La fecha de corte la fija la clínica.
 - [ ] Confirmar una cita nueva con un médico distinto extiende el acceso a ese médico; no revive
       el acceso del médico anterior cuya asignación ya venció.
 - [ ] Cada tabla nueva del esquema `public` tiene RLS activada y al menos una prueba pgTAP negativa
-      que confirma que el rol equivocado no ve el dato (regla de [CLAUDE.md](CLAUDE.md)).
+      que confirma que el rol equivocado no ve el dato (regla de [CLAUDE.md](../CLAUDE.md)).
 
 ## Riesgos técnicos abiertos
 
@@ -1311,12 +1311,12 @@ pierde información. La fecha de corte la fija la clínica.
 - **Adjuntos clínicos fuera de la autoridad de RLS (Vercel Blob):** ver el trade-off explícito en
   [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) — para los adjuntos, la
   autoridad de acceso es la Server Action que firma la URL, no una política RLS de Postgres. Es
-  una excepción puntual a la regla no negociable de [CLAUDE.md](CLAUDE.md) ("el aislamiento... debe
+  una excepción puntual a la regla no negociable de [CLAUDE.md](../CLAUDE.md) ("el aislamiento... debe
   aplicarse en la base de datos"), inherente a salir de un storage sobre Postgres — ningún storage
   de blobs (Vercel Blob, S3, R2) tiene RLS a nivel de fila. La función que firma URLs de adjuntos
   merece la misma revisión explícita que las políticas RLS de `atenciones`.
 - **P-6 (excluido a propósito, no acción requerida ahora):** gestión de consultorios no está en el
-  PRD — no construir esto hoy (regla de [CLAUDE.md](CLAUDE.md), "Alcance — no lo amplíes"). Si en el
+  PRD — no construir esto hoy (regla de [CLAUDE.md](../CLAUDE.md), "Alcance — no lo amplíes"). Si en el
   futuro la clínica confirma que tiene menos consultorios que médicos, la extensión es mecánica y ya
   conocida: tabla `consultorios` + columna `consultorio_id` en `citas` + una restricción
   `EXCLUDE USING gist (consultorio_id with =, rango with &&)` análoga a `citas_sin_cruce_medico`
