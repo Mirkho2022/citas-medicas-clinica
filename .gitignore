@@ -59,3 +59,8 @@ Thumbs.db
 .neon
 .clerk/
 .mcp.json
+
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/
