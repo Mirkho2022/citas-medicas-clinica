@@ -90,3 +90,30 @@ Usar una cuenta de prueba que no sea la tuya principal. Yo corro
   GitHub, nunca en el repositorio.
 - Anotar el comportamiento observado de la ventana de revocación en `design.md` si resulta mayor
   que lo esperado.
+
+## Resultados (2026-10-06)
+
+Ejecutado sobre `localhost:3000` con la instancia de desarrollo de Clerk. Cuentas: `h1-<rol>+clerk_test@example.com`.
+
+| Escenario | Resultado |
+|---|---|
+| Inicio de sesión exitoso (paciente tras registro; enfermera tras restaurar acceso) | Pasa |
+| Credenciales inválidas | Pasa: Clerk rechaza y no hay sesión |
+| Rol disponible en la sesión | Pasa: `/` redirige según `publicMetadata.rol` del token |
+| Registro público asigna rol paciente | Pasa |
+| Intento de manipular el rol en el registro (`unsafeMetadata.rol = "medico"`) | Pasa: `publicMetadata.rol = "paciente"` |
+| No existe autorregistro de personal | Pasa: `/registro` solo pide correo y contraseña |
+| Invitación crea la cuenta con el rol correcto | Pasa para `administrativo`, `medico` y `enfermera` |
+| Personal sin MFA es dirigido a configurarlo | Pasa (administrativo y enfermera) |
+| Paciente no requiere MFA | Pasa |
+| Acceso denegado sin sesión | Pasa en las cuatro áreas y en `/configurar-mfa` |
+| Revocación invalida la sesión activa | Pasa: dejó de valer entre 27 y 39 s después de revocar |
+| Usuario revocado no puede volver a iniciar sesión | Pasa: "You have been banned" |
+
+Observaciones:
+
+- **Las áreas de personal no comprueban el rol.** `/administrativo`, `/medico` y `/enfermera` solo exigen sesión y MFA. Un paciente que entra es enviado a `/configurar-mfa` y, con TOTP activo, vería el panel de personal; cualquier rol ve `/paciente`. Sin datos detrás en H1; debe resolverse antes de H2.
+- **TOTP:** el administrativo quedó con TOTP activo (`/administrativo` muestra el panel). Médico y enfermera no lo configuraron.
+- **Revocación:** el baneo ya invalida las sesiones, por eso el script informa 0 sesiones activas revocadas. El token de Clerk sigue aceptándose hasta ~60 s.
+- **Anti-bots:** tras varios registros seguidos Clerk mostró un CAPTCHA de Cloudflare; la prueba de Playwright (6.4) necesitará testing tokens de Clerk.
+- **Alta de TOTP:** Clerk puede pedir reverificar la contraseña. Guardar archivos con `next dev` en marcha recarga la página y reinicia el alta.

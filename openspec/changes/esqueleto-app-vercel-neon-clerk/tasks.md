@@ -17,22 +17,22 @@
 
 ## 3. Autenticación y roles (Clerk)
 
-- [ ] 3.1 Instalar y configurar `@clerk/nextjs` (middleware, claves de entorno); verificar que
+- [x] 3.1 Instalar y configurar `@clerk/nextjs` (middleware, claves de entorno); verificar que
       una cuenta de prueba puede iniciar sesión (spec `autenticacion-roles`, escenario "Inicio de
       sesión exitoso").
-- [ ] 3.2 Configurar el JWT template de Clerk para exponer `publicMetadata.rol` en
+- [x] 3.2 Configurar el JWT template de Clerk para exponer `publicMetadata.rol` en
       `sessionClaims`; verificar leyendo el claim desde un Server Component o Route Handler de
       prueba (escenario "Rol disponible en la sesión").
-- [ ] 3.3 Crear las cuatro páginas de destino mínimas (`/administrativo`, `/medico`,
+- [x] 3.3 Crear las cuatro páginas de destino mínimas (`/administrativo`, `/medico`,
       `/enfermera`, `/paciente`) y la redirección por rol tras el login; verificar contra el
       escenario "Inicio de sesión exitoso" con una cuenta de prueba por rol.
-- [ ] 3.4 Bloquear el acceso a las áreas protegidas para usuarios sin sesión con `auth.protect()`
+- [x] 3.4 Bloquear el acceso a las áreas protegidas para usuarios sin sesión con `auth.protect()`
       a nivel de recurso en cada página (no vía middleware/`createRouteMatcher`, deprecado por
       Clerk — ver design.md), más la regla de lint `@clerk/eslint-plugin` que falla si una página
       nueva queda sin protección; verificar contra el escenario "Acceso denegado sin sesión".
-- [ ] 3.5 Verificar credenciales inválidas: confirmar que un intento de login con credenciales
+- [x] 3.5 Verificar credenciales inválidas: confirmar que un intento de login con credenciales
       incorrectas no establece sesión (escenario "Credenciales inválidas").
-- [ ] 3.6 Exigir MFA a los roles `administrativo`, `medico` y `enfermera` (dirigir a
+- [x] 3.6 Exigir MFA a los roles `administrativo`, `medico` y `enfermera` (dirigir a
       configurarlo antes de dar acceso a su área) y confirmar que `paciente` no lo requiere;
       verificar con una cuenta de personal sin MFA configurado y una de paciente (escenarios
       "Personal sin MFA es dirigido a configurarlo" y "Paciente no requiere MFA").
@@ -49,14 +49,14 @@
 
 ## 5. Personal por invitación y revocación de acceso
 
-- [ ] 5.1 Implementar el mecanismo de invitación (Server Action o script administrativo) que crea
+- [x] 5.1 Implementar el mecanismo de invitación (Server Action o script administrativo) que crea
       cuentas de rol `administrativo`, `medico` o `enfermera` vía la API de invitaciones de
       Clerk; verificar creando una cuenta de prueba de cada rol y confirmando el rol asignado
       (escenario "Invitación crea la cuenta con el rol correcto").
-- [ ] 5.2 Confirmar que no existe ninguna ruta de autorregistro capaz de producir esos tres
+- [x] 5.2 Confirmar que no existe ninguna ruta de autorregistro capaz de producir esos tres
       roles; verificar contra el escenario "No existe autorregistro de personal" (revisión de
       rutas públicas + intento manual de registro solicitando cada rol).
-- [ ] 5.3 Implementar la revocación de acceso (baneo + invalidación de sesión vía la API de
+- [x] 5.3 Implementar la revocación de acceso (baneo + invalidación de sesión vía la API de
       Clerk); verificar contra los escenarios "Revocación invalida la sesión activa" y "Usuario
       revocado no puede volver a iniciar sesión".
 
