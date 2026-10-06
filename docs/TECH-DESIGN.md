@@ -1308,6 +1308,16 @@ pierde información. La fecha de corte la fija la clínica.
   de retención que el plan gratuito quizás no ofrezca. **Cómo avanzar:** confirmar la ventana de
   PITR del plan gratuito al crear el proyecto en Neon; si el proyecto pasa a producción real, es
   el momento de contratar el nivel de retención adecuado.
+- **P-10 (medio, decisión de costo antes de producción):** el MFA obligatorio del personal (TOTP,
+  [ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) es una función del **plan Pro de Clerk**:
+  el plan gratuito (Hobby) no lo incluye. Según clerk.com/pricing, consultado el 2026-10-06, el plan
+  Pro cuesta 25 USD/mes facturado mensualmente o 20 USD/mes facturado anualmente (confirmar el
+  precio vigente). En la instancia de desarrollo las funciones Pro se pueden probar sin costo, y por
+  eso H1 se verificó con TOTP activo sin pagar. Contradice la premisa de P-9 («Clerk free») y el
+  «sin planes de pago» del MVP: sin el plan Pro no se puede cumplir en producción el requisito de
+  MFA del PRD. **Cómo avanzar:** antes de salir a producción con personal real, contratar Clerk Pro
+  o decidir con el cliente una alternativa (otro proveedor con MFA/TOTP incluido, lo que reabre
+  ADR-0022); no desactivar el MFA del personal para evitar el costo.
 - **Adjuntos clínicos fuera de la autoridad de RLS (Vercel Blob):** ver el trade-off explícito en
   [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) — para los adjuntos, la
   autoridad de acceso es la Server Action que firma la URL, no una política RLS de Postgres. Es
