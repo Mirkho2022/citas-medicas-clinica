@@ -7,19 +7,19 @@ del "Plan de implementación sugerido" de TECH-DESIGN.md: el esqueleto del que d
 demás hitos (H2 en adelante) — sin un proyecto desplegable, con autenticación y reconocimiento de
 rol funcionando, ningún módulo de negocio (agenda, historias clínicas, notificaciones) tiene
 dónde apoyarse. En particular, el mecanismo de RLS decidido en
-[ADR-0023](../../../adrs/0023-contexto-de-usuario-para-rls.md) exige un JWT de sesión de Clerk
+[ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md) exige un JWT de sesión de Clerk
 adjunto a cada consulta autenticada — eso solo existe si la autenticación ya está integrada.
 
 ## What Changes
 
 - Bootstrap de un proyecto Next.js 15 (App Router) + TypeScript, desplegado en Vercel como
-  target nativo, sin adaptador ([ADR-0020](../../../adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)).
-- Conexión a Neon vía `@neondatabase/serverless` ([ADR-0021](../../../adrs/0021-base-de-datos-neon.md)),
+  target nativo, sin adaptador ([ADR-0020](../../../docs/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)).
+- Conexión a Neon vía `@neondatabase/serverless` ([ADR-0021](../../../docs/adrs/0021-base-de-datos-neon.md)),
   verificada con un chequeo de salud simple. **Sin esquema de negocio todavía** — las tablas
   (`perfiles`, `pacientes`, `medicos`, etc.) y las políticas RLS llegan en H2 ("esquema completo +
   RLS + suite pgTAP"); este change no las crea ni las anticipa.
 - Integración de Clerk (`@clerk/nextjs`) para autenticación, sesión y MFA
-  ([ADR-0022](../../../adrs/0022-autenticacion-y-sesion-clerk.md)):
+  ([ADR-0022](../../../docs/adrs/0022-autenticacion-y-sesion-clerk.md)):
   - Rol de aplicación (`administrativo`, `medico`, `enfermera`, `paciente`) en
     `publicMetadata.rol`, expuesto en `sessionClaims` vía JWT template.
   - Webhook `user.created` que fija `rol = 'paciente'` para todo alta por `/registro` — ninguna
@@ -28,12 +28,12 @@ adjunto a cada consulta autenticada — eso solo existe si la autenticación ya 
     (`administrativo`, `medico`, `enfermera`); la superficie completa de gestión de personal
     (listar, editar, dar de baja) queda fuera de este change.
   - Revocación de acceso (baneo + invalidación de sesión) para el caso "personal que deja la
-    clínica" — el flujo de reasignación de sus pacientes ([ADR-0011](../../../adrs/0011-reasignacion-de-citas-por-baja-medica.md))
+    clínica" — el flujo de reasignación de sus pacientes ([ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md))
     no es parte de este change porque depende del esquema de agenda (H2/H3).
   - Grupos de ruta protegidos con una página de destino mínima por rol (placeholder), para
     probar el flujo de redirección — no las pantallas reales de cada módulo.
 - Pipeline de CI (lint, typecheck, build) con un branch efímero de Neon por PR y el paso
-  `node-pg-migrate up` ya cableado ([ADR-0027](../../../adrs/0027-herramienta-de-migraciones.md)),
+  `node-pg-migrate up` ya cableado ([ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md)),
   aunque todavía no aplique ninguna migración real — el "hook" para la futura suite pgTAP de H2
   queda listo pero vacío.
 

@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
   Reemplaza Excel + Google Forms (citas) y papel (historias clínicas). Estado: sin código de
-  aplicación aún — PRD.md, TECH-DESIGN.md y adrs/ ya existen y son la fuente de verdad. Antes de
+  aplicación aún — docs/PRD.md, docs/TECH-DESIGN.md y docs/adrs/ ya existen y son la fuente de verdad. Antes de
   proponer un cambio, léelos (CLAUDE.md los resume pero no los sustituye).
 
   Stack decidido (no reabrir): Next.js 15 (App Router) + TypeScript en Vercel, Neon (Postgres

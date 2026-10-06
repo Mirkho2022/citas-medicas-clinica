@@ -4,11 +4,11 @@
 
 Ver `proposal.md` - Why. Este documento cubre el cómo de H1: un esqueleto desplegable con
 autenticación y roles, sin ningún esquema de base de datos todavía. Decisiones de stack ya
-tomadas y no reabiertas aquí: Next.js 15/Vercel ([ADR-0020](../../../adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)),
-Neon ([ADR-0021](../../../adrs/0021-base-de-datos-neon.md)), Clerk
-([ADR-0022](../../../adrs/0022-autenticacion-y-sesion-clerk.md)), Neon RLS Authorize
-([ADR-0023](../../../adrs/0023-contexto-de-usuario-para-rls.md)), `node-pg-migrate`
-([ADR-0027](../../../adrs/0027-herramienta-de-migraciones.md)). El pipeline de CI ya está descrito
+tomadas y no reabiertas aquí: Next.js 15/Vercel ([ADR-0020](../../../docs/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)),
+Neon ([ADR-0021](../../../docs/adrs/0021-base-de-datos-neon.md)), Clerk
+([ADR-0022](../../../docs/adrs/0022-autenticacion-y-sesion-clerk.md)), Neon RLS Authorize
+([ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md)), `node-pg-migrate`
+([ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md)). El pipeline de CI ya está descrito
 en TECH-DESIGN.md ("Entornos, CI/CD y pruebas"): GitHub Actions, PR → typecheck → lint → tests →
 branch efímero de Neon → `node-pg-migrate up` + pgTAP → Playwright contra el preview de Vercel →
 destruir el branch; merge a `main` → migrar → deploy.

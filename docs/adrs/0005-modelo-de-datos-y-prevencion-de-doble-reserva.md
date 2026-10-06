@@ -7,7 +7,7 @@ Aceptado
 ## Contexto
 
 El PRD exige que la doble reserva del mismo horario/doctor se bloquee, y que esa validación sea "a
-prueba de concurrencia" ([CLAUDE.md](../CLAUDE.md)): dos administrativos reservando el mismo slot
+prueba de concurrencia" ([CLAUDE.md](../../CLAUDE.md)): dos administrativos reservando el mismo slot
 en el mismo instante no pueden pasar ambos. Un `SELECT` de disponibilidad seguido de un `INSERT` no
 resuelve esto bajo concurrencia real (condición de carrera clásica). También hace falta un modelo
 para pacientes, médicos, especialidades, disponibilidad, historias clínicas y turnos de
