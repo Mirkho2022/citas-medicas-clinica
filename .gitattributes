@@ -1,0 +1,2 @@
+# Los scripts de shell deben conservar saltos de línea LF aunque Git esté en Windows
+*.sh text eol=lf
