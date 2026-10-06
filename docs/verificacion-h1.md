@@ -112,7 +112,7 @@ Ejecutado sobre `localhost:3000` con la instancia de desarrollo de Clerk. Cuenta
 
 Observaciones:
 
-- **Las áreas de personal no comprueban el rol.** `/administrativo`, `/medico` y `/enfermera` solo exigen sesión y MFA. Un paciente que entra es enviado a `/configurar-mfa` y, con TOTP activo, vería el panel de personal; cualquier rol ve `/paciente`. Sin datos detrás en H1; debe resolverse antes de H2.
+- **Las áreas no comprobaban el rol (resuelto).** `/administrativo`, `/medico`, `/enfermera` y `/paciente` solo exigían sesión (y MFA en las de personal): un paciente que entraba era enviado a `/configurar-mfa` y, con TOTP activo, habría visto el panel de personal; cualquier rol veía `/paciente`. Corregido con `exigirRol` en [lib/auth/rol.ts](../lib/auth/rol.ts), que lleva a cada rol a su propia área. Reverificado en `localhost`: el paciente es devuelto a `/paciente` desde las tres áreas de personal, la enfermera ya no ve `/paciente` y el administrativo (login con TOTP) es devuelto a `/administrativo` desde las demás.
 - **TOTP:** el administrativo quedó con TOTP activo (`/administrativo` muestra el panel). Médico y enfermera no lo configuraron.
 - **Revocación:** el baneo ya invalida las sesiones, por eso el script informa 0 sesiones activas revocadas. El token de Clerk sigue aceptándose hasta ~60 s.
 - **Anti-bots:** tras varios registros seguidos Clerk mostró un CAPTCHA de Cloudflare; la prueba de Playwright (6.4) necesitará testing tokens de Clerk.

@@ -1,9 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { tieneMfaActivo } from "@/lib/auth/mfa";
+import { exigirRol } from "@/lib/auth/rol";
 
 export default async function PaginaMedico() {
   await auth.protect();
+  await exigirRol("medico");
   if (!(await tieneMfaActivo())) {
     redirect("/configurar-mfa");
   }
