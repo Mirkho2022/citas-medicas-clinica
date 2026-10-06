@@ -35,9 +35,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Calcular expiración del branch (respaldo si el cierre del PR no lo borra)
-        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
-
       - name: Crear branch de Neon (solo esquema, sin datos de producción)
         id: neon
         uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # v6.3.1
@@ -47,7 +44,6 @@ jobs:
           parent_branch: production
           branch_name: preview/pr-${{ github.event.number }}
           branch_type: schema-only
-          expires_at: ${{ env.EXPIRES_AT }}
 
       - name: Aplicar migraciones al branch efímero
         run: npm run migrate -- up
