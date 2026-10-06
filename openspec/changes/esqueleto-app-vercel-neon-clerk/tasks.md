@@ -68,7 +68,7 @@
 - [x] 6.2 Agregar el paso de branch efímero de Neon por PR con `node-pg-migrate up` (sin
       migraciones todavía) y su destrucción al cerrar el PR; verificar que el branch se crea y se
       destruye correctamente en un PR de prueba.
-- [ ] 6.3 Configurar el workflow de merge a `main`: `node-pg-migrate up` contra el branch
+- [x] 6.3 Configurar el workflow de merge a `main`: `node-pg-migrate up` contra el branch
       principal de Neon seguido del deploy de producción de Vercel; verificar con un merge de
       prueba.
 - [ ] 6.4 Agregar una prueba Playwright mínima del flujo de autenticación y redirección por rol
