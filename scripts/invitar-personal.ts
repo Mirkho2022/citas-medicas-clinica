@@ -3,7 +3,10 @@
 // existe autorregistro de personal (spec autenticacion-roles).
 //
 // Uso (Node 24 ejecuta TypeScript directamente):
-//   node --env-file=.env.local scripts/invitar-personal.ts <email> <rol>
+//   node --env-file=.env.local scripts/invitar-personal.ts <email> <rol> [--sin-correo]
+//
+// --sin-correo: no envía el email; imprime el enlace de la invitación (para cuentas
+// de prueba, p. ej. usuario+clerk_test@example.com, sin bandeja real).
 //
 // Variables: CLERK_SECRET_KEY (obligatoria), APP_URL (opcional, por defecto
 // http://localhost:3000; a donde Clerk redirige para aceptar la invitación).
@@ -21,12 +24,14 @@ const entrada = z.object({
   }),
 });
 
-const [email, rol] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const sinCorreo = args.includes("--sin-correo");
+const [email, rol] = args.filter((a) => !a.startsWith("--"));
 const parsed = entrada.safeParse({ email, rol });
 if (!parsed.success) {
   console.error(
     parsed.error.issues.map((i) => i.message).join("\n") +
-      "\nUso: node --env-file=.env.local scripts/invitar-personal.ts <email> <rol>",
+      "\nUso: node --env-file=.env.local scripts/invitar-personal.ts <email> <rol> [--sin-correo]",
   );
   process.exit(1);
 }
@@ -46,8 +51,10 @@ const invitacion = await clerk.invitations.createInvitation({
   emailAddress: parsed.data.email,
   publicMetadata: { rol: parsed.data.rol },
   redirectUrl: `${appUrl}/registro`,
+  notify: !sinCorreo,
 });
 
 console.log(
-  `Invitación ${invitacion.id} enviada a ${invitacion.emailAddress} con rol ${parsed.data.rol}.`,
+  `Invitación ${invitacion.id} ${sinCorreo ? "creada (sin correo)" : "enviada"} a ${invitacion.emailAddress} con rol ${parsed.data.rol}.`,
 );
+if (sinCorreo) console.log(`Enlace: ${invitacion.url}`);

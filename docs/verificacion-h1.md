@@ -21,17 +21,19 @@ commiteado pero no se han probado con cuentas reales. Los escenarios citados est
 | Invitaciones habilitadas | Clerk Dashboard > User & Authentication (modo de registro) | ☐ |
 | Webhook `user.created` apuntando a `https://citas-medicas-clinica.vercel.app/api/webhooks/clerk` | Clerk Dashboard > Webhooks | ☐ |
 | `CLERK_WEBHOOK_SIGNING_SECRET` de ese endpoint cargado en Vercel (Production) | Vercel > Settings > Environment Variables | ☐ |
-| Una app de autenticación (Google Authenticator, Authy…) en tu teléfono | — | ☐ |
 
-Cuentas de prueba: cuatro correos que puedas leer (por ejemplo alias `+` de tu Gmail). Anótalos
-aquí al empezar, sin contraseñas:
+Cuentas de prueba: correos con el sufijo `+clerk_test` sobre `example.com`. En una instancia de
+desarrollo de Clerk esas direcciones no reciben correo real y su código de verificación es siempre
+`424242`. Las contraseñas las genera Claude y quedan solo en `.env.local` (ignorado por git); luego
+pasan a secretos de GitHub para 6.4. El TOTP se calcula a partir de la clave que muestra Clerk al
+configurarlo, así que no hace falta teléfono.
 
 | Rol | Correo |
 |---|---|
-| administrativo | |
-| medico | |
-| enfermera | |
-| paciente (autorregistro) | |
+| administrativo | `h1-administrativo+clerk_test@example.com` |
+| medico | `h1-medico+clerk_test@example.com` |
+| enfermera | `h1-enfermera+clerk_test@example.com` |
+| paciente (autorregistro) | `h1-paciente+clerk_test@example.com` |
 
 ## 1. Paciente por autorregistro (4.1, 4.2, 3.1, 3.3, 3.6)
 
@@ -52,8 +54,9 @@ aquí al empezar, sin contraseñas:
 
 ## 3. Personal por invitación (5.1, 5.2, 3.6)
 
-Yo envío cada invitación con `node --env-file=.env.local scripts/invitar-personal.ts <correo> <rol>`.
-Correo real: confirma antes que cada dirección es tuya.
+Yo creo cada invitación con
+`node --env-file=.env.local scripts/invitar-personal.ts <correo> <rol> --sin-correo`, que no envía
+correo e imprime el enlace de la invitación; ese enlace se abre en el navegador para aceptarla.
 
 | # | Acción | Resultado esperado |
 |---|---|---|
