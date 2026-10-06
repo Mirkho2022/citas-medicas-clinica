@@ -1,0 +1,48 @@
+name: Migrar producción
+
+# Merge a master: aplica `node-pg-migrate up` al branch principal de Neon.
+# Solo hacia adelante: nunca `down`, nunca restaurar el branch de producción
+# (CLAUDE.md, "Convenciones").
+#
+# Requiere el secreto DATABASE_URL_PRODUCCION: cadena de conexión DIRECTA (sin
+# `-pooler`) del branch `production` con un rol que pueda ejecutar DDL.
+#
+# El deploy de producción lo hace la integración Git de Vercel al mismo push, en
+# paralelo y no después de este workflow. Por eso toda migración debe ser
+# compatible hacia atrás con el código desplegado justo antes (agregar antes de
+# usar, borrar solo después de dejar de usar).
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+# Una migración a la vez y nunca cancelada a medias.
+concurrency:
+  group: migrar-produccion
+  cancel-in-progress: false
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Aplicar migraciones al branch principal de Neon
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Falta el secreto DATABASE_URL_PRODUCCION"
+            exit 1
+          fi
+          npm run migrate -- up
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCCION }}
