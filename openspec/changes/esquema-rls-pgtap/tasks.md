@@ -163,22 +163,24 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 
 ## 7. Turnos, notificaciones y auditoría
 
-- [ ] 7.1 Migración de `turnos_enfermeria` con sus restricciones, RLS, `GRANT` y políticas
-      (enfermera ve el suyo; administrativo gestiona); verificar con pgTAP: la enfermera ve solo sus
-      turnos, no ve los ajenos, paciente y médico no ven ninguno, y el `CHECK` de médico o especialidad.
-- [ ] 7.2 Migración de `notificaciones` con `unique (cita_id, tipo)`, RLS, política de lectura del
-      administrativo y `GRANT` de `cron_notificaciones` (lectura/escritura en `notificaciones`,
-      lectura en `citas`); verificar con pgTAP: paciente, médico y enfermera no leen; el cron lee y
-      escribe `notificaciones`, lee `citas`, **no** escribe `citas` y **no** puede leer `atenciones`,
-      `antecedentes`, `accesos_historia` ni `historias_clinicas`.
-- [ ] 7.3 Migración de `auditoria` y `accesos_historia` (secuencias con `USAGE` para
-      `authenticated`), RLS y políticas (el médico inserta sus accesos; el administrativo lee;
-      nadie actualiza ni elimina); verificar con pgTAP los escenarios de auditoría solo-agregar y
-      que el médico no registra accesos a nombre de otro.
-- [ ] 7.4 Función `registrar_auditoria()` y triggers sobre `perfiles`, `pacientes`, `citas`,
-      `asignaciones_paciente_medico`, `atenciones`, `addendas` y `antecedentes`, sin volcar contenido
-      en las tres tablas clínicas (D6); verificar con pgTAP que un cambio en cada tabla deja su
-      registro y que, para las clínicas, `datos_antes` y `datos_despues` no contienen el contenido.
+- [x] 7.1 Migración de `turnos_enfermeria` con sus restricciones, `enfermera_actual()` (SECURITY DEFINER) y políticas
+      (la enfermera ve los suyos; el administrativo gestiona; paciente, médico y sesión sin rol, ninguno);
+      verificado con pgTAP (19 pruebas): unicidad por enfermera, fecha y turno, el `CHECK` de médico o
+      especialidad, y los negativos de cada rol.
+- [x] 7.2 Migración de `notificaciones` (`unique (cita_id, tipo)`), política de lectura del administrativo y
+      privilegios de `cron_notificaciones` (lee y escribe notificaciones, solo lee citas), con políticas propias
+      del rol (RLS se aplica al cron: no es cierto que «no pase por RLS»); verificado con pgTAP (26 pruebas):
+      el cron no modifica citas ni lee atenciones, antecedentes, historias, addendas, asignaciones, pacientes
+      ni perfiles, y paciente, médico, enfermera y sesión sin rol no ven notificaciones.
+- [x] 7.3 Migración de `auditoria` y `accesos_historia` (secuencia con `USAGE`, solo-agregar incluso para el dueño);
+      el médico registra sus propios accesos a pacientes a su cargo y el administrativo los lee; verificado con
+      pgTAP (23 pruebas): no registra accesos a nombre de otro ni de pacientes ajenos, y nadie salvo el
+      administrativo lee la auditoría.
+- [x] 7.4 `registrar_auditoria()` (SECURITY DEFINER) y disparadores sobre `perfiles`, `pacientes`, `citas`,
+      `asignaciones_paciente_medico`, `atenciones`, `addendas` y `antecedentes`; en las tres tablas clínicas solo
+      se registra el hecho, sin contenido; verificado con pgTAP (18 pruebas): actor y rol de quien cambió,
+      estado anterior y nuevo, la asignación automática también se audita, y ningún texto clínico (marcado
+      con «SECRET») aparece en `auditoria`, tampoco al leerla como administrativo.
 
 ## 8. Integración con la aplicación
 

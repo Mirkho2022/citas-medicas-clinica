@@ -1,7 +1,8 @@
 // Doble reserva bajo concurrencia real (H2, tarea 5.2). Spec: integridad-de-agenda.
 // pgTAP corre en una sola sesión y no puede demostrarlo: aquí hay sesiones independientes que
 // confirman (commit) de verdad. Las filas de prueba se crean con marcas propias y se borran al
-// terminar, y también al empezar por si una ejecución anterior se interrumpió.
+// terminar, y también al empezar por si una ejecución anterior se interrumpió. La auditoría (solo-agregar) conserva
+// el rastro de estas filas: por eso corre contra un branch de pruebas, nunca contra production.
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type pg from "pg";
@@ -17,6 +18,8 @@ const pacienteIds: string[] = [];
 
 async function limpiar(c: pg.Client): Promise<void> {
   await c.query(`delete from public.citas where paciente_id in (select id from public.pacientes where numero_documento like '7300%')`);
+  // Desde H2 cada paciente tiene su historia clínica (se crea sola) y la clave foránea la protege.
+  await c.query(`delete from public.historias_clinicas where paciente_id in (select id from public.pacientes where numero_documento like '7300%')`);
   await c.query(`delete from public.pacientes where numero_documento like '7300%'`);
   await c.query(`delete from public.medicos where cmp like 'CMP-CONC-%'`);
   await c.query(`delete from public.perfiles where clerk_user_id like 'user_conc_%'`);

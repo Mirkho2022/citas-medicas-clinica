@@ -163,9 +163,13 @@ Cada una se prueba con pgTAP; se documentan aquí para que nadie las «corrija»
 - **La auditoría no debe copiar contenido clínico.** Si `registrar_auditoria()` volcara la fila
   completa de `atenciones`/`addendas`/`antecedentes` en `datos_antes/datos_despues`, el
   administrativo —que puede leer `auditoria`— leería historias clínicas por esa vía. Para esas tres
-  tablas se registra quién, cuándo, acción y `registro_id`, sin contenido. Los triggers de auditoría
-  cubren `perfiles`, `pacientes`, `citas`, `asignaciones_paciente_medico` y esas tres tablas
-  clínicas (lista derivada; ver Open Questions).
+  tablas se registra quién, cuándo, acción y `registro_id`, sin contenido. Los disparadores cubren
+  `perfiles`, `pacientes`, `citas`, `asignaciones_paciente_medico` y esas tres tablas clínicas (lista
+  derivada; ver Open Questions). `auditoria` y `accesos_historia` son solo-agregar incluso para el dueño.
+- **El cron sí pasa por RLS.** TECH-DESIGN y ADR-0020 dicen que `cron_notificaciones` «no pasa por RLS»; RLS se
+  aplica a todo rol que no sea el dueño ni tenga `BYPASSRLS`. Darle `BYPASSRLS` ampliaría su alcance si un
+  `GRANT` se excediera, así que tiene políticas propias, igual de acotadas que sus `GRANT` (notificaciones: todo;
+  citas: solo lectura).
 - **Antecedentes inmutables salvo `vigente`.** RLS no filtra por columna: el `UPDATE` de `authenticated` se limita a
   la columna `vigente` por privilegio de columna y `proteger_antecedente()` rechaza cualquier otro cambio y todo
   `DELETE`, incluso del dueño.
@@ -327,4 +331,7 @@ distinta de la de `.env.local`.
   cambian el enfoque ni las tareas; se confirman o se ajustan al revisar la implementación.
 - **Aclaración de ADR-0020 sobre `app_user`.** El spike mostró que no existe; el texto del ADR se
   corrige con revisión humana (tarea 10.4).
+- **Tipo de notificación `reprogramacion`.** ADR-0011 manda encolar una notificación de reprogramación, pero el
+  `CHECK` de `notificaciones.tipo` (TECH-DESIGN) solo admite tres tipos. No se cambia aquí: lo decide H5 al
+  construir las notificaciones (sería un `ALTER` del `CHECK` en una migración nueva).
 - **Región de Neon y retención** dependen de P-1 y no se tocan aquí.
