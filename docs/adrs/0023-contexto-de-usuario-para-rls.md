@@ -112,3 +112,21 @@ la deniega, no un bypass.
 - Se pierde algo de portabilidad: el esquema ahora depende de una extensión específica de Neon
   (`pg_session_jwt`), no solo de Postgres estándar — coherente con el resto del stack, que ya
   depende de features específicas de Neon (branching, PITR).
+
+**Nota (2026-10-08, H2): verificación ejecutada.** El spike se corrió de extremo a extremo con tokens reales de
+Clerk (detalle en [spike-rls-h2.md](../spike-rls-h2.md)): la decisión se sostiene y no hace falta el plan B. La
+implementación difiere de lo que esta ADR suponía en cuatro puntos, ya reflejados en TECH-DESIGN:
+
+- **Rol de conexión:** el tráfico entra como `authenticator` (login, sin privilegios sobre tablas) y cada petición
+  ejecuta `set local role authenticated` (rol `NOLOGIN`) como primera sentencia de una transacción; la
+  `DATABASE_AUTHENTICATED_URL` del ejemplo de arriba es la URL directa de `authenticator`, no de `authenticated`.
+- **Claim del rol:** el token de sesión lleva `publicMetadata: { rol }` (anidado), no un `rol` de primer nivel; las
+  políticas leen `public.rol_actual()`, una función `SECURITY DEFINER` (`authenticated` no tiene `USAGE` sobre el
+  esquema `auth`).
+- **JWKS:** se registra por la API de Neon (`POST /projects/{id}/jwks` con `branch_id`), no se hereda a branches
+  nuevos y no se necesita ninguna JWKS de prueba para pgTAP.
+- **pgTAP:** `pg_session_jwt` solo acepta una JWK Ed25519 como opción de arranque de una conexión directa; la suite
+  firma tokens EdDSA efímeros (receta en [pruebas-sql.md](../pruebas-sql.md)).
+
+También se encontró que Neon dejó privilegios por defecto abiertos para `authenticated` sobre toda tabla nueva; la
+primera migración de H2 los revoca.

@@ -1,7 +1,7 @@
 # Guion de verificación manual de H1 (autenticación y roles)
 
 Cierra las tareas 3.1–3.6 y 5.1–5.3 de
-[tasks.md](../openspec/changes/esqueleto-app-vercel-neon-clerk/tasks.md), que tienen el código
+[tasks.md](../openspec/changes/archive/2026-10-07-esqueleto-app-vercel-neon-clerk/tasks.md), que tienen el código
 commiteado pero no se han probado con cuentas reales. Los escenarios citados están en la spec
 `autenticacion-roles` del mismo change. Esta sesión también deja listas las cuentas para 6.4
 (Playwright).

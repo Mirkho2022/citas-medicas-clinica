@@ -55,3 +55,10 @@ base de datos a Neon — reemplazado en [ADR-0023](0023-contexto-de-usuario-para
 de negocio de esta ADR (aislamiento por médico a cargo, auditoría de lecturas, bloqueo de escalada
 de rol) sigue vigente sin cambios; solo cambia cómo Postgres recibe esa información en cada
 consulta.
+
+**Nota (2026-10-08, H2):** implementado y verificado con la suite pgTAP (cada rol incorrecto tiene su caso negativo,
+y una mutación deliberada de la política de lectura de `atenciones` hace fallar cinco pruebas). El aislamiento se
+resuelve con `public.rol_actual()` y `medico_tiene_paciente()`; el bloqueo de escalada es un disparador `SECURITY
+INVOKER` que protege `rol` y `activo`; y la revocación de sesiones se hace por la API de Clerk (`banUser`/revocar
+sesiones) en lugar de `auth.admin.signOut` de Supabase. Detalle en [TECH-DESIGN.md](../TECH-DESIGN.md), «Seguridad
+y control de acceso».

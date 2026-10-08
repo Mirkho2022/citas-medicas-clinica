@@ -78,7 +78,8 @@ operations:
     guidance:
       - No implementar el módulo de historias clínicas en modo apto para producción mientras la
         decisión legal (NTS MINSA) siga abierta; si se construye en paralelo, dejarlo detrás de
-        un entorno/flag que impida datos clínicos reales.
+        un entorno/flag que impida datos clínicos reales. Los datos sintéticos de demostración
+        (proyecto de muestra) sí se permiten; los reales, no.
       - Antes de cerrar una tarea que crea una tabla nueva, confirmar que RLS quedó activada y
         que existe su prueba pgTAP negativa.
   archive:

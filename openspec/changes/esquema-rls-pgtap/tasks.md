@@ -246,14 +246,19 @@ Proyecto de muestra: se permiten datos **sintéticos** para ejercitar el sistema
 Regla: PRD, TECH-DESIGN, ADR, CLAUDE.md y `openspec/config.yaml` deben contar la misma historia. El
 PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
 
-- [ ] 10.1 Actualizar TECH-DESIGN.md con las correcciones de D6 (trigger de rol, `security definer` de
+- [x] 10.1 Actualizar TECH-DESIGN.md con las correcciones de D6 (trigger de rol, `security definer` de
       `validar_cancelacion()`, `TG_OP`, auditoría sin contenido clínico, `rol_actual()`) y los
       hallazgos del spike (claim en `publicMetadata.rol`, `authenticator` + `set local role`, funciones
       que leen `auth.*` como `security definer`, privilegios por defecto revocados); alinear el SQL de
       ADR-0015 y los fragmentos de ADR-0023 (`DATABASE_AUTHENTICATED_URL`, `authToken`, claim) con la
       realidad; verificar con una búsqueda que ya no quedan `auth.jwt()`, `auth.uid()` ni `user_role`
       de Supabase fuera de menciones históricas.
-- [ ] 10.2 Barrido de coherencia entre documentos: clasificar cada mención de Supabase, Cloudflare,
+      Hecho (2026-10-08): TECH-DESIGN reescrito en arquitectura, modelo de datos, seguridad, reglas de negocio y pruebas;
+      ADR-0003, 0012, 0013, 0014, 0015, 0021 y 0023 alineados con notas fechadas. La búsqueda de `auth.jwt()`, `auth.uid()`,
+      `user_role`, `service_role` y `supabase/migrations` solo encuentra menciones históricas o explicativas (notas de
+      ADR-0003, ADR-0020/0021/0023/0027 al explicar qué reemplazan, TECH-DESIGN al citar el diseño original) y la nota
+      pendiente de ADR-0020.
+- [x] 10.2 Barrido de coherencia entre documentos: clasificar cada mención de Supabase, Cloudflare,
       `service_role`, `supabase/migrations`, `auth.uid`/`auth.jwt` en `docs/`, CLAUDE.md y
       `openspec/config.yaml` como histórica (correcta) o desactualizada (corregir; p. ej. la ruta
       `supabase/migrations` de ADR-0014), y contrastar los invariantes que se repiten en varios
@@ -263,18 +268,29 @@ PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
       TECH-DESIGN contra los archivos de `docs/adrs/`, y los enlaces. Verificar con la tabla de
       hallazgos y su resolución en la descripción del PR; cada discrepancia queda corregida o marcada
       para revisión humana.
-- [ ] 10.3 Registrar la decisión de usar datos mock: P-1 bloquea datos **reales** de pacientes, no
+      Hecho (2026-10-08): 23 hallazgos con su resolución en `coherencia.md` (para la descripción del PR); 186 enlaces
+      comprobados, 1 roto corregido; tabla de ADR de TECH-DESIGN = 23 archivos; invariantes iguales en todos los documentos.
+      Dos discrepancias quedan marcadas para revisión humana: ADR-0020 y `notificaciones.tipo` (H5).
+- [x] 10.3 Registrar la decisión de usar datos mock: P-1 bloquea datos **reales** de pacientes, no
       los sintéticos de demostración. Reflejarlo en TECH-DESIGN (P-1 y plan de implementación),
       CLAUDE.md («Decisiones aún abiertas») y `openspec/config.yaml` (guía de `apply`); si el PRD
       afirma lo contrario, proponer el cambio con la skill `generar-prd-conversacional` y no editarlo
       a mano. Verificar con una búsqueda que los cuatro textos dicen lo mismo.
-- [ ] 10.4 Si el spike mostró que `app_user` de ADR-0020 es redundante con `authenticated`, preparar
+      Hecho (2026-10-08): TECH-DESIGN (P-1 y plan de implementación), CLAUDE.md («Decisiones aún abiertas») y
+      `openspec/config.yaml` dicen lo mismo (datos reales bloqueados, sintéticos permitidos, sin mezclarlos). El PRD no afirma
+      lo contrario, así que no se editó.
+- [x] 10.4 Si el spike mostró que `app_user` de ADR-0020 es redundante con `authenticated`, preparar
       el texto de aclaración y **marcarlo para revisión humana** sin sobrescribirlo; verificar que el
       resultado de la revisión queda anotado en `docs/spike-rls-h2.md`.
-- [ ] 10.5 Registrar en `docs/` la lista de pasos manuales de consola para producción (JWKS de la
+      Hecho (2026-10-08): nota de revisión pendiente al final de ADR-0020 (texto de la decisión sin tocar) y estado de la
+      revisión anotado en `docs/spike-rls-h2.md`, «Revisión pendiente de ADR-0020». Sigue a la espera de decisión humana.
+- [x] 10.5 Registrar en `docs/` la lista de pasos manuales de consola para producción (JWKS de la
       instancia de Clerk de producción registrada por API solo en `production`, `LOGIN` y contraseña de
       `cron_notificaciones` y `sync_identidad`, variables en Vercel, suscripción `user.updated`); verificar
       que cada paso tiene su comprobación y que se cumplen antes del merge.
+      Hecho (2026-10-08): `docs/pasos-manuales-h2.md`, seis pasos con su comprobación y el orden respecto al merge, más la
+      ventana entre merge y configuración (webhook en 500 si falta `DATABASE_SYNC_URL`). **Ejecutar esos pasos** (JWKS en
+      Neon, contraseñas, variables de Vercel) es una acción externa que requiere OK explícito del usuario.
 - [ ] 10.6 Ejecutar la verificación integral en el PR: `migrate up` limpio, suite pgTAP completa y
       concurrencia en verde, E2E existente en verde y `99_rls_en_todas_las_tablas` en verde; verificar
       que no hay tablas de `public` sin RLS y que cada tabla tiene al menos una prueba negativa

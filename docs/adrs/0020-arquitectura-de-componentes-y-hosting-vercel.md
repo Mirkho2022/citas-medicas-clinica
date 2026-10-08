@@ -68,3 +68,16 @@ Vercel (proyecto único)
   permisos (fallo visible), pero un `GRANT` de más otorgado por error es un hueco de seguridad
   silencioso; los `GRANT` de este rol deben revisarse en cualquier PR que modifique
   `lib/cron/*` o el esquema de `notificaciones`/`citas`.
+
+**Nota de revisión pendiente (2026-10-08, H2) — requiere decisión humana; el texto de la decisión de arriba no se
+modificó.** La implementación de H2 difiere de dos afirmaciones de esta ADR:
+
+1. **`app_user` no existe en Neon.** El tráfico de usuario entra como `authenticator` y cambia a `authenticated`
+   ([ADR-0023](0023-contexto-de-usuario-para-rls.md), verificado en [spike-rls-h2.md](../spike-rls-h2.md)). Propuesta: sustituir
+   `app_user` por `authenticator`/`authenticated` en este texto y en el diagrama.
+2. **`cron_notificaciones` sí pasa por RLS.** RLS se aplica a todo rol que no sea el dueño ni tenga `BYPASSRLS`; darle
+   `BYPASSRLS` ampliaría su alcance si un `GRANT` se excediera, así que tiene políticas propias igual de acotadas que
+   sus `GRANT` (`notificaciones` completa y `citas` solo lectura). Además existe un tercer rol, `sync_identidad`
+   (webhook de Clerk, solo `perfiles`), que esta ADR no menciona. Propuesta: incluirlo.
+
+Ninguna de las dos cambia la garantía de fondo (el cron no puede leer historias clínicas por permisos de base de datos).

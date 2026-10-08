@@ -3,8 +3,11 @@
 Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
 Reemplaza el proceso actual (Excel + Google Forms para citas, papel para historias clínicas).
 
-**Estado actual: existen [PRD.md](docs/PRD.md), [TECH-DESIGN.md](docs/TECH-DESIGN.md) y repositorio git
-inicializado. Todavía no hay código de aplicación.**
+**Estado actual: existen [PRD.md](docs/PRD.md), [TECH-DESIGN.md](docs/TECH-DESIGN.md), la aplicación base con
+autenticación y roles (H1) y el esquema de base de datos con RLS, sus pruebas y los datos de demostración (H2,
+ver [spike-rls-h2.md](docs/spike-rls-h2.md), [pruebas-sql.md](docs/pruebas-sql.md) y
+[datos-demo.md](docs/datos-demo.md)). El resto de módulos (agenda, portal, notificaciones, historias clínicas,
+turnos) llegan en H3–H8.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
 con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
@@ -32,7 +35,9 @@ sin el `authToken` de la sesión de Clerk adjunto.
   si la firma lógica basta o se exige firma electrónica certificada, y si es admisible alojar
   datos clínicos fuera de Perú. Pendiente de asesor legal. **Bloquea la puesta en producción del
   módulo de historias clínicas**, y si la respuesta exige datos en territorio peruano, reabre la
-  decisión de hosting.
+  decisión de hosting. Este bloqueo es sobre datos **reales** de pacientes: al ser un proyecto de muestra, se
+  permiten datos **sintéticos** de demostración (script `scripts/sembrar-datos-demo.ts`, ver
+  [datos-demo.md](docs/datos-demo.md)), nunca mezclados con datos reales.
 
 Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y quedaron
 formalizadas como ADR — no las reabras sin que el cliente lo pida:

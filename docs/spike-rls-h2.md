@@ -92,3 +92,13 @@ el proxy queda cubierta por la prueba E2E con una cuenta real (tarea 8.2).
 - La URL **pooled** no se probó con `authToken`; se usará la directa para el tráfico autenticado.
 - La instancia de Clerk de producción en Vercel y la de desarrollo (`.env.local`) fueron distintas
   en H1: antes de producción hay que registrar la JWKS correcta en el branch correcto.
+
+## Revisión pendiente de ADR-0020
+
+El spike mostró que `app_user` (ADR-0020) no existe en Neon: el tráfico de usuario entra como `authenticator` y cambia a
+`authenticated`. H2 además creó un tercer rol de servicio, `sync_identidad` (webhook de Clerk), y confirmó que
+`cron_notificaciones` sí pasa por RLS con políticas propias. El texto de la decisión de ADR-0020 **no se modificó**; la
+aclaración propuesta está en la «Nota de revisión pendiente» al final de ese ADR.
+
+**Estado de la revisión (2026-10-08): pendiente de decisión humana.** No condiciona el merge de H2 ni cambia la garantía de fondo
+(el cron no puede leer historias clínicas por permisos de base de datos). Cuando se resuelva, anotar aquí el resultado.

@@ -18,7 +18,7 @@ conecta desde funciones serverless de Vercel sin agotar conexiones.
 ## Decisión
 
 **Neon** (PostgreSQL 15+, serverless, con branching y point-in-time recovery nativos) como base de
-datos. Es Postgres estándar: `btree_gist`, `pgcrypto`, `citext`, RLS, `EXCLUDE USING gist`,
+datos. Es Postgres estándar: `btree_gist`, `citext`, RLS, `EXCLUDE USING gist`,
 triggers y funciones `SECURITY DEFINER` — todo lo que el modelo de datos ya usa sigue funcionando
 sin cambios en esa parte del diseño.
 

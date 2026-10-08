@@ -16,7 +16,7 @@ puede diseñar la fase 4 de migración ni medir si el 60% se cumplió.
 
 **Híbrido**: se estructuran en campos de `atenciones` los antecedentes y diagnósticos activos del
 paciente (los datos que el médico realmente necesita consultar en tiempo real durante una
-atención), y el resto del expediente en papel se adjunta como escaneo (PDF) en Supabase Storage,
+atención), y el resto del expediente en papel se adjunta como escaneo (PDF) en Vercel Blob ([ADR-0024](0024-almacenamiento-de-adjuntos-vercel-blob.md)),
 vinculado a la historia clínica del paciente como respaldo. Una historia cuenta como
 "digitalizada" quiere decir: tiene al menos un registro estructurado de antecedentes/diagnósticos
 activos en el sistema (con o sin adjunto de respaldo).

@@ -25,7 +25,7 @@ create table antecedentes (
   id             uuid primary key default gen_random_uuid(),
   paciente_id    uuid not null references pacientes(id) on delete restrict,
   tipo           tipo_antecedente not null,
-  descripcion    text not null check (length(btrim(descripcion)) > 0),
+  descripcion    text not null check (public.texto_con_contenido(descripcion)),
   vigente        boolean not null default true,
   registrado_por uuid not null references medicos(id) on delete restrict,
   creado_en      timestamptz not null default now(),
@@ -40,16 +40,16 @@ alter table antecedentes enable row level security;
 create policy "medico lee antecedentes de sus pacientes"
 on antecedentes for select to authenticated
 using (
-  (select auth.jwt() ->> 'user_role') = 'medico'
-  and public.medico_tiene_paciente(paciente_id)
+  (select public.rol_actual()) = 'medico'
+  and (select public.medico_tiene_paciente(paciente_id))
 );
 
 create policy "medico registra antecedentes de sus pacientes"
 on antecedentes for insert to authenticated
 with check (
-  (select auth.jwt() ->> 'user_role') = 'medico'
-  and public.medico_tiene_paciente(paciente_id)
-  and registrado_por = (select id from public.medicos where perfil_id = (select auth.uid()))
+  (select public.rol_actual()) = 'medico'
+  and (select public.medico_tiene_paciente(paciente_id))
+  and registrado_por = (select public.medico_actual())
 );
 ```
 
@@ -58,6 +58,12 @@ corresponde, se inserta uno nuevo con el estado actualizado — mismo principio 
 que rige `atenciones` ([ADR-0005](0005-modelo-de-datos-y-prevencion-de-doble-reserva.md)). El
 administrativo y el paciente no tienen política de lectura sobre esta tabla, por la misma razón
 que no la tienen sobre `atenciones`.
+
+**Nota (2026-10-08, H2):** el SQL de arriba es el implementado y verificado con pgTAP, con la sintaxis de
+[ADR-0023](0023-contexto-de-usuario-para-rls.md) (`rol_actual()`, `medico_actual()`) en lugar de la de Supabase. Además:
+`btrim()` solo recorta espacios y deja pasar un campo con tabuladores o saltos de línea, por eso el `CHECK` usa
+`texto_con_contenido()`; el `UPDATE` de `authenticated` se limita a la columna `vigente` por privilegio de columna y
+el disparador `proteger_antecedente()` rechaza cualquier otro cambio y todo `DELETE`, incluso del dueño.
 
 ## Alternativas consideradas
 
