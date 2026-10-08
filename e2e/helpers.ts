@@ -12,6 +12,13 @@ export function variable(nombre: string): string {
   return valor;
 }
 
+// Header de bypass para el fixture `request`: prepararPagina solo cubre la página, y una petición directa a un
+// preview protegido recibiría 401 de Vercel antes de llegar a la ruta bajo prueba.
+export function cabecerasBypass(): Record<string, string> {
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  return bypass ? { "x-vercel-protection-bypass": bypass } : {};
+}
+
 // Prepara la página: testing token de Clerk y, si el preview de Vercel está
 // protegido, el bypass de automatización. El header solo se agrega a las peticiones
 // al origen de la app: en otros orígenes (Clerk) rompería CORS.

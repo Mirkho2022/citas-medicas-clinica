@@ -63,7 +63,7 @@ texto, y `atenciones.diagnosticos` valida cada entrada contra un código existen
    exige.
 
 **Carga**: migración de datos versionada como cualquier otra
-(`supabase/migrations/NNNN_seed_cie10.sql`), con el CSV de origen commiteado en el repo (o
+(`migrations/NNNN_seed_cie10.sql`, `node-pg-migrate`, [ADR-0027](0027-herramienta-de-migraciones.md)), con el CSV de origen commiteado en el repo (o
 referenciado por hash/fecha de descarga en el propio archivo de migración) y un
 `INSERT ... ON CONFLICT (codigo) DO NOTHING` para que sea repetible sin duplicar filas. Una
 actualización futura del catálogo (nueva revisión de la OMS/MINSA) se aplica como una migración

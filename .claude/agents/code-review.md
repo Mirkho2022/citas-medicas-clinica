@@ -34,7 +34,7 @@ repo entero salvo que te lo pidan explícitamente.
    en cada página/Route Handler/Server Function protegidos, **no** middleware con
    `createRouteMatcher()` (Clerk lo deprecó: el path-matching en middleware puede divergir de
    cómo Next.js resuelve rutas, con CVE real de por medio — ver
-   `openspec/changes/esqueleto-app-vercel-neon-clerk/design.md`). Señala cualquier página o route
+   `openspec/changes/archive/2026-10-07-esqueleto-app-vercel-neon-clerk/design.md`). Señala cualquier página o route
    handler nuevo sin su chequeo de auth, y confirma que la regla de lint
    `@clerk/next/require-auth-protection` lo sigue cubriendo (`protected`/`public` en
    `eslint.config.mjs` al día con las rutas reales).

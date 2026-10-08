@@ -44,3 +44,8 @@ fecha/hora se almacena en `timestamptz`, renderizada en `America/Lima` en la UI.
   texto exacto que pide el PRD (`Registro de cita ya agendado`) en la capa de Server Action — si ese
   mapeo se omite en un nuevo punto de inserción de citas, el usuario ve un error de Postgres crudo
   en vez del mensaje esperado.
+
+**Nota (2026-10-08, H2):** la suite de concurrencia (20 rondas de 5 reservas simultáneas del mismo horario) confirmó que
+exactamente una se confirma siempre, pero el motor no siempre rechaza a las demás con `23P01`: ante un choque simultáneo
+puede abortar una con `40P01` (`deadlock_detected`). El mapeo al mensaje `Registro de cita ya agendado` debe cubrir los
+dos códigos; la decisión del ADR no cambia. Ver [TECH-DESIGN.md](../TECH-DESIGN.md), «Doble reserva».

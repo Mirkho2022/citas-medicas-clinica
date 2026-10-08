@@ -9,7 +9,10 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "migrate": "node-pg-migrate",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:pgtap": "node scripts/ejecutar-pgtap.ts",
+    "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
+    "test:integracion": "node --test \"tests/integracion/*.test.ts\""
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",
@@ -29,6 +32,7 @@
     "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

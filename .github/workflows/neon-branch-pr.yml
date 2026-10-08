@@ -58,6 +58,28 @@ jobs:
           # Conexión directa (no pooled): las migraciones no deben pasar por PgBouncer.
           DATABASE_URL: ${{ steps.neon.outputs.db_url }}
 
+      # Suite de base de datos (docs/pruebas-sql.md). Corre contra el branch efímero, nunca contra
+      # production: DATABASE_URL_PRODUCCION solo sirve de guarda (los runners se niegan si el host
+      # coincide). pgTAP se instala dentro de la transacción de cada archivo y se revierte; no hace
+      # falta registrar ninguna JWKS en Neon (docs/spike-rls-h2.md).
+      - name: Pruebas pgTAP (RLS, políticas, reglas de negocio)
+        run: npm run test:pgtap
+        env:
+          DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
+          DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
+
+      - name: Pruebas de concurrencia (doble reserva)
+        run: npm run test:concurrencia
+        env:
+          DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
+          DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
+
+      - name: Pruebas de integración (sincronización de perfiles con el rol sync_identidad)
+        run: npm run test:integracion
+        env:
+          DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
+          DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
+
   destruir:
     if: >-
       github.event.action == 'closed' &&
