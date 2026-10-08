@@ -102,25 +102,29 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 
 ## 5. Agenda y citas
 
-- [ ] 5.1 Migración de `disponibilidades`, `bloqueos_agenda` y `citas` con las dos restricciones
-      `EXCLUDE`, los `CHECK` de rangos e índices, RLS activada, sin política todavía; verificar con
-      pgTAP: negativa por tabla y los escenarios de `integridad-de-agenda` (solape de médico,
-      solape de paciente con médicos distintos, cita cancelada libera el horario, citas contiguas,
-      bloqueos solapados, rangos incoherentes), comprobando el código `23P01` en las violaciones.
-- [ ] 5.2 Prueba de concurrencia en `tests/concurrencia/` con dos clientes `pg` que reservan el
-      mismo horario del mismo médico en paralelo; verificar que exactamente una se confirma y la otra
-      falla con `23P01`, repitiéndolo al menos 20 veces sin una sola doble reserva.
-- [ ] 5.3 Migración de `validar_cancelacion()` como `security definer` con `search_path` vacío
-      (D6) y su trigger; verificar con pgTAP los escenarios de ventana de 1 h para paciente y
-      administrativo, la excepción por bloqueo que cubre la cita (también para un paciente que no
-      ve el bloqueo), que el bloqueo de otro médico no habilita la excepción y el registro de
-      `cancelada_en`/`cancelada_por`.
-- [ ] 5.4 Políticas y `GRANT` de `citas` (las cuatro de TECH-DESIGN, vía `rol_actual()`); verificar
-      con pgTAP «Paciente ve solo sus citas», «Médico ve solo su agenda», «Enfermera no ve citas» y
-      que el paciente no reserva a nombre de otro, con `origen` distinto de `portal` ni en el pasado.
-- [ ] 5.5 Políticas y `GRANT` de `disponibilidades` y `bloqueos_agenda` (lectura de disponibilidades
-      a autenticados; escritura del administrativo; el médico lee sus bloqueos); verificar con pgTAP
-      la negativa de escritura de paciente, médico y enfermera.
+- [x] 5.1 Migración de `disponibilidades`, `bloqueos_agenda` y `citas` con las dos restricciones `EXCLUDE`, los
+      `CHECK` de rangos e índices, RLS activada y sin política; verificado con pgTAP (19 pruebas): RLS por
+      tabla, solape de médico (reservada y confirmada), contiguas, cancelada libera el horario, solape de
+      paciente con médicos distintos, rangos incoherentes, disponibilidades y bloqueos; el código de la
+      violación es `23P01` (y `22000` si `fin < inicio`, porque la columna generada `rango` falla primero).
+- [x] 5.2 Prueba de concurrencia `tests/concurrencia/10_doble_reserva.test.ts` con sesiones `pg` independientes:
+      el segundo `INSERT` queda esperando al primero y recibe `23P01` cuando éste confirma, un `rollback` del
+      primero libera el horario, y 20 rondas de 5 reservas simultáneas del mismo horario confirman
+      exactamente una cada vez; limpia sus filas al terminar.
+- [x] 5.3 Migración de `validar_cancelacion()` (SECURITY DEFINER, medida contra `OLD.inicio`) y su trigger;
+      verificado con pgTAP (16 pruebas): más de 1 h se acepta, exactamente 1 h se acepta, 59 min y una cita ya
+      empezada se rechazan, cancelar y mover la cita en el mismo UPDATE no esquiva la ventana, un bloqueo del
+      mismo médico habilita la baja médica (también para un paciente que no ve el bloqueo), el de otro médico
+      no, y se registran `cancelada_en` y `cancelada_por`. La cancelación por el administrativo se prueba en 5.4.
+- [x] 5.4 Privilegios y políticas de `citas` (las cuatro de TECH-DESIGN con `rol_actual()`; sin `DELETE`);
+      verificado con pgTAP (25 pruebas): el paciente ve solo las suyas, el médico solo su agenda, la enfermera
+      y una sesión sin rol ninguna; el paciente no reserva a nombre de otro, con origen administrativo ni en
+      el pasado; médico y enfermera no crean; el administrativo agenda, confirma y cancela, la ventana de 1 h
+      también lo alcanza, `cancelada_por` registra su perfil y nadie borra.
+- [x] 5.5 Privilegios y políticas de `disponibilidades` (lectura a todo rol válido, escritura del administrativo) y
+      `bloqueos_agenda` (lectura del administrativo y del médico dueño, escritura del administrativo);
+      verificado con pgTAP (23 pruebas), incluidos los negativos de paciente, enfermera, sesión sin rol y
+      médico, y que la restricción de bloqueos solapados se mantiene aunque la política lo permita.
 
 ## 6. Historias clínicas
 

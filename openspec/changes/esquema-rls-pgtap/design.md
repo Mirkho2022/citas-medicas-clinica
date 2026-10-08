@@ -154,7 +154,9 @@ Cada una se prueba con pgTAP; se documentan aquí para que nadie las «corrija»
   `clerk_user_id`: el trigger es la barrera de fondo, no la única.
 - **`validar_cancelacion()` debe ser `security definer`** (con `search_path` vacío). Si no, la
   consulta a `bloqueos_agenda` pasa por la RLS de quien cancela y un paciente nunca ve el bloqueo,
-  con lo que la excepción por baja médica dependería del rol, contra ADR-0012.
+  con lo que la excepción por baja médica dependería del rol, contra ADR-0012. Además, la ventana se
+  mide contra `OLD.inicio` y no `NEW.inicio` (como decía TECH-DESIGN): con `NEW`, un `UPDATE` que cancela y a
+  la vez mueve la cita al futuro esquivaría la ventana.
 - **`extender_asignacion_por_cita()` en el `INSERT`.** El `OR` con `old is null` / `old.estado` es
   frágil en un trigger de inserción; se escribe con `TG_OP` y se prueba el camino «cita insertada ya
   `confirmada`» además del `UPDATE`.
