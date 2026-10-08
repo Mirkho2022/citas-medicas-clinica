@@ -49,10 +49,13 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
       `package.json`, `@types/pg`, `allowImportingTsExtensions` en `tsconfig.json` y
       `docs/pruebas-sql.md`; verificar con `npm run test:pgtap`, `npm run test:concurrencia`,
       `npm run typecheck` y `npm run lint`.
-- [ ] 2.4 Extender `neon-branch-pr.yml` con los pasos `npm run test:pgtap` y `npm run test:concurrencia`
+- [x] 2.4 Extender `neon-branch-pr.yml` con los pasos `npm run test:pgtap` y `npm run test:concurrencia`
       tras `migrate up` (hecho en el archivo; sin instalar `pg_prove` ni registrar JWKS en Neon);
       **pendiente de verificar en CI al abrir el PR**: pasa en verde y, forzando una aserción falsa en
       un commit de prueba, el job falla en rojo (demuestra que puede fallar).
+      Verificado en el PR #5 (2026-10-08): los pasos de pgTAP, concurrencia e integración corren en verde sobre el branch
+      efímero; con una aserción falsa temporal (commit `cb2568a`) el job `migrar` se puso en rojo con «478 pruebas, 1
+      fallos» y volvió a verde al revertirla (`ff97718`).
 - [x] 2.5 Confirmar que `migrar-produccion.yml` no instala `pgtap` ni ejecuta pruebas; verificado
       leyendo el workflow y con `grep` (ninguna migración contiene `pgtap`; el runner instala la
       extensión dentro de la transacción de cada archivo y la revierte).
@@ -293,10 +296,14 @@ PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
       Hecho (2026-10-08): `docs/pasos-manuales-h2.md`, seis pasos con su comprobación y el orden respecto al merge, más la
       ventana entre merge y configuración (webhook en 500 si falta `DATABASE_SYNC_URL`). **Ejecutar esos pasos** (JWKS en
       Neon, contraseñas, variables de Vercel) es una acción externa que requiere OK explícito del usuario.
-- [ ] 10.6 Ejecutar la verificación integral en el PR: `migrate up` limpio, suite pgTAP completa y
+- [x] 10.6 Ejecutar la verificación integral en el PR: `migrate up` limpio, suite pgTAP completa y
       concurrencia en verde, E2E existente en verde y `99_rls_en_todas_las_tablas` en verde; verificar
       que no hay tablas de `public` sin RLS y que cada tabla tiene al menos una prueba negativa
       (listado tabla por prueba en la descripción del PR).
+      Verificado en el PR #5 (2026-10-08) sobre `6572698`: `migrate up` limpio en el branch efímero, pgTAP 477/0,
+      concurrencia 5/5, integración 7/7, E2E de Preview 9/9 y `99_rls_en_todas_las_tablas` en verde; las 19 tablas de
+      `public` tienen RLS y prueba negativa (listado en la descripción del PR). El CI destapó que una reserva
+      simultánea puede fallar con `40P01` además de `23P01` (ver 5.2).
 - [ ] 10.7 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las migraciones a producción
       y que el deployment de Vercel sigue en estado READY; verificar con el log del workflow y
       `get_deployment`. La siembra de demostración en producción, si se quiere, es una acción
