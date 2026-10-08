@@ -76,27 +76,29 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 
 ## 4. Identidad y personas
 
-- [ ] 4.1 Migración de `perfiles`, `pacientes`, `especialidades`, `medicos` y `enfermeras` con sus
-      `CHECK`/`UNIQUE`/índices, RLS activada y sin política ni `GRANT` todavía; verificar con pgTAP
-      que cada tabla tiene RLS y que `authenticated` no ve filas (negativa por tabla), y que los
-      `CHECK` aceptan/rechazan DNI y CE según el spec `identidad-de-personas` (casos válidos e
-      inválidos, documento duplicado, `perfil_id` nulo y único).
-- [ ] 4.2 Migración de `perfil_actual()`, `paciente_actual()` y `medico_actual()` (`security
-      definer`, `search_path` vacío) con prueba pgTAP: devuelven el uuid correcto para cada usuario
-      y nulo sin sesión o con un `clerk_user_id` desconocido.
-- [ ] 4.3 Políticas y `GRANT` de `perfiles` (titular, administrativo, nombre público de médicos);
-      verificar con pgTAP los escenarios «Un usuario no lee el perfil de otro» y la negativa de cada
-      rol para escribir `perfiles` salvo administrativo.
-- [ ] 4.4 Políticas y `GRANT` de `pacientes` (titular; administrativo gestiona) — la lectura del
-      médico con cita o asignación se añade en 6.6; verificar con pgTAP «Paciente ve solo su
-      registro», «Enfermera no ve pacientes» y que el paciente no lee a otro paciente.
-- [ ] 4.5 Políticas y `GRANT` de `especialidades`, `medicos` y `enfermeras` (lectura a autenticados
-      donde corresponde, escritura solo del administrativo); verificar con pgTAP la lectura de los
-      cuatro roles y la negativa de escritura de paciente, médico y enfermera.
-- [ ] 4.6 Trigger `bloquear_cambio_de_rol()` con la excepción `session_user = 'sync_identidad'`
-      (D6) y `GRANT` de `sync_identidad` solo sobre `perfiles`; verificar con pgTAP: paciente,
-      médico y enfermera reciben `42501` al cambiar `rol`, el administrativo y `sync_identidad`
-      pueden, y `sync_identidad` no puede leer `pacientes`, `citas` ni `atenciones` (`has_table_privilege`).
+- [x] 4.1 Migración de `perfiles`, `pacientes`, `especialidades`, `medicos` y `enfermeras` con sus `CHECK`/`UNIQUE`, RLS
+      activada y sin política ni `GRANT`; verificado con pgTAP (23 pruebas): RLS activada por tabla y los
+      escenarios de `identidad-de-personas` (DNI y CE válidos e inválidos, documento duplicado,
+      `perfil_id` nulo y único, CMP único, perfil único por médico y por enfermera).
+- [x] 4.2 Migración de `perfil_actual()`, `paciente_actual()` y `medico_actual()` (`security definer`,
+      `search_path` vacío, `EXECUTE` solo para `authenticated`); verificado con pgTAP (11 pruebas): resuelven el
+      uuid correcto por identidad, nulo sin sesión o sin perfil, y no revelan perfiles ajenos.
+- [x] 4.3 Privilegios y políticas de `perfiles`: `authenticated` lee (titular, administrativo, nombre público
+      de médicos con rol válido) y actualiza solo `nombres`, `apellidos`, `rol` y `activo` por política del
+      administrativo; sin `INSERT`, sin `DELETE` y sin tocar `clerk_user_id`; verificado con pgTAP (23 pruebas),
+      con el caso negativo de cada rol y de una sesión sin rol.
+- [x] 4.4 Privilegios y políticas de `pacientes` (titular lee; administrativo lee, registra y corrige; nadie
+      borra); la lectura del médico con cita o asignación se añade en 6.6; verificado con pgTAP (16
+      pruebas): paciente solo ve el suyo, enfermera, médico sin relación y sesión sin rol no ven ninguno.
+- [x] 4.5 Privilegios y políticas de `especialidades`, `medicos` y `enfermeras` (lectura a toda sesión con rol
+      válido, salvo `enfermeras`: titular y administrativo; escritura solo del administrativo; médicos y
+      enfermeras no se borran); verificado con pgTAP (24 pruebas).
+- [x] 4.6 Disparador `bloquear_cambio_de_rol()` (SECURITY INVOKER, `rol` y `activo`; deja pasar al administrativo y
+      a `sync_identidad`) y `GRANT` + política de `sync_identidad` solo sobre `perfiles`; verificado con pgTAP
+      (18 pruebas): aun con una política temporal que permite actualizar la propia fila, paciente,
+      médico y enfermera reciben `42501`; el administrativo y el rol de sincronización pueden; el rol
+      de sincronización no lee `pacientes`/`medicos`, no borra y no cambia `clerk_user_id`. Los privilegios
+      de `sync_identidad` sobre `citas` y `atenciones` se comprueban cuando esas tablas existan (5.x, 6.x).
 
 ## 5. Agenda y citas
 

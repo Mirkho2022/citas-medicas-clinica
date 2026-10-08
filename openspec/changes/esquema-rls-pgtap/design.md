@@ -143,10 +143,15 @@ decisión, no un contrato literal.
 Cada una se prueba con pgTAP; se documentan aquí para que nadie las «corrija» de vuelta:
 
 - **`bloquear_cambio_de_rol()` bloquearía al webhook.** TECH-DESIGN dice que `sync_identidad` es
-  un camino autorizado para escribir `perfiles.rol`, pero el trigger solo permite
-  `auth.session() ->> 'rol' = 'administrativo'`, y la conexión del webhook no lleva token. La
-  excepción usa `session_user = 'sync_identidad'` (no `current_user`, que dentro de una función
-  `security definer` es el dueño).
+  un camino autorizado para escribir `perfiles.rol`, pero el trigger solo permite al administrativo
+  y la conexión del webhook no lleva token. Se implementa como **SECURITY INVOKER** (TECH-DESIGN lo
+  proponía DEFINER): solo compara `OLD`/`NEW` y llama a `rol_actual()`, que ya es DEFINER; así
+  `current_user` es el rol que ejecuta el `UPDATE` y se reconoce a `sync_identidad` (en DEFINER sería el
+  dueño). Protege `rol` y también `activo`. Los `IF` van anidados porque PostgreSQL comprueba el
+  `EXECUTE` de una función al inicializar la expresión aunque un `AND` la saltara, y
+  `sync_identidad` no ejecuta `rol_actual()`. Como el rol `authenticated` es compartido por todos los
+  roles de aplicación, `authenticated` no recibe `INSERT`/`DELETE` sobre `perfiles` ni `UPDATE` de
+  `clerk_user_id`: el trigger es la barrera de fondo, no la única.
 - **`validar_cancelacion()` debe ser `security definer`** (con `search_path` vacío). Si no, la
   consulta a `bloqueos_agenda` pasa por la RLS de quien cancela y un paciente nunca ve el bloqueo,
   con lo que la excepción por baja médica dependería del rol, contra ADR-0012.

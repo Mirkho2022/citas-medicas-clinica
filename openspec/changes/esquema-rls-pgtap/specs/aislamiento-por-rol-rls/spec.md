@@ -218,12 +218,24 @@ actor, y SHALL NO permitir a ningún rol de usuario modificar ni eliminar regist
   `datos_antes` y `datos_despues` no contienen el contenido clínico
 
 ### Requirement: Bloqueo de escalada de privilegios
-El rol de un perfil SHALL poder cambiarse únicamente por el administrativo o por el proceso de
-sincronización de identidad. Cualquier otro intento SHALL ser rechazado, sin importar el permiso de
-actualización que el usuario tenga sobre su propia fila.
+El rol y el estado activo de un perfil SHALL poder cambiarse únicamente por el administrativo o por
+el proceso de sincronización de identidad. Cualquier otro intento SHALL dejar el perfil sin cambios
+y, cuando el usuario tuviera permiso de actualización sobre su propia fila, SHALL ser rechazado con
+un error de no autorizado: RLS no filtra por columna, así que este bloqueo no puede depender solo
+de las políticas.
 
 #### Scenario: Paciente intenta ascender su rol (negativo)
 - **WHEN** un paciente ejecuta un `UPDATE` de `perfiles.rol` sobre su propia fila
+- **THEN** el rol no cambia: la operación se rechaza o no afecta ninguna fila
+
+#### Scenario: Médico o enfermera intenta cambiar un rol (negativo)
+- **WHEN** un usuario con rol `medico` o `enfermera` ejecuta un `UPDATE` de `perfiles.rol`
+- **THEN** el rol no cambia: la operación se rechaza o no afecta ninguna fila
+
+#### Scenario: El bloqueo se mantiene aunque se conceda actualización sobre la propia fila (negativo)
+- **WHEN** a un paciente, médico o enfermera se le concede permiso y política de actualización sobre
+  su propia fila (por ejemplo, por un futuro flujo de edición de perfil) y ejecuta un `UPDATE` de
+  `perfiles.rol` o `perfiles.activo`
 - **THEN** la operación falla con error de no autorizado (`42501`)
 
 #### Scenario: Administrativo cambia el rol de un usuario
@@ -234,10 +246,6 @@ actualización que el usuario tenga sobre su propia fila.
 - **WHEN** el rol de base de datos de sincronización de identidad actualiza `perfiles.rol` a
   partir de un cambio notificado por el proveedor de identidad
 - **THEN** el cambio se aplica, aunque esa conexión no lleve token de sesión de usuario
-
-#### Scenario: Médico o enfermera intenta cambiar un rol (negativo)
-- **WHEN** un usuario con rol `medico` o `enfermera` ejecuta un `UPDATE` de `perfiles.rol`
-- **THEN** la operación falla con error de no autorizado (`42501`)
 
 ### Requirement: Rol de sincronización de identidad acotado
 El proceso que sincroniza usuarios desde el proveedor de identidad SHALL conectarse con un rol de
