@@ -209,7 +209,8 @@ estado de una cita, un aviso, un error. Sin ilustraciones decorativas en las pan
 - En la historia clínica, los datos que vienen del registro del paciente son **de solo lectura** y se ven como tales.
 - Una atención firmada es inmutable y se ve como tal (etiqueta «Firmada» con candado; la corrección es una addenda).
 - Fechas y horas siempre en `America/Lima`: `dd/MM/yyyy` y `HH:mm` de 24 horas (por ejemplo, `08/10/2026 14:30`).
-- Todo texto de interfaz y mensaje de error en español.
+- Todo texto de interfaz y mensaje de error en español. Al paciente se le habla de **usted**; en la consola del personal
+  se usan frases cortas en infinitivo o imperativo («Reprogramar», «Guardar atención»).
 
 ## Colors
 
