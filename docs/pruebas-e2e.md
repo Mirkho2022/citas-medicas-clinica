@@ -24,7 +24,7 @@ Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). 
 - Cuentas `h1-<rol>+clerk_test@example.com` en la instancia de **desarrollo** de Clerk. Los correos
   `+clerk_test` no envían correo real y su código de verificación es siempre `424242`.
 - Las contraseñas y la clave TOTP del administrativo viven en `.env.local` (ignorado por git). Para
-  llevarlas a GitHub: `bash scripts/cargar-secretos-e2e.sh`.
+  llevarlas a GitHub: `node scripts/cargar-secretos-e2e.ts`.
 - **Testing tokens de Clerk:** `clerkSetup()` pide uno al arrancar y `setupClerkTestingToken()` lo
   inyecta en cada test. Así las pruebas pasan la detección de bots **sin desactivar** la protección
   de registro de Clerk.

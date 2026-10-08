@@ -3,7 +3,7 @@ name: E2E (preview de Vercel)
 # Corre las pruebas Playwright (e2e/) contra el deployment de preview de Vercel de cada PR.
 # Se dispara cuando Vercel marca el deployment de Preview como exitoso.
 #
-# Requiere en GitHub (se cargan con scripts/cargar-secretos-e2e.sh):
+# Requiere en GitHub (se cargan con scripts/cargar-secretos-e2e.ts):
 #   secretos:   CLERK_SECRET_KEY, E2E_* (cuentas de prueba), VERCEL_AUTOMATION_BYPASS_SECRET
 #   variables:  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (es pública)
 # Los previews están protegidos con Vercel Authentication; VERCEL_AUTOMATION_BYPASS_SECRET
