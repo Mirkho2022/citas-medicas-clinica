@@ -1,0 +1,62 @@
+name: E2E (preview de Vercel)
+
+# Corre las pruebas Playwright (e2e/) contra el deployment de preview de Vercel de cada PR.
+# Se dispara cuando Vercel marca el deployment de Preview como exitoso.
+#
+# Requiere en GitHub (se cargan con scripts/cargar-secretos-e2e.ts):
+#   secretos:   CLERK_SECRET_KEY, E2E_* (cuentas de prueba), VERCEL_AUTOMATION_BYPASS_SECRET
+#   variables:  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (es pública)
+# Los previews están protegidos con Vercel Authentication; VERCEL_AUTOMATION_BYPASS_SECRET
+# es el "Protection Bypass for Automation" del proyecto de Vercel.
+#
+# Seguridad: este workflow recibe secretos y ejecuta el código del commit desplegado. Vercel
+# exige autorización de un miembro del equipo para desplegar PR de forks; no relajar eso.
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      E2E_PACIENTE_EMAIL: ${{ secrets.E2E_PACIENTE_EMAIL }}
+      E2E_PACIENTE_PASSWORD: ${{ secrets.E2E_PACIENTE_PASSWORD }}
+      E2E_ADMINISTRATIVO_EMAIL: ${{ secrets.E2E_ADMINISTRATIVO_EMAIL }}
+      E2E_ADMINISTRATIVO_PASSWORD: ${{ secrets.E2E_ADMINISTRATIVO_PASSWORD }}
+      E2E_ADMINISTRATIVO_TOTP_SECRET: ${{ secrets.E2E_ADMINISTRATIVO_TOTP_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Pruebas E2E contra ${{ github.event.deployment_status.environment_url }}
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

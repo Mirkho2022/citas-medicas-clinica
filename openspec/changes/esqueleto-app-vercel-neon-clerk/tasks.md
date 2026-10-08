@@ -71,6 +71,6 @@
 - [x] 6.3 Configurar el workflow de merge a `main`: `node-pg-migrate up` contra el branch
       principal de Neon seguido del deploy de producción de Vercel; verificar con un merge de
       prueba.
-- [ ] 6.4 Agregar una prueba Playwright mínima del flujo de autenticación y redirección por rol
+- [x] 6.4 Agregar una prueba Playwright mínima del flujo de autenticación y redirección por rol
       (login → aterriza en el área de su rol); verificar que corre en CI contra el preview de
       Vercel de un PR de prueba.

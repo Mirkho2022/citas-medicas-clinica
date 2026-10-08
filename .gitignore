@@ -56,6 +56,12 @@ Thumbs.db
 .claude/skills/clerk-testing
 .claude/skills/clerk-webhooks
 .claude/skills/generar-backlog
+.claude/skills/playwright-e2e-test
 .neon
 .clerk/
 .mcp.json
+
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/

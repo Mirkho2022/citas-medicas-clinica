@@ -103,6 +103,12 @@
       "skillPath": "skills/neon-postgres/SKILL.md",
       "computedHash": "2e367b4b436500b7d28aba2b4318b1a2a4f7bacd94f1c045ba62751b95b578fe"
     },
+    "playwright-e2e-test": {
+      "source": "adminoryslabs/Armory",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-e2e-test/SKILL.md",
+      "computedHash": "fc51fbb72e33ce2aa2880bcfd50360eb350c3f6e2539e94bfa8a521a680f3230"
+    },
     "revision-adversarial": {
       "source": "adminoryslabs/Armory",
       "sourceType": "github",

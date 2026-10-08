@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "migrate": "node-pg-migrate"
+    "migrate": "node-pg-migrate",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",
@@ -23,7 +24,9 @@
   },
   "devDependencies": {
     "@clerk/eslint-plugin": "^0.2.0",
+    "@clerk/testing": "^2.2.43",
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
