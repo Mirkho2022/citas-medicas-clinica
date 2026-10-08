@@ -28,6 +28,22 @@ después** se completa el paso 3, se carga `DATABASE_SYNC_URL` y se redespliega.
 del merge: pasos 1, 2 y 5, y `DATABASE_AUTHENTICATED_URL` del paso 4 (el rol `authenticator` ya existe en Neon desde antes de
 H2). La sección «Ventana entre merge y paso 3» dice qué pasa mientras tanto.
 
+## Estado de ejecución (2026-10-08)
+
+| Paso | Estado | Comprobado con |
+|---|---|---|
+| 1. Instancia de Clerk | ✅ `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` está en *All Environments*: una sola instancia, `shining-grouse-9314` | Clave decodificada; su JWKS responde 200 con una clave RS256 |
+| 2. JWKS en Neon | ✅ Registrada en `production`, `dev` y `spike/rls-h2` (roles `authenticator`, `authenticated`, `anonymous`) | `GET /projects/{id}/jwks` |
+| 2'. Migraciones en `dev` | ✅ 24 aplicadas; `migrate up --dry-run` no deja nada pendiente | pgTAP completo contra `dev`: 477 pruebas, 0 fallos |
+| 4a. `DATABASE_AUTHENTICATED_URL` en Vercel | ✅ Production (branch `production`) y Preview (branch `dev`), sensibles | Confirmado por quien las cargó; el valor no es legible en Vercel |
+| De extremo a extremo | ✅ `e2e/db.spec.ts` (3/3) con una sesión real de Clerk contra `dev`: Postgres reconoce al usuario y su rol | Build de producción local; con `next dev` el login tarda más de 30 s y la prueba agota el tiempo |
+| 3. `LOGIN` de `sync_identidad` en producción | ⏳ Tras el merge | — |
+| 4b. `DATABASE_SYNC_URL` en Vercel Production | ⏳ Tras el paso 3 y redespliegue | — |
+| 5. Webhook de Clerk | ✅ en `shining-grouse-9314`; la instancia de Production es la misma | Dashboard de Clerk |
+| 6. CI en el PR (2.4, 10.6) | ⏳ Requiere abrir el PR | — |
+
+Todavía no se ha tocado ningún dato ni el esquema de `production`: sus migraciones llegan solo por el merge.
+
 ## 1. Instancia de Clerk de cada entorno
 
 La JWKS que Neon debe confiar es la de la instancia de Clerk **que firma las sesiones de ese despliegue**. En H1 se vio que
