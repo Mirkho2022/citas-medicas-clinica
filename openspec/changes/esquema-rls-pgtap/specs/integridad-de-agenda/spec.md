@@ -20,8 +20,9 @@ se solape con otra cita vigente del mismo médico. El rechazo SHALL señalarse c
 - **THEN** la base de datos rechaza la inserción con el código `23P01`
 
 #### Scenario: Reservas simultáneas del mismo horario
-- **WHEN** dos transacciones concurrentes intentan reservar el mismo horario del mismo médico
-- **THEN** exactamente una se confirma y la otra falla con el código `23P01`
+- **WHEN** dos o más transacciones concurrentes intentan reservar el mismo horario del mismo médico
+- **THEN** exactamente una se confirma y las demás fallan con el código `23P01` (violación de exclusión) o `40P01`
+  (deadlock detectado: el motor puede resolver el choque abortando una transacción), sin dejar ninguna cita
 
 #### Scenario: Una cita cancelada libera el horario
 - **WHEN** la cita vigente de un horario pasa a `cancelada` y luego se inserta otra cita en ese

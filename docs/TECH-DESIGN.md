@@ -761,7 +761,7 @@ nunca es el único lugar que impide la violación.
 | Regla (PRD) | Implementación | Capa |
 |---|---|---|
 | Doble reserva bloqueada | `EXCLUDE USING gist` en `citas` | Base de datos |
-| Mensaje `Registro de cita ya agendado` | Mapeo de `SQLSTATE 23P01` a ese texto exacto | Server Action |
+| Mensaje `Registro de cita ya agendado` | Mapeo de `SQLSTATE 23P01` **y `40P01`** a ese texto exacto (ver «Doble reserva») | Server Action |
 | Cancelación hasta 1 h antes, para todos los roles | Trigger `validar_cancelacion()` ([ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md)) | Base de datos |
 | Advertencia de la restricción al reservar | Texto en el formulario de reserva | UI |
 | Historia clínica sin campos vacíos | `CHECK` en columnas + esquema Zod | BD + servidor |
@@ -779,7 +779,9 @@ try {
   const sql = await clienteAutenticado();
   await sql`insert into citas ${toPgValues(nuevaCita)}`;
 } catch (error) {
-  if (isPostgresError(error, '23P01')) {  // exclusion_violation
+  // exclusion_violation (23P01) o, si dos reservas chocan a la vez, deadlock_detected (40P01): ambas significan que
+  // otra transacción tomó el horario y ninguna deja una cita.
+  if (isPostgresError(error, '23P01') || isPostgresError(error, '40P01')) {
     return { ok: false, mensaje: 'Registro de cita ya agendado' };
   }
   throw error;
@@ -788,6 +790,13 @@ try {
 
 El texto se usa literalmente como lo define el PRD. Si se traduce o reformula, se rompe el criterio
 de aceptación.
+
+**Dos códigos, no uno.** Con una sola inserción en conflicto con una cita ya confirmada el rechazo es siempre `23P01`.
+Pero cuando varias reservas del mismo horario llegan **a la vez**, Postgres puede resolver el choque abortando una de
+ellas con `40P01` (`deadlock_detected`) en lugar de `23P01`; lo observó el CI de H2 en una de 20 rondas de 5 reservas
+simultáneas. En ambos casos exactamente una cita se confirma y el resto no deja nada, así que la garantía de la base
+no cambia, pero un mapeo que solo conozca `23P01` mostraría un error genérico bajo carga. Todo punto de inserción de
+citas (reserva del paciente, agendado administrativo, reprogramación) debe mapear los dos códigos al mismo mensaje.
 
 ### Cancelación tardía
 
@@ -1109,7 +1118,8 @@ Otras pruebas obligatorias (todas implementadas en H2 salvo las de notificacione
 sus hitos):
 
 - **Concurrencia** (`tests/concurrencia/`, sesiones `pg` independientes): el segundo `INSERT` del mismo slot espera
-  al primero y recibe `23P01` cuando éste confirma; 20 rondas de 5 reservas simultáneas confirman exactamente una.
+  al primero y recibe `23P01` cuando éste confirma; 20 rondas de 5 reservas simultáneas confirman exactamente una y las
+  demás reciben `23P01` o `40P01`.
 - **Ventana de cancelación:** a 59 minutos se rechaza, a exactamente 1 hora se acepta, con la excepción por baja
   médica (también para un paciente que no ve el bloqueo).
 - **Idempotencia de notificaciones:** `unique (cita_id, tipo)` (H2); dos ejecuciones del cron producen un solo envío

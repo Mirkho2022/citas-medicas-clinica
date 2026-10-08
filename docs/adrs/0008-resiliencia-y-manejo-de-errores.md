@@ -39,3 +39,7 @@ desactualizada para el alcance de MVP académico — pasa a ser diaria (mismo cr
 recordatorios) para no requerir plan de pago de Vercel. Ver
 [ADR-0028](0028-notificaciones-cron-unico-plan-hobby.md). La lógica de reintento en sí (contador
 `intentos`, backoff, tope de 3 intentos) no cambia.
+
+**Nota (2026-10-08, H2):** «doble reserva» corresponde a `23P01` **y** a `40P01` (`deadlock_detected`), que Postgres puede
+devolver cuando varias reservas del mismo horario chocan a la vez; ambos se traducen al mismo mensaje de negocio. Ver
+[ADR-0005](0005-modelo-de-datos-y-prevencion-de-doble-reserva.md) y [TECH-DESIGN.md](../TECH-DESIGN.md), «Doble reserva».

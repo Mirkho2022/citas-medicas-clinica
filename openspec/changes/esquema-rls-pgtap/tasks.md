@@ -110,7 +110,9 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 - [x] 5.2 Prueba de concurrencia `tests/concurrencia/10_doble_reserva.test.ts` con sesiones `pg` independientes:
       el segundo `INSERT` queda esperando al primero y recibe `23P01` cuando éste confirma, un `rollback` del
       primero libera el horario, y 20 rondas de 5 reservas simultáneas del mismo horario confirman
-      exactamente una cada vez; limpia sus filas al terminar.
+      exactamente una cada vez; limpia sus filas al terminar. **Corrección tras el CI del PR (2026-10-08):** en una
+      ronda el motor abortó una reserva con `40P01` (deadlock) en vez de `23P01`; la prueba acepta ambos códigos
+      para los perdedores y los documentos exigen mapear los dos.
 - [x] 5.3 Migración de `validar_cancelacion()` (SECURITY DEFINER, medida contra `OLD.inicio`) y su trigger;
       verificado con pgTAP (16 pruebas): más de 1 h se acepta, exactamente 1 h se acepta, 59 min y una cita ya
       empezada se rechazan, cancelar y mover la cita en el mismo UPDATE no esquiva la ventana, un bloqueo del

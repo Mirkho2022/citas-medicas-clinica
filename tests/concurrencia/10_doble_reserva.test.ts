@@ -120,8 +120,15 @@ test(`${RONDAS} rondas de ${CLIENTES} reservas simultáneas del mismo horario: s
       const confirmadas = resultados.filter((r) => r.status === "fulfilled").length;
       const rechazos = resultados.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
       assert.equal(confirmadas, 1, `ronda ${ronda}: debe confirmarse exactamente una reserva (hubo ${confirmadas})`);
+      // Cuando dos inserciones chocan a la vez, Postgres puede resolverlo con exclusion_violation (23P01) o abortando
+      // una de ellas con deadlock_detected (40P01). Ambas significan «el horario lo tomó otra transacción» y ninguna
+      // deja una cita: lo que importa es que se confirme exactamente una. La aplicación debe mapear los dos códigos.
       for (const r of rechazos) {
-        assert.equal((r.reason as { code?: string }).code, "23P01", `ronda ${ronda}: el rechazo debe ser exclusion_violation`);
+        const code = (r.reason as { code?: string }).code;
+        assert.ok(
+          code === "23P01" || code === "40P01",
+          `ronda ${ronda}: el rechazo debe ser exclusion_violation (23P01) o deadlock_detected (40P01), fue ${code}`,
+        );
       }
     }
     const { rows } = await clientes[0].query(
