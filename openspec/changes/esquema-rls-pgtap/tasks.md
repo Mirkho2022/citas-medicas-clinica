@@ -201,44 +201,45 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
       `tests/integracion/sincronizar-perfil.test.ts` (7 pruebas, privilegios reales del rol), `e2e/webhook.spec.ts`
       (firma inválida o ausente: 400) y una verificación local con firmas Svix reales: mismo evento dos veces = un
       perfil, cambio de rol aplicado, firma inválida sin escrituras, evento ajeno 200 y base caída 500.
-- [ ] 8.4 Configurar en Clerk la suscripción a `user.updated` y la obligatoriedad de nombre y
-      apellido en el registro; verificar registrando una cuenta de prueba nueva y comprobando que su
-      perfil aparece con rol `paciente` y nombres, y que una cuenta de personal invitada queda con el
-      rol invitado.
+- [ ] 8.4 Configurar en Clerk la suscripción a `user.updated` y la obligatoriedad de nombre y apellido.
+      **Configuración hecha (2026-10-08) en la instancia de desarrollo `shining-grouse-9314`:** el endpoint
+      `https://citas-medicas-clinica.vercel.app/api/webhooks/clerk` está suscrito a `user.created` y
+      `user.updated`, y «Require first and last name» está activo (ambos verificados tras recargar el panel).
+      **Pendiente de verificar:** registrar una cuenta de prueba nueva y comprobar que su perfil aparece con rol
+      `paciente` y nombres, y que una cuenta de personal invitada queda con el rol invitado. No se puede hacer
+      antes del despliegue porque el endpoint registrado apunta a la URL de producción de Vercel (código de H1,
+      sin sincronización a base de datos) y el webhook no puede llegar a una base local; se hace tras el merge,
+      con los pasos de 10.5 cumplidos.
 
 ## 9. Datos de demostración (mock)
 
 Proyecto de muestra: se permiten datos **sintéticos** para ejercitar el sistema; nunca datos reales
 (P-1 sigue bloqueando los reales). La siembra es un script, no una migración (ver D10).
 
-- [ ] 9.1 Crear `scripts/sembrar-datos-demo.ts` con conexión como rol dueño, `--confirmar`
-      obligatorio, impresión del host de destino e idempotencia (`ON CONFLICT` por clave natural), y
-      sembrar especialidades, perfiles sin login (`clerk_user_id` con prefijo `mock_`), médicos,
-      enfermeras y pacientes ficticios (DNI y CE, con y sin perfil, correos `@demo.invalid`); verificar
-      que sin `--confirmar` aborta, que con él corre sin errores en el branch de desarrollo, que
-      ejecutarlo dos veces deja los mismos conteos y que cada paciente tiene su historia clínica.
-- [ ] 9.2 Asociar las cuentas reales de prueba de la instancia de desarrollo de Clerk
-      (`h1-<rol>+clerk_test@example.com`) a sus perfiles y a un médico, enfermera y paciente de
-      demostración, resolviendo su `clerk_user_id` por la API de Clerk; verificar que los perfiles
-      quedan con el rol correcto y que `medico_actual()` / `paciente_actual()` resuelven para ellas.
-- [ ] 9.3 Sembrar disponibilidades, un bloqueo de agenda y citas en todos los estados (atendida
-      pasada, confirmada y reservada futuras, cancelada con más de 1 h de anticipación), sin
-      desactivar triggers; verificar que las asignaciones paciente-médico se generan por el trigger
-      y que insertar una cita solapada falla con `23P01`.
-- [ ] 9.4 Sembrar atenciones firmadas y una sin firmar, una addenda, antecedentes vigentes y no
-      vigentes, turnos de enfermería y un subconjunto de códigos CIE-10 marcado como demostración
-      (el catálogo completo es de H6, ADR-0014); verificar que un `UPDATE` sobre una atención firmada
-      sembrada falla con el mensaje de inmutabilidad.
-- [ ] 9.5 Comprobar el aislamiento con los datos sembrados, usando `tests.autenticar_como`: el
-      médico A ve solo a sus pacientes y ninguna atención del médico B, un paciente ve solo sus
-      citas, el administrativo no ve atenciones y la enfermera ve solo su turno; registrar los
-      resultados en `docs/datos-demo.md`.
-- [ ] 9.6 Escribir `docs/datos-demo.md` (qué se siembra, marcadores `mock_` y `@demo.invalid`, cómo
-      ejecutar y reiniciar, advertencia de P-1 y de que las atenciones firmadas no se eliminan);
-      verificar siguiendo el documento desde cero sobre un branch de desarrollo nuevo.
-- [ ] 9.7 Correr la suite pgTAP completa sobre un branch que ya contiene los datos de demostración;
-      verificar que sigue en verde (las pruebas no asumen tablas vacías: usan fixtures propios y
-      aserciones por identificador).
+- [x] 9.1 `scripts/sembrar-datos-demo.ts`: rol dueño, `--confirmar` obligatorio (y `--incluir-produccion` si el destino es
+      producción), host impreso, idempotente y transaccional; siembra especialidades, perfiles `mock_`, médicos,
+      enfermeras y 12 pacientes ficticios (DNI y CE, con y sin cuenta, correos `@demo.invalid`); verificado: sin
+      `--confirmar` aborta con código 1, con él corre sin errores en el branch de trabajo, dos ejecuciones dejan
+      los mismos conteos y las 12 historias existen (1 por paciente).
+- [x] 9.2 El script resuelve por la API de Clerk los `clerk_user_id` de las cuentas `E2E_*_EMAIL` y las asocia a un
+      médico, una enfermera, el administrativo y un paciente de demostración; verificado: las cuatro cuentas
+      reales quedaron asociadas y `scripts/comprobar-datos-demo.ts` entra con sus identidades reales.
+- [x] 9.3 Disponibilidades (4 médicos × lunes a viernes), un bloqueo de agenda y 14 citas en todos los estados, sin
+      desactivar triggers; verificado: se crearon 9 asignaciones por el disparador (3 confirmadas + 6
+      atendidas), la cancelada tiene `cancelada_en`, una cita solapada falla con `23P01` y cancelar dentro de la
+      hora falla con `P0001`.
+- [x] 9.4 6 atenciones firmadas (una por cita atendida), una addenda, 5 antecedentes, 14 turnos de enfermería y 12
+      códigos CIE-10 marcados como demostración (capítulo `DEMO`); verificado: modificar o eliminar una
+      atención firmada sembrada falla con `42501` y su mensaje de inmutabilidad.
+- [x] 9.5 `scripts/comprobar-datos-demo.ts`: una sesión por persona con un token firmado de su `clerk_user_id` real;
+      verificado (26 comprobaciones, 0 fallos): el médico ve solo a sus pacientes y nunca atenciones de los del
+      otro, el paciente no ve atenciones ni historias ni siquiera las suyas, el administrativo no ve contenido
+      clínico y la auditoría no lo contiene, la enfermera ve solo su turno. Resultados en `docs/datos-demo.md`.
+- [x] 9.6 `docs/datos-demo.md`: qué se siembra, marcadores, cómo ejecutar y reiniciar (recrear el branch: lo
+      firmado no se borra), qué ve cada persona y advertencias sobre P-1 y los branches de CI.
+- [x] 9.7 Suite pgTAP completa sobre un branch con los datos de demostración: pasa (477 pruebas, 0 fallos). La
+      comprobación destapó dos pruebas de auditoría que contaban filas de toda la tabla; ahora se acotan por el
+      id de sus propios registros, como exige la convención de no asumir tablas vacías.
 
 ## 10. Documentación y coherencia entre documentos
 

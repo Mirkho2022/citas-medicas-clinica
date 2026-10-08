@@ -105,11 +105,13 @@ select is_empty(
   'ningún texto clínico aparece en la auditoría'
 );
 select is(
-  (select count(*)::int from public.auditoria where tabla = 'addendas' and accion = 'INSERT'), 1,
+  (select count(*)::int from public.auditoria where tabla = 'addendas' and accion = 'INSERT'
+     and registro_id = (select id::text from public.addendas where texto = 'ADDENDA-SECRETA-XYZ')), 1,
   'una addenda se audita (solo el hecho)'
 );
 select is(
-  (select count(*)::int from public.auditoria where tabla = 'antecedentes'), 2,
+  (select count(*)::int from public.auditoria where tabla = 'antecedentes'
+     and registro_id = (select id::text from public.antecedentes where descripcion = 'ANTECEDENTE-SECRETO-XYZ')), 2,
   'registrar y marcar no vigente un antecedente se audita (solo el hecho)'
 );
 
