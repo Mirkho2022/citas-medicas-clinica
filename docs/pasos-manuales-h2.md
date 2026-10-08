@@ -103,13 +103,16 @@ Generar cada contraseña con un gestor o `openssl rand -base64 32`. Una contrase
 | Variable | Valor | Production | Preview |
 |---|---|---|---|
 | `DATABASE_AUTHENTICATED_URL` | URL **directa** (sin `-pooler`) del rol `authenticator` del branch | `production` | el branch del paso 2 |
-| `DATABASE_SYNC_URL` | URL directa de `sync_identidad` con la contraseña del paso 3 | `production` | el branch del paso 2 |
+| `DATABASE_SYNC_URL` | URL directa de `sync_identidad` con la contraseña del paso 3 | `production` | no hace falta |
 
 - Son secretos del servidor: **nunca** con prefijo `NEXT_PUBLIC_`. Marcarlas como sensibles.
 - Una URL pooled no sirve para `DATABASE_AUTHENTICATED_URL`: el pooler rechaza el parámetro de arranque que usa la extensión
   y no se probó con `authToken`.
-- Preview apunta a un branch con las migraciones aplicadas y la JWKS de su instancia de Clerk; si no, `e2e/db.spec.ts` falla en
-  el PR por una causa de configuración, no de código.
+- Preview no necesita `DATABASE_SYNC_URL`: el endpoint del webhook de Clerk apunta solo a la URL de producción, así que los
+  previews no reciben webhooks. Ninguna función de H2 usa `DATABASE_URL` salvo `/api/salud`, de modo que a qué branch apunte el
+  `DATABASE_URL` de Preview es indiferente para H2.
+- Preview apunta (con `DATABASE_AUTHENTICATED_URL`) a un branch con las migraciones aplicadas y la JWKS de su instancia de Clerk
+  (`dev`); si no, `e2e/db.spec.ts` falla en el PR por una causa de configuración, no de código.
 - **Comprobación:** tras redesplegar, `GET /api/db-sesion` con sesión devuelve `estado: "ok"`. Sin la variable devuelve
   `estado: "error"` con HTTP 500 (falla cerrado: nunca consulta sin identidad); el motivo («Falta
   DATABASE_AUTHENTICATED_URL») queda en el log de la función de Vercel, no en la respuesta.
