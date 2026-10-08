@@ -1,7 +1,7 @@
 # Pasos manuales de H2 para producción
 
 Lo que **no** hacen las migraciones ni el código: configuración de consolas (Neon, Clerk, Vercel, GitHub) que debe estar lista
-**antes de mergear H2 a `master`**. Un merge sin estos pasos no rompe la base (las migraciones son aditivas), pero deja la
+**antes de mergear H2 a `master`** (salvo lo que depende de las migraciones, ver «Orden»). Un merge sin estos pasos no rompe la base (las migraciones son aditivas), pero deja la
 aplicación desplegada con dos fallos visibles: el webhook de Clerk responde 500 y `/api/db-sesion` no puede consultar la base.
 
 Contexto: al hacer merge, [migrar-produccion.yml](../.github/workflows/migrar-produccion.yml) aplica las migraciones al branch
@@ -17,14 +17,16 @@ consolas y, si hace falta en local, a `.env.local` (ignorado por git).
 |---|---|---|---|
 | 1 | Saber qué instancia de Clerk usa cada entorno de Vercel | Vercel | Sí |
 | 2 | Registrar la JWKS de esa instancia **solo** en el branch de Neon que corresponde | API de Neon | Sí |
-| 3 | Dar `LOGIN` y contraseña a `sync_identidad` y `cron_notificaciones` | Postgres (por entorno) | Sí, tras migrar |
-| 4 | Cargar las variables en Vercel (Production **y** Preview) | Vercel | Sí |
+| 3 | Dar `LOGIN` y contraseña a `sync_identidad` y `cron_notificaciones` | Postgres (por entorno) | Preview/dev: sí. Producción: justo después de migrar |
+| 4 | Cargar las variables en Vercel (Production **y** Preview) | Vercel | `DATABASE_AUTHENTICATED_URL`: sí. `DATABASE_SYNC_URL`: tras el paso 3 |
 | 5 | Suscribir el endpoint del webhook a `user.created` y `user.updated` y exigir nombre y apellido | Clerk | Sí |
 | 6 | Secretos de GitHub para los pasos nuevos de CI | GitHub | Sí |
 
-El paso 3 necesita que las migraciones ya se hayan aplicado (los roles nacen en la primera migración). Para producción eso
-significa dos fases: el merge aplica las migraciones y **inmediatamente después** se completa el paso 3 y se redespliega. Para
-no dejar una ventana con el webhook roto, hay una alternativa en «Ventana entre merge y paso 3».
+El paso 3 necesita que las migraciones ya se hayan aplicado (`sync_identidad` y `cron_notificaciones` nacen en la primera
+migración), así que **en producción es inevitable una ventana corta**: el merge aplica las migraciones y **inmediatamente
+después** se completa el paso 3, se carga `DATABASE_SYNC_URL` y se redespliega. Lo que sí puede y debe estar listo **antes**
+del merge: pasos 1, 2 y 5, y `DATABASE_AUTHENTICATED_URL` del paso 4 (el rol `authenticator` ya existe en Neon desde antes de
+H2). La sección «Ventana entre merge y paso 3» dice qué pasa mientras tanto.
 
 ## 1. Instancia de Clerk de cada entorno
 
