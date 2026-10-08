@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { esperarArea, iniciarSesion, prepararPagina, variable } from "./helpers";
+import { cabecerasBypass, esperarArea, iniciarSesion, prepararPagina, variable } from "./helpers";
 
 // ADR-0023 de extremo a extremo (H2, tarea 8.2): Neon valida el JWT de Clerk y Postgres reconoce al usuario.
 // Requiere DATABASE_AUTHENTICATED_URL en el entorno que sirve la app, apuntando a un branch con las migraciones
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 
 test("sin sesión, /api/db-sesion no devuelve la identidad de nadie", async ({ request }) => {
   // auth.protect() redirige a iniciar sesión (o responde 401/404): sin seguir la redirección, nunca es un 200.
-  const respuesta = await request.get("/api/db-sesion", { maxRedirects: 0 });
+  const respuesta = await request.get("/api/db-sesion", { maxRedirects: 0, headers: cabecerasBypass() });
   expect([301, 302, 303, 307, 308, 401, 403, 404]).toContain(respuesta.status());
   expect(await respuesta.text()).not.toContain("clerk_user_id");
 });
@@ -29,7 +29,8 @@ test("con sesión, Postgres reconoce al usuario por su token de Clerk", async ({
     return { status: r.status, cuerpo: await r.json() };
   });
 
-  expect(status).toBe(200);
+  // El cuerpo (con `detalle` fuera de producción) hace que un fallo de configuración se explique solo.
+  expect(status, JSON.stringify(cuerpo)).toBe(200);
   expect(cuerpo.estado).toBe("ok");
   expect(cuerpo.clerk_user_id).toBe(clerkId);
   expect(cuerpo.rol).toBe("paciente");

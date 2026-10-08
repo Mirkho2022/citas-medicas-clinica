@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { cabecerasBypass } from "./helpers";
 
 // Webhook de Clerk (H2, tarea 8.3): la firma se verifica ANTES de tocar la base. El camino con firma válida
 // (idempotencia, cambio de rol, 5xx si falla la base) lo cubre tests/integracion/sincronizar-perfil.test.ts con
@@ -13,6 +14,7 @@ test("un webhook con firma inválida se rechaza con 400", async ({ request }) =>
   const respuesta = await request.post("/api/webhooks/clerk", {
     data: cuerpo,
     headers: {
+      ...cabecerasBypass(),
       "content-type": "application/json",
       "svix-id": "msg_prueba",
       "svix-timestamp": Math.floor(Date.now() / 1000).toString(),
@@ -25,7 +27,7 @@ test("un webhook con firma inválida se rechaza con 400", async ({ request }) =>
 test("un webhook sin cabeceras de firma se rechaza con 400", async ({ request }) => {
   const respuesta = await request.post("/api/webhooks/clerk", {
     data: JSON.stringify({ type: "user.created", data: { id: "user_sin_firma" } }),
-    headers: { "content-type": "application/json" },
+    headers: { ...cabecerasBypass(), "content-type": "application/json" },
   });
   expect(respuesta.status()).toBe(400);
 });
