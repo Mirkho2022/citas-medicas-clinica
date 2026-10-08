@@ -184,22 +184,23 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 
 ## 8. Integración con la aplicación
 
-- [ ] 8.1 Implementar `lib/db/cliente-autenticado.ts`: `neon(url, { authToken })` en modo HTTP con la URL
-      directa del rol `authenticator`, cada petición como `sql.transaction` con `set local role
-      authenticated` como primera sentencia, sin `Pool`/`Client`; documentar D9 en un comentario de
-      módulo; añadir `DATABASE_AUTHENTICATED_URL` a `.env.example`; verificar con `npm run typecheck`
-      y `npm run lint`, y con una prueba que demuestra que sin el `set local role` la consulta falla.
-- [ ] 8.2 Registrar por API (`POST /projects/{id}/jwks` con `branch_id`) la JWKS de la instancia de Clerk
-      que usa el entorno de la prueba en el branch de Neon que ese entorno consulta; añadir una ruta de
-      salud autenticada que use `clienteAutenticado()` y devuelva `auth.user_id()` (vía una función
-      `security definer`), protegida con `auth.protect()`; añadir al E2E existente un caso que, con una
-      cuenta de prueba, verifica que devuelve su identificador de Clerk y que sin sesión responde como
-      no autenticado.
-- [ ] 8.3 Extender el webhook de Clerk para hacer `UPSERT` de `perfiles` en `user.created` y
-      actualizar nombres/rol en `user.updated`, con la conexión del rol `sync_identidad`
-      (`DATABASE_SYNC_URL`, añadida a `.env.example`), idempotente y con 5xx si falla la base;
-      verificar con una prueba que entrega el mismo evento dos veces (un solo perfil), un evento con
-      firma inválida (400 sin tocar la base) y un fallo de base (5xx).
+- [x] 8.1 `lib/db/cliente-autenticado.ts`: `ejecutarComoUsuario()` (sin Clerk, probable) y
+      `transaccionAutenticada()` (con la sesión de Clerk), siempre `neon(url, { authToken })` por HTTP con la URL
+      directa de `authenticator` y `set local role authenticated` como primera sentencia; variables en
+      `.env.example`; verificado con `npm run typecheck`, `npm run lint` y la prueba pgTAP `60_roles_de_conexion`
+      (11 pruebas): `authenticator` no tiene privilegios sobre ninguna tabla ni hereda los de `authenticated`, por lo que
+      olvidar el `set local role` falla cerrado.
+- [x] 8.2 Función `usuario_actual()` (SECURITY DEFINER), ruta `/api/db-sesion` (`auth.protect()`) que devuelve el id de
+      Clerk y el rol que **Postgres** ve, y `e2e/db.spec.ts`: sin sesión no devuelve identidad y con una cuenta real
+      Postgres reconoce al usuario por su token (id de Clerk y rol `paciente`); verificado en local contra la build
+      de producción con la JWKS de Clerk registrada para el branch de trabajo. **Para el CI**, el preview de Vercel
+      necesita `DATABASE_AUTHENTICATED_URL` apuntando a un branch con las migraciones y la JWKS registrada
+      (ver 10.5).
+- [x] 8.3 `lib/identidad/sincronizar-perfil.ts` (`UPSERT` idempotente) y webhook de Clerk que lo usa en `user.created` y
+      `user.updated` con `DATABASE_SYNC_URL` (rol `sync_identidad`), respondiendo 5xx si falla la base; verificado con
+      `tests/integracion/sincronizar-perfil.test.ts` (7 pruebas, privilegios reales del rol), `e2e/webhook.spec.ts`
+      (firma inválida o ausente: 400) y una verificación local con firmas Svix reales: mismo evento dos veces = un
+      perfil, cambio de rol aplicado, firma inválida sin escrituras, evento ajeno 200 y base caída 500.
 - [ ] 8.4 Configurar en Clerk la suscripción a `user.updated` y la obligatoriedad de nombre y
       apellido en el registro; verificar registrando una cuenta de prueba nueva y comprobando que su
       perfil aparece con rol `paciente` y nombres, y que una cuenta de personal invitada queda con el

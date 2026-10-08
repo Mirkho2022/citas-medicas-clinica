@@ -74,6 +74,12 @@ jobs:
           DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
           DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
 
+      - name: Pruebas de integración (sincronización de perfiles con el rol sync_identidad)
+        run: npm run test:integracion
+        env:
+          DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
+          DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
+
   destruir:
     if: >-
       github.event.action == 'closed' &&

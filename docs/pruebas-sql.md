@@ -12,6 +12,7 @@ autenticación de pruebas está en [spike-rls-h2.md](spike-rls-h2.md).
 | Ayudas pgTAP | `tests/pgtap/_ayudas.sql` | `tests.autenticar_como(identidad)`, `tests.sub()`, `tests.volver_a_dueno()` |
 | Runner pgTAP | `scripts/ejecutar-pgtap.ts` | Genera los tokens, abre la conexión y corre cada archivo en una transacción que se revierte |
 | Concurrencia | `tests/concurrencia/*.test.ts` | Lo que pgTAP no puede probar (varias sesiones a la vez): doble reserva |
+| Integración | `tests/integracion/*.test.ts` | El SQL de la aplicación con los privilegios reales de un rol de servicio (p. ej. `sync_identidad`), en una transacción que se revierte |
 
 ## Cómo se ejecutan
 
@@ -23,6 +24,7 @@ rol dueño. **Nunca production.**
 npm run test:pgtap                          # toda la suite pgTAP
 node scripts/ejecutar-pgtap.ts citas        # solo los archivos cuyo nombre contiene "citas"
 npm run test:concurrencia                   # pruebas de concurrencia
+npm run test:integracion                    # integración de la aplicación con roles de servicio
 ENV_FILE=ruta/otro.env npm run test:pgtap   # leer otro archivo de entorno
 ```
 
