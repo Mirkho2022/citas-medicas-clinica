@@ -166,8 +166,27 @@ Cada una se prueba con pgTAP; se documentan aquí para que nadie las «corrija»
   tablas se registra quién, cuándo, acción y `registro_id`, sin contenido. Los triggers de auditoría
   cubren `perfiles`, `pacientes`, `citas`, `asignaciones_paciente_medico` y esas tres tablas
   clínicas (lista derivada; ver Open Questions).
-- **Antecedentes inmutables salvo `vigente`.** RLS no filtra por columna; un trigger
-  `proteger_antecedente()` rechaza cambios a `tipo`/`descripcion` y todo `DELETE`.
+- **Antecedentes inmutables salvo `vigente`.** RLS no filtra por columna: el `UPDATE` de `authenticated` se limita a
+  la columna `vigente` por privilegio de columna y `proteger_antecedente()` rechaza cualquier otro cambio y todo
+  `DELETE`, incluso del dueño.
+- **«Sin campos vacíos»: `btrim()` no basta.** `length(btrim(x)) > 0` (TECH-DESIGN y ADR-0015) solo recorta
+  espacios y deja pasar un campo con tabuladores o saltos de línea; lo encontró la prueba 40. Se usa
+  `public.texto_con_contenido()` (al menos un carácter que no sea espacio en blanco).
+- **Denormalización de `atenciones.paciente_id`.** La política RLS se apoya en él; una clave foránea compuesta
+  `(historia_id, paciente_id)` hacia `historias_clinicas` garantiza que coincida con el dueño de la historia.
+- **Fechas del negocio en `America/Lima`.** `current_date` depende del `TimeZone` del servidor (UTC en Neon);
+  `public.hoy_lima()` se usa en la vigencia de asignaciones y en `medico_tiene_paciente()`.
+- **`medico_tiene_paciente()` exige `medicos.activo`.** Un médico dado de baja pierde el acceso aunque su
+  asignación no haya vencido.
+- **`asignaciones_paciente_medico` es append-only de verdad (ADR-0016).** TECH-DESIGN proponía `for all` para
+  el administrativo, que permitiría editar; se concede solo `SELECT` e `INSERT`. El disparador no duplica la
+  asignación de una misma cita (índice único parcial sobre `motivo` `cita:%`) y no lleva `CHECK` de orden entre
+  fechas, para no fallar al cargar citas pasadas ya vencidas.
+- **Atenciones y addendas.** La atención se registra sin firmar y solo su autor la edita o firma
+  (`UPDATE` por columnas); la addenda solo procede sobre una atención firmada de un paciente a cargo, con la
+  autoría del propio médico, y es solo-agregar (`proteger_addenda()`). Ninguna se elimina.
+- **Lectura de `pacientes` por el médico** (supuesto D3): asignación vigente o cita vigente
+  (`reservada`/`confirmada`); una cita cancelada o atendida y vencida no da acceso.
 - **ADR-0015 usa sintaxis de Supabase** (`auth.jwt()`, `auth.uid()`, claim `user_role`, resolución
   de médico con `auth.uid()` sobre `perfiles`): se corrige a la sintaxis de ADR-0023 tras D1; es
   alineación de documentación, no cambio de decisión.

@@ -10,7 +10,8 @@ paciente tenga una vigencia definida.
 
 ### Requirement: Atención clínica sin campos vacíos
 La base de datos SHALL rechazar toda atención cuyo motivo de consulta, anamnesis, examen físico o
-plan de tratamiento esté vacío o contenga solo espacios, o que no incluya al menos un diagnóstico.
+plan de tratamiento esté vacío o contenga solo espacio en blanco (espacios, tabuladores o saltos de línea), o
+que no incluya al menos un diagnóstico.
 
 #### Scenario: Campo en blanco
 - **WHEN** se inserta una atención con el motivo de consulta compuesto solo de espacios

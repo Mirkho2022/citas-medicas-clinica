@@ -116,8 +116,8 @@ agenda, y para el administrativo en su totalidad. La enfermera SHALL NO tener ac
 
 ### Requirement: Datos de identidad visibles según el rol
 Los datos demográficos de `pacientes` SHALL ser accesibles al propio paciente (lectura), al
-administrativo (gestión) y al médico solo cuando tiene relación con ese paciente (cita en su
-agenda o asignación vigente). `perfiles` SHALL ser legible por su propio titular y por el
+administrativo (gestión) y al médico solo cuando tiene relación con ese paciente (asignación vigente o
+cita vigente —reservada o confirmada— en su agenda). `perfiles` SHALL ser legible por su propio titular y por el
 administrativo. La enfermera SHALL NO acceder a `pacientes`.
 
 #### Scenario: Paciente ve solo su registro

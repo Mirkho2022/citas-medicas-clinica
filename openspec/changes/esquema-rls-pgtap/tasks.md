@@ -128,33 +128,38 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 
 ## 6. Historias clínicas
 
-- [ ] 6.1 Migración de `historias_clinicas`, `atenciones`, `addendas`, `antecedentes` y `cie10` con
-      sus `CHECK` de campos no vacíos e índices, RLS activada y sin política; verificar con pgTAP:
-      negativa por tabla desde administrativo, paciente y enfermera, y los escenarios de
-      `integridad-historia-clinica` sobre campos en blanco, diagnósticos vacíos y addenda vacía.
-- [ ] 6.2 Trigger `crear_historia_clinica()` (`security definer`) que crea la historia con número
-      único al insertar un paciente, y restricción de una historia por paciente; verificar con pgTAP
-      que registrar un paciente crea exactamente una historia y que una segunda se rechaza.
-- [ ] 6.3 Migración de `asignaciones_paciente_medico`, `medico_tiene_paciente()` y
-      `extender_asignacion_por_cita()` con `TG_OP` (D6); verificar con pgTAP: primera confirmación
-      otorga acceso a 6 meses, `confirmada → atendida` no duplica, cancelar no revoca, cita solo
-      `reservada` no otorga, y el camino «cita insertada ya `confirmada`» funciona sin error.
-- [ ] 6.4 Políticas y `GRANT` de `atenciones`, `addendas` y `historias_clinicas` (solo médico a
-      cargo; el médico solo registra atenciones propias de pacientes a su cargo); verificar con pgTAP
-      los criterios transversales: administrativo, paciente, enfermera y médico sin asignación no
-      reciben filas; asignación vencida no da acceso; una cita nueva con otro médico no revive el
-      acceso del anterior; insertar con `medico_id` ajeno falla.
-- [ ] 6.5 Trigger `proteger_atencion_firmada()` y `proteger_antecedente()`, y políticas/`GRANT` de
-      `antecedentes` y `asignaciones_paciente_medico` (administrativo gestiona; médico solo lee las
-      suyas); verificar con pgTAP: no se modifica ni se elimina una atención firmada, una addenda no
-      altera la original, no se reescribe `tipo`/`descripcion` de un antecedente ni se elimina, y el
-      médico no inserta ni edita asignaciones.
-- [ ] 6.6 Añadir la política de lectura de `pacientes` para el médico con cita en su agenda o
-      asignación vigente y la lectura de `cie10` a autenticados (sin escritura); verificar con
-      pgTAP «Médico sin relación no ve datos del paciente» y que `cie10` no se puede escribir
-      desde ningún rol de usuario.
-- [ ] 6.7 Prueba pgTAP estructural que consulta `information_schema.columns` de `atenciones` y
-      verifica que no tiene columnas demográficas del paciente; verificar que pasa.
+- [x] 6.1 Migración de `historias_clinicas`, `atenciones`, `addendas`, `antecedentes` y `cie10` con sus `CHECK`, RLS
+      activada y sin política; verificado con pgTAP (21 pruebas): RLS por tabla y los escenarios de campos en
+      blanco, diagnósticos vacíos o no-lista, addenda y antecedente en blanco, historia y número únicos. Dos
+      correcciones al SQL de TECH-DESIGN: `length(btrim(x)) > 0` deja pasar un campo con solo tabuladores o
+      saltos de línea (se usa `texto_con_contenido()`), y una clave foránea compuesta
+      `(historia_id, paciente_id)` garantiza que la atención denormalizada coincida con su historia.
+- [x] 6.2 Disparador `crear_historia_clinica()` (SECURITY DEFINER, número correlativo `HC-000001`), con relleno de
+      pacientes existentes; verificado con pgTAP (8 pruebas): una historia por paciente, número con formato y
+      distinto, el administrativo registra pacientes y la historia se crea sin darle acceso, nadie llama la
+      función directamente.
+- [x] 6.3 `asignaciones_paciente_medico`, `medico_tiene_paciente()`, `hoy_lima()` y `extender_asignacion_por_cita()`
+      (con `TG_OP`, fechas de Lima y sin duplicar); verificado con pgTAP (21 pruebas): reservada no otorga
+      acceso, la primera confirmación sí (vence a 6 meses, con la fecha de Lima), confirmada→atendida y
+      reconfirmar no duplican, cancelar no revoca, el camino INSERT funciona; vigente, sin vencimiento,
+      vencida, futura, de otro médico, médico dado de baja y usuario no médico.
+- [x] 6.4 Políticas y `GRANT` de `atenciones`, `addendas` e `historias_clinicas` (solo el médico a cargo; atención
+      sin firmar y propia; addenda solo sobre atención firmada de un paciente a cargo; `UPDATE` de atenciones
+      limitado por columnas); verificado con pgTAP (31 pruebas) con el caso negativo de administrativo,
+      paciente, enfermera, sesión sin rol, médico sin asignación, asignación vencida y otro autor. Se comprobó
+      por mutación que las pruebas pueden fallar: debilitar la política de lectura hace fallar 5 de ellas.
+- [x] 6.5 Disparadores `proteger_atencion_firmada()`, `proteger_addenda()` y `proteger_antecedente()`; políticas de
+      `antecedentes` (médico a cargo; solo `vigente` se actualiza) y de `asignaciones_paciente_medico`
+      (append-only: el administrativo lee e inserta, el médico lee las suyas, nadie edita ni borra);
+      verificado con pgTAP (14 + 26 pruebas): atención firmada inmutable e indeletable incluso para el dueño,
+      addenda y antecedente solo-agregar, y los negativos de cada rol.
+- [x] 6.6 Política de lectura de `pacientes` para el médico con asignación vigente o cita vigente (reservada o
+      confirmada) y de `cie10` para toda sesión con rol válido (sin escritura para nadie); verificado con pgTAP
+      (18 pruebas): sin relación, cita cancelada, asignación vencida y agenda de otro médico no dan acceso.
+- [x] 6.7 Prueba estructural `47_estructura_historia`: ninguna tabla clínica tiene columnas demográficas y las
+      columnas de `atenciones`, `historias_clinicas`, `addendas`, `antecedentes` y
+      `asignaciones_paciente_medico` están fijadas con `columns_are` (6 pruebas): una columna nueva exige tocar
+      la prueba, y por tanto revisarla.
 
 ## 7. Turnos, notificaciones y auditoría
 
