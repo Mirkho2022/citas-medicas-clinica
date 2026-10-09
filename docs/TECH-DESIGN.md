@@ -871,8 +871,9 @@ auditoría (`auditoria`, `accesos_historia`) es solo-agregar incluso para el due
 1. El administrativo crea un `bloqueo_agenda` para el rango afectado.
 2. El sistema lista las citas vigentes del médico dentro del rango.
 3. Para cada una propone médicos de la misma especialidad con slot libre.
-4. La reasignación se ejecuta en una transacción: cancela la cita original con
-   `reprogramada_de` apuntando a la nueva, e inserta la nueva cita.
+4. La reasignación se ejecuta en una transacción: cancela la cita original e inserta la
+   nueva cita con `reprogramada_de` apuntando a la original (la columna vive en la cita nueva,
+   igual que en el esquema y en la prueba de aceptación de más abajo).
 5. Se encola una notificación de reprogramación al paciente.
 
 Si no hay médico sustituto disponible, la cita queda marcada para contacto manual. El sistema no
@@ -937,7 +938,7 @@ Es la consulta más caliente del sistema (el portal la ejecuta en cada búsqueda
 app/
   (publico)/
     login/                      inicio de sesión
-    registro/                   alta de paciente (Turnstile)
+    registro/                   alta de paciente (Vercel BotID, ADR-0026)
   (paciente)/
     portal/
       citas/                    mis citas
@@ -950,6 +951,11 @@ app/
     dashboard/                  vista operativa de citas y pacientes
     dashboard/notificaciones/   notificaciones fallidas para revisión manual (ADR-0018)
 ```
+
+> **Nota (2026-10-08):** este árbol es ilustrativo. H1 fijó áreas planas por rol (`/paciente`,
+> `/administrativo`, `/medico`, `/enfermera`) y los changes de H3–H7 definen las rutas reales
+> dentro de ellas (p. ej. «Mis citas» en `/paciente/citas`); cada change actualiza este árbol al
+> implementarse.
 
 Cada grupo de rutas lleva un `layout.tsx` que verifica el rol en servidor y redirige si no
 corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad real es RLS.

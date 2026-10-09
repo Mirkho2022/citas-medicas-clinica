@@ -37,6 +37,12 @@ using ((select auth.session() ->> 'rol') = 'administrativo');
 -- no pasan por RLS porque no son un usuario autenticado de la aplicación.
 ```
 
+> **Nota (2026-10-08):** (1) el comentario del bloque SQL es impreciso: el rol
+> `cron_notificaciones` **sí** pasa por RLS, con sus propias políticas en
+> `migrations/1791437441130_notificaciones.sql`; lo que tiene es un `GRANT` mínimo, no un
+> bypass. (2) La ruta real de la vista será `/administrativo/notificaciones` (áreas planas de
+> H1), definida por el change `notificaciones-email` (H5).
+
 ## Consecuencias
 
 - El criterio de aceptación "queda visible para revisión manual" ahora tiene una ruta concreta que
