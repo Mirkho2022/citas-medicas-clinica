@@ -160,7 +160,7 @@ empieza cuando H2b está aplicado.
       `23P01` en contexto de bloqueo y de disponibilidad dan sus mensajes y no ese; `P0001`, `UC001` a `UC004`, `42501` y `23505`
       mapean a su código; `UC004` da el mensaje propio de cada acción; un error desconocido da el mensaje genérico sin texto de
       Postgres. Verificar con `npm run test:agenda` y comparando el literal exacto carácter a carácter.
-- [ ] 7.2 Crear `lib/fechas/lima.ts` (hoy en Lima, inicio y fin de un día de Lima, instante ⇄ fecha y hora de Lima). Pruebas en
+- [x] 7.2 Crear `lib/fechas/lima.ts` (hoy en Lima, inicio y fin de un día de Lima, instante ⇄ fecha y hora de Lima). Pruebas en
       `tests/agenda/lima.test.ts`: 14:30 de Lima del 14/10/2026 es `19:30Z`; las 23:30 de Lima siguen siendo del 14/10 aunque
       en UTC sea el 15; el inicio del día de Lima es `05:00Z`; todo con el proceso en `TZ=UTC` y en `TZ=Asia/Tokyo`. Verificar
       con `TZ=Asia/Tokyo npm run test:agenda` y `TZ=UTC npm run test:agenda`.
