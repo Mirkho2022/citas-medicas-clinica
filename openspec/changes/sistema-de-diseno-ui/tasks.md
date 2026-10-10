@@ -84,16 +84,16 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 5. Estructuras de pantalla y navegación
 
-- [ ] 5.1 Crear `lib/ui/navegacion.ts` (destinos tipados por rol con `ruta`, `etiqueta`, `icono` y `disponible`) y los
+- [x] 5.1 Crear `lib/ui/navegacion.ts` (destinos tipados por rol con `ruta`, `etiqueta`, `icono` y `disponible`) y los
       envoltorios `PortalLayout` (una columna de hasta 640 px, navegación inferior de tres destinos) y `ConsolaLayout`
       (barra lateral de 240 px, contenido de hasta 1280 px) con `UserButton` de Clerk. Los destinos de hitos futuros se
       muestran deshabilitados con «Próximamente». Verificar con `npm run typecheck` y en la galería.
-- [ ] 5.2 Añadir `layout.tsx` en `app/paciente/`, `app/administrativo/`, `app/medico/` y `app/enfermera/` y reemplazar el
+- [x] 5.2 Añadir `layout.tsx` en `app/paciente/`, `app/administrativo/`, `app/medico/` y `app/enfermera/` y reemplazar el
       relleno de cada página por su contenido de bienvenida, **conservando** `auth.protect()`, `exigirRol(...)` y los
       encabezados «Portal del paciente», «Panel administrativo», etc. Verificar que las E2E de `roles.spec.ts` y
       `db.spec.ts` siguen pasando sin cambios y, en `e2e/estructuras.spec.ts`, que a 390 px el portal no desborda y
       muestra tres destinos, y que un usuario de un rol que abre el área de otro sigue sin ver su contenido.
-- [ ] 5.3 Revisar la portada pública `/` (`app/page.tsx`) con el mismo sistema (marca, enlaces con foco visible). Verificar
+- [x] 5.3 Revisar la portada pública `/` (`app/page.tsx`) con el mismo sistema (marca, enlaces con foco visible). Verificar
       que se ve con el tema claro y que sus dos enlaces siguen llevando a `/iniciar-sesion` y `/registro`.
 
 ## 6. Clerk con la marca y en español

@@ -65,13 +65,13 @@ export function TablaAgenda({
           {citas.map((cita) => (
             <TableRow key={cita.id}>
               <TableCell>{fechaHoraLima(cita.inicio)}</TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal">
                 {cita.paciente.nombres} {cita.paciente.apellidos}
               </TableCell>
               <TableCell>
                 {cita.paciente.tipoDocumento} {cita.paciente.documento}
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal">
                 {cita.medico} · {cita.servicio}
               </TableCell>
               <TableCell>

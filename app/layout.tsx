@@ -30,8 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className={`${jakarta.variable} ${inter.variable} antialiased`}>
+    // Las variables de las fuentes van en <html>: el tema las usa en `html { font-family }` y en :root (`--font-sans`), y
+    // una variable definida en <body> no existe todavía allí (la fuente caería a la serif por defecto del navegador).
+    <html lang="es" className={`${jakarta.variable} ${inter.variable}`}>
+      <body className="antialiased">
         <ClerkProvider>
           {children}
         </ClerkProvider>

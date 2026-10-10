@@ -25,3 +25,18 @@ test("con preferencia de modo oscuro, la portada usa el fondo canvas y el texto 
   expect(colores.texto).toBe("rgb(20, 38, 43)"); // ink #14262B
   expect(colores.esquema).toBe("light");
 });
+
+// Las fuentes del sistema (DESIGN.md): títulos en Plus Jakarta Sans y cuerpo en Inter. Una variable de next/font mal
+// colocada no rompe el build ni los colores, pero deja todo en la fuente serif por defecto: se comprueba aparte.
+test("la portada usa Plus Jakarta Sans en los títulos e Inter en el cuerpo", async ({ page }) => {
+  await prepararPagina(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  const fuentes = await page.evaluate(() => ({
+    cuerpo: getComputedStyle(document.body).fontFamily,
+    titulo: getComputedStyle(document.querySelector("h1")!).fontFamily,
+  }));
+  expect(fuentes.cuerpo).toMatch(/Inter/);
+  expect(fuentes.titulo).toMatch(/Jakarta/);
+});
