@@ -66,6 +66,29 @@ también en el job `typecheck-lint-build` de CI.
 - **Dependencias de shadcn/ui:** la CLI actual usa el paquete `cn` (mantenedor shadcn, repo `shadcn-ui/cn`) en lugar de
   `clsx` + `tailwind-merge`; está en `package.json`.
 
+## Accesibilidad (WCAG 2.1 AA)
+
+**Automática:** [e2e/accesibilidad.spec.ts](../e2e/accesibilidad.spec.ts) ejecuta axe (`@axe-core/playwright`, etiquetas
+`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) sobre la portada pública, la galería (a 1280 y a 390 px, también con un horario
+elegido), `/paciente` y `/administrativo`, y falla ante **cualquier** violación. Además `npm run tema:comprobar` calcula el
+contraste de los pares de DESIGN.md. Comprobado que la prueba se pone en rojo: al quitar la asociación de la etiqueta de un
+campo, axe reporta `label (critical)`.
+
+**Fuera de lo automático (revisión manual, una vez por PR de interfaz y anotando el resultado en el PR):**
+
+1. **Teclado:** recorrer con `Tab` cada pantalla nueva: el foco pasa por todos los controles en orden lógico, siempre se ve el
+   anillo de foco y nunca queda atrapado (menú, selector de horario, formularios).
+2. **Lector de pantalla** (NVDA en Windows o VoiceOver): el error de un campo se anuncia como alerta y se asocia al campo; el
+   horario elegido y la advertencia de cancelación («… hasta 1 hora antes, a las 13:30») se anuncian; los estados de cita se
+   leen con su etiqueta y no solo con el color.
+3. **Zoom al 200 %** (y 320 px de ancho): no se pierde contenido ni funciones, y no hay desplazamiento horizontal salvo dentro
+   de las tablas de la consola.
+4. **Objetivos táctiles:** al menos 44 px en el portal (48 px la acción principal) y 24 px como mínimo en la consola.
+5. **Pantallas de Clerk** (`/iniciar-sesion`, `/registro`, MFA): su marcado no es nuestro y quedan fuera del recuento de axe. Se
+   revisan a mano. Hallazgos conocidos de Clerk, no corregibles aquí: el campo del código de verificación mantiene su
+   `aria-label` en inglés («Enter verification code»); el subtítulo muestra el nombre de la aplicación configurado en el panel de
+   Clerk («citas-clinicas»), que se cambia allí; el pie «Secured by Clerk / Development mode» no se traduce.
+
 ## Cosas que aprendimos
 
 - Un navegador nuevo pasa por la verificación de "dispositivo nuevo" (client trust) de Clerk; el

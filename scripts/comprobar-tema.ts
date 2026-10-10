@@ -2,9 +2,11 @@
 //   1. app/tema.generado.css coincide con lo que generaría DESIGN.md ahora mismo.
 //   2. Ningún archivo bajo app/ ni components/ (salvo el CSS generado) declara un color literal.
 //   3. El contraste WCAG de cada par de texto y fondo de DESIGN.md y de una lista de pares adicionales.
+//   4. Los estilos de texto que conoce `cn` (lib/ui/estilos-texto.ts) son los de DESIGN.md.
 // Sale con código 1 si alguna falla. Uso: npm run tema:comprobar
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { ESTILOS_TEXTO } from "../lib/ui/estilos-texto.ts";
 import { contraste } from "./lib/contraste.ts";
 import { generarTema, leerDesign } from "./lib/tema.ts";
 
@@ -96,6 +98,15 @@ for (const [texto, fondo, minimo] of PARES_ADICIONALES) {
   pares++;
   const razon = contraste(colorDe(texto, "pares adicionales"), colorDe(fondo, "pares adicionales"));
   if (razon < minimo) problemas.push(`Contraste de ${texto} sobre ${fondo}: ${razon.toFixed(2)}:1, mínimo ${minimo}:1`);
+}
+
+// 4. `cn` conoce los mismos estilos de texto que DESIGN.md (si no, descarta `text-label-lg` creyéndolo un color).
+const enDesign = Object.keys(design.typography).sort().join(", ");
+const enCn = [...ESTILOS_TEXTO].sort().join(", ");
+if (enDesign !== enCn) {
+  problemas.push(
+    `lib/ui/estilos-texto.ts no coincide con la tipografía de ${DESIGN}: «${enCn}» frente a «${enDesign}»`,
+  );
 }
 
 if (problemas.length > 0) {

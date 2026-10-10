@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 // DESIGN.md: tabla de la consola del personal. Cabecera `surface-muted` con texto `ink-muted` (label-md), filas de 40 px,
 // texto body-sm y cifras tabulares.

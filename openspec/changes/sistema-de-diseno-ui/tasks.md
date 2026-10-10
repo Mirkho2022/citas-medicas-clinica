@@ -112,11 +112,11 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 7. Accesibilidad comprobada
 
-- [ ] 7.1 Instalar `@axe-core/playwright` (desarrollo) y escribir `e2e/accesibilidad.spec.ts`: axe con las etiquetas
+- [x] 7.1 Instalar `@axe-core/playwright` (desarrollo) y escribir `e2e/accesibilidad.spec.ts`: axe con las etiquetas
       `wcag2a`, `wcag2aa`, `wcag21a` y `wcag21aa` sobre la galería y sobre `/paciente` y `/administrativo` (cuentas de
       prueba de H1; la de administrativo con TOTP), que falla ante cualquier violación. Verificar que pasa y que se pone
       en rojo cuando se quita a propósito la etiqueta de un campo en un cambio temporal revertido.
-- [ ] 7.2 Corregir las violaciones que axe encuentre en componentes y estructuras. Verificar que la prueba de 7.1 queda en
+- [x] 7.2 Corregir las violaciones que axe encuentre en componentes y estructuras. Verificar que la prueba de 7.1 queda en
       verde y que cada corrección tiene su explicación en el mensaje del commit.
 - [ ] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
       de pantalla, 200 % de zoom, objetivos táctiles) y ejecutarla una vez sobre el preview anotando el resultado en el

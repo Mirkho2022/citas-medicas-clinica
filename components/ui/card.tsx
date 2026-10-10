@@ -1,6 +1,6 @@
 // Ajustado a docs/DESIGN.md (H2b). Si regenera este archivo con la CLI de shadcn/ui, reaplique estos ajustes (git diff).
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 // DESIGN.md: tarjeta `surface` con borde `border` de 1 px, sin sombra, radio lg y relleno de 24 px (16 px en `sm`).
 function Card({

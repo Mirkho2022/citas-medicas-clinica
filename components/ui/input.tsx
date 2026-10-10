@@ -1,6 +1,6 @@
 // Ajustado a docs/DESIGN.md (H2b). Si regenera este archivo con la CLI de shadcn/ui, reaplique estos ajustes (git diff).
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 // DESIGN.md: 44 px de alto, relleno 10×14 px, borde de control, radio md; el error cambia el borde a `error` y un campo de
 // solo lectura usa `surface-muted` sin borde de control (y sin `disabled`: el dato sigue siendo seleccionable).

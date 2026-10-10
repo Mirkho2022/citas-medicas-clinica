@@ -1,7 +1,7 @@
 // Ajustado a docs/DESIGN.md (H2b). Si regenera este archivo con la CLI de shadcn/ui, reaplique estos ajustes (git diff).
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 // DESIGN.md: insignia de estado en píldora (radio full), texto label-sm y relleno 4×10 px. Los tonos (info, success,

@@ -1,7 +1,7 @@
 // Ajustado a docs/DESIGN.md (H2b). Si regenera este archivo con la CLI de shadcn/ui, reaplique estos ajustes (git diff).
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 // DESIGN.md: 44 px de alto (48 px la acción principal del portal), radio md, texto label-lg. Un solo primario por
