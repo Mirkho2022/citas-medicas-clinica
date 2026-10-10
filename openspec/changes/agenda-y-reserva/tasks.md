@@ -182,6 +182,9 @@ empieza cuando H2b está aplicado.
 - [ ] 7.6 Añadir el script `test:agenda` (`node --test "tests/agenda/*.test.ts"`) a `package.json` y como paso del job
       `typecheck-lint-build` de `.github/workflows/ci.yml` (archivo con CRLF: conservarlos). Verificar en el PR que el paso
       aparece y pasa, y que `npm run typecheck` y `npm run lint` siguen en verde.
+      Avance: el script `test:agenda` y el paso de CI ya están añadidos (CRLF conservados); `npm run typecheck`, `npm run lint` y
+      `npm run test:agenda` pasan en local, también con `TZ=UTC` y `TZ=Asia/Tokyo`. Pendiente (sin marcar): verificar en el PR que
+      el paso aparece y pasa en `typecheck-lint-build`.
 
 ## 8. Pacientes: documento, búsqueda y registro
 

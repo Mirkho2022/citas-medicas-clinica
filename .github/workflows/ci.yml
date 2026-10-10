@@ -23,6 +23,8 @@ jobs:
 
       - run: npm run test:tema
 
+      - run: npm run test:agenda
+
       - run: npm run tema:comprobar
 
       - run: npm run build
