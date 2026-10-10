@@ -153,7 +153,7 @@ empieza cuando H2b está aplicado.
 
 ## 7. Fundamentos de la aplicación
 
-- [ ] 7.1 Crear `lib/acciones/resultado.ts` (`ResultadoAccion`, `CodigoError` con `TRANSICION_INVALIDA`, ayudantes
+- [x] 7.1 Crear `lib/acciones/resultado.ts` (`ResultadoAccion`, `CodigoError` con `TRANSICION_INVALIDA`, ayudantes
       `exito`/`fallo`) y `lib/citas/errores.ts` (`MENSAJE_DOBLE_RESERVA` y `traducirError(error, contexto)` con la tabla de
       `design.md`, D5, según lo comprobado en 1.4; contextos `confirmar`, `no_asistio` y `atendida` para `UC004`). Pruebas en
       `tests/agenda/errores.test.ts`: `23P01` y `40P01` en contexto de cita dan exactamente `Registro de cita ya agendado`;
