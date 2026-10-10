@@ -62,21 +62,21 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 4. Componentes del sistema de diseño
 
-- [ ] 4.1 `InsigniaEstado` y `Alerta` (tonos aviso, error, información y éxito; error con `role="alert"`, el resto con
+- [x] 4.1 `InsigniaEstado` y `Alerta` (tonos aviso, error, información y éxito; error con `role="alert"`, el resto con
       `role="status"` o `note`) en `components/clinica/`, mostrados en la galería. Verificar en `e2e/componentes.spec.ts`
       que cada estado lleva etiqueta, icono (`svg` con `aria-hidden`) y texto, que la alerta de error se anuncia como
       alerta y que `Registro de cita ya agendado` se muestra tal cual.
-- [ ] 4.2 `Campo` (etiqueta encima, ayuda y error asociados con `aria-describedby`, `role="alert"` en el error, estado de
+- [x] 4.2 `Campo` (etiqueta encima, ayuda y error asociados con `aria-describedby`, `role="alert"` en el error, estado de
       solo lectura sin `disabled` y con «Solo lectura») y `CampoDocumento` (DNI o Carné de Extranjería, con el formato
       esperado como ayuda). Verificar en `e2e/componentes.spec.ts` que cada control tiene su etiqueta, que el error se
       asocia al campo, que el dato de solo lectura se puede seleccionar y no tiene el atributo `disabled`, y que las
       ayudas de DNI (8 dígitos) y de Carné de Extranjería se muestran.
-- [ ] 4.3 `TarjetaCita` (servicio, médico, fecha y hora con `formato.ts`, `InsigniaEstado`, botón «Cancelar cita» solo
+- [x] 4.3 `TarjetaCita` (servicio, médico, fecha y hora con `formato.ts`, `InsigniaEstado`, botón «Cancelar cita» solo
       mientras sea posible y «Puede cancelar hasta las HH:mm») y `SelectorHorario` (componente de cliente: disponible,
       elegido con `aria-pressed` y «No disponible» deshabilitado con texto, más la advertencia de cancelación con la hora
       límite). Verificar en `e2e/componentes.spec.ts`: elegir las 14:30 muestra «a las 13:30», un horario ocupado no se
       puede elegir y la tarjeta de una cita pasada no ofrece «Cancelar cita».
-- [ ] 4.4 `TablaAgenda` (filas de 40 px, cifras tabulares, estado con `InsigniaEstado`, acciones solo en citas activas,
+- [x] 4.4 `TablaAgenda` (filas de 40 px, cifras tabulares, estado con `InsigniaEstado`, acciones solo en citas activas,
       desplazamiento horizontal dentro de su contenedor) y `AtencionFirmada` (sello «Firmada» con candado, ficha en solo
       lectura, «Agregar addenda» y ningún botón de editar). Verificar en `e2e/componentes.spec.ts` que la página no
       desborda a 390 px, que una fila cancelada no muestra «Reprogramar» y que la atención firmada no tiene ningún botón
