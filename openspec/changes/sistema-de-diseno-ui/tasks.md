@@ -8,17 +8,17 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 1. Tokens: de DESIGN.md al tema (fuente única)
 
-- [ ] 1.1 Añadir a `docs/DESIGN.md` el grupo `shadows` en el front matter (`shadow-popover`, `shadow-dialog`,
+- [x] 1.1 Añadir a `docs/DESIGN.md` el grupo `shadows` en el front matter (`shadow-popover`, `shadow-dialog`,
       `focus-ring`, con los valores de la tabla «Elevation & Depth» y del anillo de foco) y su nota en «Cómo se usa»;
       verificar que el YAML sigue parseando, que los enlaces no se rompen y que las tres sombras coinciden con las del
       sistema de diseño publicado.
-- [ ] 1.2 Instalar `yaml` (desarrollo) y escribir `scripts/generar-tema.ts` (Node, eliminación de tipos) que lee el
+- [x] 1.2 Instalar `yaml` (desarrollo) y escribir `scripts/generar-tema.ts` (Node, eliminación de tipos) que lee el
       front matter de `docs/DESIGN.md` y escribe `app/tema.generado.css`: `@theme` con `--color-*`, `--font-display` y
-      `--font-sans`, `--text-*` (con `--line-height`, `--font-weight` y `--letter-spacing`), `--spacing-*`, `--radius-*`,
+      `--font-sans`, `--text-*` (con `--line-height`, `--font-weight` y `--letter-spacing`), `--space-*` (no `--spacing-*`: en Tailwind v4 redefiniría `max-w-md`, `w-lg`…; la escala de 4 px ya coincide con `p-1`…`p-12`), `--radius-*`,
       `--shadow-*`, y el bloque `:root` con las variables de shadcn/ui de D2; añadir `npm run tema`. Verificar que genera
       el archivo con los 22 colores, los 10 estilos de texto y las 3 sombras, y que ejecutarlo dos veces no produce
       ninguna diferencia (`git diff --exit-code app/tema.generado.css`).
-- [ ] 1.3 Pruebas del generador en `tests/tema/generar-tema.test.ts` (`npm run test:tema`): resuelve las referencias
+- [x] 1.3 Pruebas del generador en `tests/tema/generar-tema.test.ts` (`npm run test:tema`): resuelve las referencias
       `{colors.x}`, rechaza una referencia rota, conserva el orden, convierte `lineHeight`/`letterSpacing`/`fontWeight`
       y avisa de una clave desconocida. Verificar que pasan y que fallan al cambiar a propósito un valor esperado.
 - [ ] 1.4 Escribir `scripts/comprobar-tema.ts` y `npm run tema:comprobar`: (1) el CSS generado coincide con DESIGN.md,

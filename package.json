@@ -8,11 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "tema": "node scripts/generar-tema.ts",
+    "tema:comprobar": "node scripts/comprobar-tema.ts",
     "migrate": "node-pg-migrate",
     "test:e2e": "playwright test",
     "test:pgtap": "node scripts/ejecutar-pgtap.ts",
     "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
-    "test:integracion": "node --test \"tests/integracion/*.test.ts\""
+    "test:integracion": "node --test \"tests/integracion/*.test.ts\"",
+    "test:tema": "node --test \"tests/tema/*.test.ts\""
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",
@@ -40,7 +43,8 @@
     "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "postcss": "^8.5.28"

@@ -95,6 +95,10 @@ spacing:
   lg: 24px
   xl: 32px
   2xl: 48px
+shadows:
+  shadow-popover: "0 8px 24px rgb(20 38 43 / 12%)"
+  shadow-dialog: "0 16px 40px rgb(20 38 43 / 18%)"
+  focus-ring: "0 0 0 2px {colors.surface}, 0 0 0 4px {colors.primary}"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -390,5 +394,7 @@ de software; sin referentes de salud).
 1. Los tokens de la cabecera son la fuente de verdad. Los componentes nuevos se diseñan con ellos y con los textos de arriba.
 2. Para generar el tema de Tailwind v4 (`@theme` en `app/globals.css`) y comprobar el contraste, la especificación ofrece
    `npx @google/design.md export --format css-tailwind docs/DESIGN.md` y `npx @google/design.md lint docs/DESIGN.md`.
-3. Cualquier cambio de color o tipografía se hace aquí primero y se propaga al código; no al revés.
+3. Cualquier cambio de color o tipografía se hace aquí primero y se propaga al código con `npm run tema`; no al revés.
+   El grupo `shadows` de la cabecera (menú, diálogo y anillo de foco) no está definido por el formato alpha: el
+   generador del tema lo lee igualmente y `npm run tema:comprobar` falla si el CSS se separa de este archivo.
 4. Los valores `px` de la tipografía son de referencia; el código usa `rem` para respetar el tamaño de texto del usuario.
