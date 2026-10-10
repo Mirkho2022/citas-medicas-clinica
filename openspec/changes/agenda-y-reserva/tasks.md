@@ -11,7 +11,7 @@ empieza cuando H2b está aplicado.
 
 ## 1. Punto de partida y comprobaciones previas
 
-- [ ] 1.1 Comprobar que H2b está aplicado: existen `components/clinica/` con `TablaAgenda`, `SelectorHorario`,
+- [x] 1.1 Comprobar que H2b está aplicado: existen `components/clinica/` con `TablaAgenda`, `SelectorHorario`,
       `InsigniaEstado`, `TarjetaCita`, `Alerta`, `Campo` y `CampoDocumento`, `lib/ui/formato.ts`, `lib/ui/navegacion.ts` y
       `ConsolaLayout`. Verificar con `ls` y `npm run typecheck`; si falta algo, detenerse y avisar al usuario en vez de
       reinventar los componentes.
@@ -22,10 +22,17 @@ empieza cuando H2b está aplicado.
 - [ ] 1.3 Revisar con el usuario las preguntas abiertas de `design.md` que condicionan pantallas (1, 2 y 3: cita `reservada`
       vencida sin confirmar, horizonte de sustitutos y baja sin fecha de término) y anotar las respuestas en `design.md` antes
       del grupo 11. Verificar que cada pregunta queda con respuesta o con el valor por defecto aceptado por escrito.
-- [ ] 1.4 Verificar con un script descartable (sin commitear) contra un branch de desarrollo que el driver HTTP de Neon entrega
+- [x] 1.4 Verificar con un script descartable (sin commitear) contra un branch de desarrollo que el driver HTTP de Neon entrega
       `code` en el error de una violación `23P01`, de un `raise exception … using errcode = 'UC001'` y de un `40P01`
       simulado en PL/pgSQL, y si expone `constraint`. Verificar anotando los tres resultados en el PR; el traductor de errores
       (7.1) se escribe sobre lo que el driver realmente devuelve.
+      Resultado (2026-10-10, branch `dev` de Neon, driver HTTP `@neondatabase/serverless`; script descartable, no commiteado): el
+      driver lanza `NeonDbError` con `code` en los tres casos, con una sentencia y dentro de `sql.transaction`. `23P01` (violación
+      real de un `EXCLUDE` en una tabla temporal): `code` y `constraint` con el nombre de la restricción. `UC001` a `UC004`
+      (`raise exception … using errcode`): `code` y **sin** `constraint` (solo llega si la excepción pasa `using constraint`).
+      `40P01`: simulado con `raise` (solo `code`) y también real (dos transacciones con *advisory locks* cruzados): `code`
+      `40P01`, mensaje `deadlock detected`. `message` trae el texto de Postgres: nunca se reenvía. El traductor (7.1) decide solo
+      por `code` y contexto. Pendiente: copiar estos resultados a la descripción del PR.
 
 ## 2. Migración 1: disponibilidades sin solape, vigencia en Lima y auditoría de bloqueos
 
