@@ -170,7 +170,7 @@ empieza cuando H2b está aplicado.
       identificador de la cita); disponibilidad (día 0 a 6, inicio < fin, slot > 0) y bloqueo (fin > inicio, motivo con
       contenido). Pruebas en `tests/agenda/schemas.test.ts` con todos los escenarios de `identificacion-de-pacientes` y los de
       datos incoherentes de `disponibilidad-y-slots`. Verificar con `npm run test:agenda`.
-- [ ] 7.4 Crear `lib/auth/accion-personal.ts` (`exigirPersonal('administrativo' | 'medico')`: sesión, claim de rol y MFA,
+- [x] 7.4 Crear `lib/auth/accion-personal.ts` (`exigirPersonal('administrativo' | 'medico')`: sesión, claim de rol y MFA,
       devuelve un `ResultadoAccion` de fallo en vez de redirigir). Pruebas con dependencias inyectadas en
       `tests/agenda/accion-personal.test.ts`: sin sesión, paciente, enfermera y personal sin MFA son rechazados con su código;
       un médico es rechazado donde se exige `administrativo` y un administrativo donde se exige `medico`; el rol correcto con
