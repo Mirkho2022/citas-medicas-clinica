@@ -175,7 +175,7 @@ empieza cuando H2b está aplicado.
       `tests/agenda/accion-personal.test.ts`: sin sesión, paciente, enfermera y personal sin MFA son rechazados con su código;
       un médico es rechazado donde se exige `administrativo` y un administrativo donde se exige `medico`; el rol correcto con
       MFA pasa. Verificar con `npm run test:agenda`.
-- [ ] 7.5 Crear `lib/notificaciones/eventos-cita.ts` (`EventoCita` y `notificarEventoCita` sin efecto) y un envoltorio
+- [x] 7.5 Crear `lib/notificaciones/eventos-cita.ts` (`EventoCita` y `notificarEventoCita` sin efecto) y un envoltorio
       `emitirTrasCommit(evento)` con `try/catch`. Pruebas en `tests/agenda/eventos-cita.test.ts`: un notificador que lanza no
       cambia el resultado; el evento solo contiene identificadores y motivo `reprogramacion` o `baja_medica`; el tipo
       `EventoCita` no incluye eventos de confirmación, «No asistió» ni «Atendida». Verificar con `npm run test:agenda`.
