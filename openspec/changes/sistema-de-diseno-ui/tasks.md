@@ -47,17 +47,17 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 3. Datos de ejemplo, utilidades y galería
 
-- [ ] 3.1 Crear `lib/ui/estados-cita.ts` (tipo `EstadoCita` = enum `estado_cita`; etiqueta, icono de lucide y tono de los
+- [x] 3.1 Crear `lib/ui/estados-cita.ts` (tipo `EstadoCita` = enum `estado_cita`; etiqueta, icono de lucide y tono de los
       cinco estados) y `lib/ui/formato.ts` con `date-fns` y `date-fns-tz` (`dd/MM/yyyy`, `HH:mm` y hora límite de
       cancelación una hora antes, siempre en `America/Lima`). Pruebas en `tests/tema/` (`npm run test:tema`): los cinco
       estados con su etiqueta, un estado desconocido lanza, y una cita a las 14:30 de Lima se formatea `14/10/2026` y
       `14:30` y su límite es `13:30` con el proceso en `TZ=UTC` y en `TZ=Asia/Tokyo`.
-- [ ] 3.2 Crear `lib/ui/ejemplos.ts` con datos sintéticos (pacientes con DNI `99…`, citas en los cinco estados, horarios,
+- [x] 3.2 Crear `lib/ui/ejemplos.ts` con datos sintéticos (pacientes con DNI `99…`, citas en los cinco estados, horarios,
       atenciones firmadas) y `app/guia-de-estilo/page.tsx`: `auth.protect()`, `notFound()` si
       `VERCEL_ENV === "production"`, y secciones vacías por componente. Verificar con `e2e/galeria.spec.ts`: sin sesión
       redirige a iniciar sesión; con sesión de paciente responde 200; y una prueba de la regla `notFound` sobre la función
       que decide si la ruta se muestra (`tests/tema/`).
-- [ ] 3.3 Documentar en `docs/pruebas-e2e.md` la galería, cómo se oculta en producción y cómo usarla para revisar un
+- [x] 3.3 Documentar en `docs/pruebas-e2e.md` la galería, cómo se oculta en producción y cómo usarla para revisar un
       componente nuevo. Verificar que el documento enlaza a DESIGN.md y que no quedan enlaces rotos.
 
 ## 4. Componentes del sistema de diseño

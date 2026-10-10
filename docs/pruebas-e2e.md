@@ -44,6 +44,16 @@ también en el job `typecheck-lint-build` de CI.
   archivos llevan ajustes del proyecto (alturas de 44 px, radios y tonos de DESIGN.md) y lo dice su primera línea:
   tras regenerar, `git diff components/ui/<archivo>` y reaplique los ajustes. Los componentes propios, con los nombres
   de DESIGN.md, viven en `components/clinica/` y no los toca la CLI.
+- **Galería `/guia-de-estilo`:** muestra cada componente de `components/clinica/` en todos sus estados con datos
+  sintéticos de [lib/ui/ejemplos.ts](../lib/ui/ejemplos.ts) (pacientes con documento `99…`, un «ahora» fijo para que las
+  citas no cambien con el tiempo). Exige sesión y **no existe en producción**: `galeriaVisible()` de
+  [lib/ui/galeria.ts](../lib/ui/galeria.ts) devuelve falso cuando `VERCEL_ENV` es `production` y la página responde
+  `notFound()`; en local con `next start` y en los previews se ve. Es el objetivo de las pruebas de accesibilidad
+  (`e2e/accesibilidad.spec.ts`) y de las de componentes (`e2e/componentes.spec.ts`).
+- **Para revisar un componente nuevo:** añada su sección a la galería con todos sus estados (normal, error, vacío,
+  deshabilitado, solo lectura), abra `/guia-de-estilo` en el preview del PR a 390 px y a 1280 px, recórrala con la tecla
+  de tabulación y deje su prueba en `e2e/componentes.spec.ts`. Los colores, tamaños y textos salen de
+  [DESIGN.md](DESIGN.md); si algo no cabe allí, el cambio se hace primero en ese documento.
 - **Dependencias de shadcn/ui:** la CLI actual usa el paquete `cn` (mantenedor shadcn, repo `shadcn-ui/cn`) en lugar de
   `clsx` + `tailwind-merge`; está en `package.json`.
 
