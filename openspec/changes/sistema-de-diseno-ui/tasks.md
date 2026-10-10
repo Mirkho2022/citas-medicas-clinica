@@ -21,7 +21,7 @@ instalan o ejecutan con la autorización del usuario.
 - [x] 1.3 Pruebas del generador en `tests/tema/generar-tema.test.ts` (`npm run test:tema`): resuelve las referencias
       `{colors.x}`, rechaza una referencia rota, conserva el orden, convierte `lineHeight`/`letterSpacing`/`fontWeight`
       y avisa de una clave desconocida. Verificar que pasan y que fallan al cambiar a propósito un valor esperado.
-- [ ] 1.4 Escribir `scripts/comprobar-tema.ts` y `npm run tema:comprobar`: (1) el CSS generado coincide con DESIGN.md,
+- [x] 1.4 Escribir `scripts/comprobar-tema.ts` y `npm run tema:comprobar`: (1) el CSS generado coincide con DESIGN.md,
       (2) ningún archivo bajo `app/` ni `components/` (salvo el CSS generado) tiene un color literal, con lista de
       excepciones comentada, y (3) el contraste WCAG de cada par de texto y fondo de los `components` de DESIGN.md y de
       una lista de pares adicionales (4,5:1 texto; 3:1 controles y foco). Verificar que pasa hoy y que falla en tres
@@ -36,7 +36,7 @@ instalan o ejecutan con la autorización del usuario.
       `@/lib/utils`) en un commit propio; si no se autoriza, crear a mano `components.json`, `lib/utils.ts` y las
       dependencias equivalentes. Verificar que existen `components.json` y `lib/utils.ts`, que `npm run build` pasa y que
       se revisó el diff de `globals.css` y `package.json` antes de seguir.
-- [ ] 2.2 Reescribir `app/globals.css`: importar `tema.generado.css`, eliminar el bloque `prefers-color-scheme: dark` y
+- [x] 2.2 Reescribir `app/globals.css`: importar `tema.generado.css`, eliminar el bloque `prefers-color-scheme: dark` y
       `font-family: Arial`, declarar `color-scheme: light`, fondo `canvas`, texto `ink` y la clase de cifras tabulares.
       En `app/layout.tsx` cargar Plus Jakarta Sans e Inter con `next/font/google` (variables `--font-jakarta` e
       `--font-inter`) y retirar Geist. Verificar con `npm run build` y con `e2e/tema.spec.ts`, que abre la portada con
