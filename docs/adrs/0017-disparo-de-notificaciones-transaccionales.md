@@ -56,6 +56,14 @@ where n.tipo = 'recordatorio_24h'
   and c.inicio > now();          -- guarda: la cita todavía no ocurrió
 ```
 
+> **Nota (2026-10-08), pendiente de reconciliar en el change `notificaciones-email` (H5):**
+> (1) [ADR-0028](0028-notificaciones-cron-unico-plan-hobby.md) sustituyó el «cron horario de
+> reintentos» por un único cron diario (plan Hobby): donde este ADR dice «cron horario», léase
+> el reintento del cron diario. (2) La guarda del cron no excluye citas `cancelada`: debe
+> añadir `c.estado in ('reservada','confirmada')`. (3) Las acciones de usuario no pueden insertar
+> en `notificaciones` (hoy solo `cron_notificaciones` escribe); H5 lo resuelve con una función
+> acotada y lo formaliza en un ADR nuevo.
+
 ## Consecuencias
 
 - El paciente recibe la confirmación de su reserva y el aviso de cancelación de forma inmediata,

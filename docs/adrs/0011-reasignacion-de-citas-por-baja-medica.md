@@ -17,8 +17,9 @@ ni perder la relación entre la cita original y la nueva.
 2. El sistema lista las citas vigentes de ese médico dentro del rango bloqueado.
 3. Para cada una, propone médicos de la misma especialidad con slot libre en un horario
    equivalente.
-4. La reasignación se ejecuta en una única transacción: cancela la cita original (con
-   `reprogramada_de` apuntando a la nueva) e inserta la nueva cita.
+4. La reasignación se ejecuta en una única transacción: cancela la cita original e inserta la
+   nueva cita con `reprogramada_de` apuntando a la original. *(Corregido el 2026-10-08: este paso
+   decía lo contrario; la columna vive en la cita nueva, como en el esquema de H2.)*
 5. Se encola una notificación de reprogramación al paciente.
 6. Si no hay médico sustituto disponible, la cita queda marcada para contacto manual — nunca se
    cancela en silencio.
