@@ -164,7 +164,7 @@ empieza cuando H2b está aplicado.
       `tests/agenda/lima.test.ts`: 14:30 de Lima del 14/10/2026 es `19:30Z`; las 23:30 de Lima siguen siendo del 14/10 aunque
       en UTC sea el 15; el inicio del día de Lima es `05:00Z`; todo con el proceso en `TZ=UTC` y en `TZ=Asia/Tokyo`. Verificar
       con `TZ=Asia/Tokyo npm run test:agenda` y `TZ=UTC npm run test:agenda`.
-- [ ] 7.3 Crear `lib/schemas/documento.ts`, `paciente.ts`, `cita.ts` y `agenda.ts` (Zod): DNI de 8 dígitos; Carné de Extranjería
+- [x] 7.3 Crear `lib/schemas/documento.ts`, `paciente.ts`, `cita.ts` y `agenda.ts` (Zod): DNI de 8 dígitos; Carné de Extranjería
       de 9 a 12 alfanuméricos, recortado y en mayúsculas, con los mensajes de la spec; paciente con correo, sexo M/F/X y
       fecha de nacimiento no futura; cita con identificadores e instantes ISO (y la entrada de una transición: solo el
       identificador de la cita); disponibilidad (día 0 a 6, inicio < fin, slot > 0) y bloqueo (fin > inicio, motivo con
