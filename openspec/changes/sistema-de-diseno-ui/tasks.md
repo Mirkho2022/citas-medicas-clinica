@@ -41,7 +41,7 @@ instalan o ejecutan con la autorización del usuario.
       En `app/layout.tsx` cargar Plus Jakarta Sans e Inter con `next/font/google` (variables `--font-jakarta` e
       `--font-inter`) y retirar Geist. Verificar con `npm run build` y con `e2e/tema.spec.ts`, que abre la portada con
       `colorScheme: "dark"` y comprueba que el fondo calculado es el de `canvas` (`rgb(244, 247, 247)`).
-- [ ] 2.3 Añadir con la CLI (o a mano) los componentes `button`, `input`, `label`, `textarea`, `alert`, `badge`, `card` y
+- [x] 2.3 Añadir con la CLI (o a mano) los componentes `button`, `input`, `label`, `textarea`, `alert`, `badge`, `card` y
       `table` en `components/ui/`. Verificar que `npm run lint`, `npm run typecheck` y `npm run tema:comprobar` pasan
       (sin colores literales en lo generado) y anotar en `docs/pruebas-e2e.md` cómo regenerar `components/ui/`.
 

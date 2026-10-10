@@ -31,6 +31,22 @@ Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). 
 - Los previews de Vercel están protegidos con Vercel Authentication: se entra con el *Protection
   Bypass for Automation* (`VERCEL_AUTOMATION_BYPASS_SECRET`).
 
+## Interfaz: tema, componentes y galería (H2b)
+
+La interfaz sigue [DESIGN.md](DESIGN.md). Antes de abrir un PR de interfaz: `npm run test:tema` (generador y
+utilidades de `lib/ui/`) y `npm run tema:comprobar` (CSS al día, sin colores literales, contraste WCAG); ambos corren
+también en el job `typecheck-lint-build` de CI.
+
+- **Cambiar un color, tipografía, espaciado, radio o sombra:** edite el front matter de DESIGN.md y ejecute
+  `npm run tema`; esto reescribe `app/tema.generado.css`. Revise el diff, que es lo que verá la interfaz.
+- **Regenerar `components/ui/`** (componentes de shadcn/ui: `button`, `input`, `label`, `textarea`, `alert`, `badge`,
+  `card`, `table`): `npx shadcn@latest add <componente> -o` sobrescribe el archivo con la versión de la CLI. Esos
+  archivos llevan ajustes del proyecto (alturas de 44 px, radios y tonos de DESIGN.md) y lo dice su primera línea:
+  tras regenerar, `git diff components/ui/<archivo>` y reaplique los ajustes. Los componentes propios, con los nombres
+  de DESIGN.md, viven en `components/clinica/` y no los toca la CLI.
+- **Dependencias de shadcn/ui:** la CLI actual usa el paquete `cn` (mantenedor shadcn, repo `shadcn-ui/cn`) en lugar de
+  `clsx` + `tailwind-merge`; está en `package.json`.
+
 ## Cosas que aprendimos
 
 - Un navegador nuevo pasa por la verificación de "dispositivo nuevo" (client trust) de Clerk; el
