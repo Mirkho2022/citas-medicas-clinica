@@ -6,7 +6,8 @@ Reemplaza el proceso actual (Excel + Google Forms para citas, papel para histori
 **Estado actual: existen [PRD.md](docs/PRD.md), [TECH-DESIGN.md](docs/TECH-DESIGN.md), la aplicación base con
 autenticación y roles (H1) y el esquema de base de datos con RLS, sus pruebas y los datos de demostración (H2,
 ver [spike-rls-h2.md](docs/spike-rls-h2.md), [pruebas-sql.md](docs/pruebas-sql.md) y
-[datos-demo.md](docs/datos-demo.md)). El resto de módulos (agenda, portal, notificaciones, historias clínicas,
+[datos-demo.md](docs/datos-demo.md)), y el sistema de diseño de la interfaz (H2b: tema, componentes y estructuras de
+pantalla, ver [DESIGN.md](docs/DESIGN.md)). El resto de módulos (agenda, portal, notificaciones, historias clínicas,
 turnos) llegan en H3–H8.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
 con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
@@ -121,6 +122,11 @@ debe ser rápida para el médico.
   (que el rol equivocado *no* ve el dato). Una tabla sin RLS aquí es una filtración de datos
   clínicos.
 - Fechas y horas: siempre `timestamptz` en BD, siempre renderizadas en `America/Lima` en la UI.
+- La UI sigue [docs/DESIGN.md](docs/DESIGN.md): colores, tipografía, espaciado, radios y sombras salen de ahí. Un cambio
+  de color o tipografía se hace en ese archivo y se regenera con `npm run tema`; `npm run tema:comprobar` (también en CI)
+  falla si el CSS se separa del documento, si hay colores literales o si un par de texto y fondo no cumple el contraste.
+  Los componentes propios viven en `components/clinica/` y se revisan en la galería `/guia-de-estilo` (solo en desarrollo
+  y previews).
 - Para decisiones de arquitectura backend (límites de servicios, esquema de BD, contratos de
   API) existe el agente `backend-architect` en [.claude/agents/](.claude/agents/); úsalo solo si
   el usuario lo pide.

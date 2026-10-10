@@ -125,11 +125,11 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 8. Documentación y coherencia
 
-- [ ] 8.1 Actualizar `CLAUDE.md` (estado y convención «la UI sigue `docs/DESIGN.md`; un cambio de color o tipografía se
+- [x] 8.1 Actualizar `CLAUDE.md` (estado y convención «la UI sigue `docs/DESIGN.md`; un cambio de color o tipografía se
       hace allí y se regenera con `npm run tema`»), la fila de UI y la de accesibilidad de TECH-DESIGN, una fila **H2b**
       en el plan por hitos y la fila de pruebas (axe), y una nota fechada en ADR-0004 que enlaza DESIGN.md. Verificar con
       una búsqueda que los cuatro textos dicen lo mismo y que ningún enlace relativo se rompe.
-- [ ] 8.2 Corregir en `openspec/config.yaml` la línea obsoleta «sin código de aplicación aún» y añadir H2b a la hoja de
+- [x] 8.2 Corregir en `openspec/config.yaml` la línea obsoleta «sin código de aplicación aún» y añadir H2b a la hoja de
       ruta del contexto. Verificar con `openspec validate sistema-de-diseno-ui --strict` y con una lectura de que
       `context` no contradice el estado real.
 
