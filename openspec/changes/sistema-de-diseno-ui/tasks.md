@@ -32,7 +32,7 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 2. Base de interfaz: tipografía, tema claro y shadcn/ui
 
-- [ ] 2.1 Pedir autorización y ejecutar `npx shadcn@latest init` (Tailwind v4, React 19, alias `@/components` y
+- [x] 2.1 Pedir autorización y ejecutar `npx shadcn@latest init` (Tailwind v4, React 19, alias `@/components` y
       `@/lib/utils`) en un commit propio; si no se autoriza, crear a mano `components.json`, `lib/utils.ts` y las
       dependencias equivalentes. Verificar que existen `components.json` y `lib/utils.ts`, que `npm run build` pasa y que
       se revisó el diff de `globals.css` y `package.json` antes de seguir.
