@@ -98,15 +98,15 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 6. Clerk con la marca y en español
 
-- [ ] 6.1 Instalar `@clerk/localizations` (versión compatible con `@clerk/nextjs` 7; anotar la variante de español
+- [x] 6.1 Instalar `@clerk/localizations` (versión compatible con `@clerk/nextjs` 7; anotar la variante de español
       elegida) y configurar en `ClerkProvider` la localización y `appearance.variables` con los tokens (`colorPrimary`,
       `colorText`, `colorBackground`, `borderRadius`, `fontFamily`) y el tema claro. Verificar con `npm run build` y
       abriendo `/iniciar-sesion` y `/registro` en español y con el verde de marca.
-- [ ] 6.2 Reemplazar en `e2e/helpers.ts` y en las E2E los selectores por texto en inglés por selectores estables de Clerk
+- [x] 6.2 Reemplazar en `e2e/helpers.ts` y en las E2E los selectores por texto en inglés por selectores estables de Clerk
       (`input[name=…]`, `button[type=submit]`, clases `cl-…`) y centrar las páginas de `iniciar-sesion`, `registro` y
       `configurar-mfa` con el mismo fondo y marca. Verificar que toda la suite E2E de H1 y H2 pasa contra una build de
       producción local y que no queda ningún selector con texto de un idioma concreto.
-- [ ] 6.3 Actualizar `docs/pruebas-e2e.md` y `docs/verificacion-h1.md` donde nombren los textos en inglés de Clerk.
+- [x] 6.3 Actualizar `docs/pruebas-e2e.md` y `docs/verificacion-h1.md` donde nombren los textos en inglés de Clerk.
       Verificar con una búsqueda de «Continue» y «Enter verification code» en `docs/` y `e2e/` que no queda ninguna
       mención desactualizada.
 

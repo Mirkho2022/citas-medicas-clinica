@@ -1,6 +1,6 @@
-import { HeartPulse } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Marca } from "@/components/clinica/marca";
 import { Button } from "@/components/ui/button";
 import { obtenerRolSesion, rutaParaRol } from "@/lib/auth/rol";
 
@@ -12,10 +12,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[40rem] flex-col items-center justify-center gap-8 px-4 py-10 text-center">
-      <span className="flex items-center gap-2 font-display text-title-md text-primary-text">
-        <HeartPulse className="size-7" aria-hidden="true" />
-        Citas Médicas
-      </span>
+      <Marca />
       <h1 className="font-display text-headline-lg text-ink sm:text-display-lg">
         Sistema de Gestión de Citas e Historias Clínicas
       </h1>

@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
-import { HeartPulse } from "lucide-react";
+import { Marca } from "@/components/clinica/marca";
 import { NavegacionInferior } from "@/components/clinica/navegacion";
 
 // Estructura del portal del paciente (DESIGN.md): una sola columna de hasta 640 px, pensada primero para móvil, con
@@ -9,10 +9,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-canvas pb-24">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-14 max-w-[40rem] items-center justify-between px-4">
-          <span className="flex items-center gap-2 font-display text-title-md text-primary-text">
-            <HeartPulse className="size-6" aria-hidden="true" />
-            Citas Médicas
-          </span>
+          <Marca />
           <UserButton />
         </div>
       </header>

@@ -54,6 +54,15 @@ también en el job `typecheck-lint-build` de CI.
   deshabilitado, solo lectura), abra `/guia-de-estilo` en el preview del PR a 390 px y a 1280 px, recórrala con la tecla
   de tabulación y deje su prueba en `e2e/componentes.spec.ts`. Los colores, tamaños y textos salen de
   [DESIGN.md](DESIGN.md); si algo no cabe allí, el cambio se hace primero en ese documento.
+- **Clerk en español y con la marca:** `ClerkProvider` recibe la localización `esMX` (la variante latinoamericana del
+  paquete `@clerk/localizations`; no hay variante peruana) con los textos de [lib/ui/clerk-es.ts](../lib/ui/clerk-es.ts),
+  que pasan a «usted» las pantallas por las que pasa un paciente (DESIGN.md), y `appearance.variables` con variables del
+  tema (`var(--color-primary)`…, sin colores literales). Lo que no está en ese archivo queda como lo trae el paquete, que
+  mezcla «tú» y «usted».
+- **Selectores de Clerk en las E2E:** nunca por texto (la interfaz está en español y puede cambiar de redacción), sino por
+  atributos estables de su marcado, definidos al inicio de [e2e/helpers.ts](../e2e/helpers.ts): `input[name="identifier"]`,
+  `input[name="password"]`, `button.cl-formButtonPrimary` y `input[autocomplete="one-time-code"]` para el código; el error de
+  un formulario se busca por `data-testid="form-feedback-error"`. Si una actualización de Clerk rompe uno, se corrige ahí.
 - **Dependencias de shadcn/ui:** la CLI actual usa el paquete `cn` (mantenedor shadcn, repo `shadcn-ui/cn`) en lugar de
   `clsx` + `tailwind-merge`; está en `package.json`.
 

@@ -1,5 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
-import { HeartPulse } from "lucide-react";
+import { Marca } from "@/components/clinica/marca";
 import { NavegacionLateral } from "@/components/clinica/navegacion";
 import type { Rol } from "@/lib/auth/rol";
 import { TITULO_AREA } from "@/lib/ui/navegacion";
@@ -11,10 +11,7 @@ export function ConsolaLayout({ rol, children }: { rol: Exclude<Rol, "paciente">
     <div className="min-h-screen bg-canvas md:grid md:grid-cols-[15rem_1fr]">
       <aside className="flex flex-col border-b border-border bg-surface md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r">
         <div className="flex items-center justify-between gap-2 px-4 pt-4 md:flex-col md:items-start md:gap-1 md:pb-2">
-          <span className="flex items-center gap-2 font-display text-title-md text-primary-text">
-            <HeartPulse className="size-6" aria-hidden="true" />
-            Citas Médicas
-          </span>
+          <Marca />
           <span className="text-body-sm text-muted-foreground">{TITULO_AREA[rol]}</span>
         </div>
         <NavegacionLateral rol={rol} />
