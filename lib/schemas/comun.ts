@@ -19,7 +19,7 @@ export function textoObligatorio(mensaje: string) {
 // Texto opcional: vacío o solo espacios queda como `undefined`.
 export const textoOpcional = z.preprocess(
   (valor) => (typeof valor === "string" && valor.trim() === "" ? undefined : (valor ?? undefined)),
-  z.string().trim().optional(),
+  z.string({ invalid_type_error: "El valor no es válido" }).trim().optional(),
 );
 
 // Identificador `uuid` (de un paciente, un médico, una cita…).
@@ -74,7 +74,14 @@ export function instanteIso(requerido: string, invalido: string = requerido) {
       .string({ invalid_type_error: invalido })
       .trim()
       .min(1, requerido)
-      .refine((valor) => valor === "" || z.string().datetime({ offset: true }).safeParse(valor).success, invalido)
+      // La expresión de Zod acepta cualquier par de dígitos en el desfase (`+99:99`); `Date.parse` rechaza los imposibles,
+      // y sin ese segundo control `toISOString()` lanzaría `RangeError` desde `safeParse` en lugar de devolver el error.
+      .refine(
+        (valor) =>
+          valor === "" ||
+          (z.string().datetime({ offset: true }).safeParse(valor).success && !Number.isNaN(Date.parse(valor))),
+        invalido,
+      )
       .transform((valor) => (valor === "" ? valor : new Date(valor).toISOString())),
   );
 }

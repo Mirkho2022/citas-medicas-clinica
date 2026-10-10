@@ -17,7 +17,7 @@ export const MENSAJE_CE = "El Carné de Extranjería debe tener entre 9 y 12 car
 export const MENSAJE_TIPO_DOCUMENTO = "Seleccione el tipo de documento";
 
 const PATRON_DNI = /^[0-9]{8}$/;
-const PATRON_CE = /^[A-Z0-9]{9,12}$/;
+const PATRON_CE = /^[A-Za-z0-9]{9,12}$/;
 
 export function mensajeDocumento(tipo: TipoDocumento): string {
   return tipo === "DNI" ? MENSAJE_DNI : MENSAJE_CE;
@@ -28,8 +28,9 @@ export function mensajeDocumento(tipo: TipoDocumento): string {
 export function normalizarDocumento(tipo: TipoDocumento, numero: string): string | null {
   const limpio = numero.trim();
   if (tipo === "DNI") return PATRON_DNI.test(limpio) ? limpio : null;
-  const mayusculas = limpio.toUpperCase();
-  return PATRON_CE.test(mayusculas) ? mayusculas : null;
+  // Se valida lo escrito y solo después se pasa a mayúsculas: `ß` o `ﬁ` se expanden al convertirlos y, validados ya en
+  // mayúsculas, completarían un número que la persona no escribió.
+  return PATRON_CE.test(limpio) ? limpio.toUpperCase() : null;
 }
 
 // Campos del documento, para incluirlos en el esquema de otro formulario (p. ej. el paciente). Con `validarDocumento`

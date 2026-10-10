@@ -144,17 +144,41 @@ test("la reprogramación emite un solo evento, el de reprogramada", async () => 
   assert.equal(recibidos[0]?.tipo, "cita_reprogramada");
 });
 
-test("el notificador por defecto no hace nada: ni efectos ni registros fuera de desarrollo", async () => {
+// Ejecuta `accion` con `NODE_ENV` fijado y la consola capturada; devuelve lo que se registró. Restaura ambos al terminar:
+// la prueba no depende del entorno desde el que se lance.
+async function conConsolaCapturada(entorno: string, accion: () => Promise<void>): Promise<string[]> {
   const llamadas: string[] = [];
   const originales = { debug: console.debug, log: console.log, info: console.info, warn: console.warn, error: console.error };
+  const entornoOriginal = process.env.NODE_ENV;
   for (const nombre of Object.keys(originales) as (keyof typeof originales)[]) {
     console[nombre] = (...args: unknown[]) => void llamadas.push(`${nombre}:${args.join(" ")}`);
   }
+  Object.assign(process.env, { NODE_ENV: entorno });
   try {
-    assert.equal(await notificarEventoCita(REPROGRAMADA), undefined);
-    assert.equal(await emitirTrasCommit(REPROGRAMADA), undefined);
+    await accion();
   } finally {
     Object.assign(console, originales);
+    if (entornoOriginal === undefined) delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    else Object.assign(process.env, { NODE_ENV: entornoOriginal });
   }
-  assert.deepEqual(llamadas, []);
+  return llamadas;
+}
+
+test("el notificador por defecto no hace nada: ni efectos ni registros fuera de desarrollo", async () => {
+  for (const entorno of ["production", "test"]) {
+    const llamadas = await conConsolaCapturada(entorno, async () => {
+      assert.equal(await notificarEventoCita(REPROGRAMADA), undefined);
+      assert.equal(await emitirTrasCommit(REPROGRAMADA), undefined);
+    });
+    assert.deepEqual(llamadas, [], entorno);
+  }
+});
+
+test("en desarrollo el único registro es el tipo del evento y el identificador de la cita, sin motivo ni cita anterior", async () => {
+  const llamadas = await conConsolaCapturada("development", async () => {
+    await emitirTrasCommit(REPROGRAMADA);
+  });
+  assert.deepEqual(llamadas, [`debug:[evento-cita] ${REPROGRAMADA.tipo} ${REPROGRAMADA.citaId}`]);
+  assert.ok(!llamadas.join(" ").includes(REPROGRAMADA.citaAnteriorId));
+  assert.ok(!llamadas.join(" ").includes(REPROGRAMADA.motivo));
 });

@@ -74,6 +74,16 @@ test("Normalización: `ce0000001 ` en minúsculas y con un espacio al final se g
   assert.equal(normalizarDocumento("DNI", "ab123456"), null);
 });
 
+test("Carné de Extranjería: el formato se valida sobre lo escrito, no sobre el texto ya en mayúsculas", () => {
+  // `ß` pasa a `SS`, `ﬁ` a `FI` e `ı` a `I` al poner en mayúsculas: no pueden completar un número ni guardar letras que
+  // la persona no escribió (dos entradas distintas chocarían en la misma clave única).
+  for (const numero of ["ßABCDEFG", "ﬁABCDEFGH", "ıABCDEFGH"]) {
+    const r = documentoSchema.safeParse({ tipo_documento: "CE", numero_documento: numero });
+    assert.deepEqual(errores(r), { numero_documento: MENSAJE_CE }, numero);
+  }
+  assert.equal(normalizarDocumento("CE", "ßABCDEFG"), null);
+});
+
 test("Un número de 8 dígitos solo es válido como DNI", () => {
   assert.ok(documentoSchema.safeParse({ tipo_documento: "DNI", numero_documento: "12345678" }).success);
   const r = documentoSchema.safeParse({ tipo_documento: "CE", numero_documento: "12345678" });
@@ -129,6 +139,14 @@ test("el teléfono y la dirección son opcionales: vacíos o ausentes quedan sin
   delete ausentes.telefono;
   delete ausentes.direccion;
   assert.ok(pacienteSchema.safeParse(ausentes).success);
+});
+
+test("el teléfono con un valor que no es texto se rechaza con un mensaje en español", () => {
+  for (const valor of [5, {}]) {
+    assert.deepEqual(errores(pacienteSchema.safeParse({ ...PACIENTE_VALIDO, telefono: valor })), {
+      telefono: "El valor no es válido",
+    });
+  }
 });
 
 test("el paciente con Carné de Extranjería se guarda con el número normalizado", () => {
@@ -243,6 +261,14 @@ test("un instante sin zona se rechaza: el horario viaja como instante, no como t
     errores(citaNuevaSchema.safeParse({ ...CITA_VALIDA, inicio: "mañana a las 3" })),
     { inicio: "El horario elegido no es válido" },
   );
+});
+
+test("un desfase horario imposible se rechaza con su mensaje y no lanza una excepción", () => {
+  for (const desfase of ["+99:99", "+24:00", "+00:60", "+05:99"]) {
+    const entrada = { ...CITA_VALIDA, inicio: `2026-10-14T19:30:00${desfase}` };
+    assert.doesNotThrow(() => citaNuevaSchema.safeParse(entrada), desfase);
+    assert.deepEqual(errores(citaNuevaSchema.safeParse(entrada)), { inicio: "El horario elegido no es válido" }, desfase);
+  }
 });
 
 test("cita sin paciente, sin médico o sin horario: un mensaje por campo", () => {
