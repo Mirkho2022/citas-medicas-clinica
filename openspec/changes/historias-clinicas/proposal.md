@@ -105,8 +105,8 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
   [ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md),
   [ADR-0024](../../../docs/adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) y
   [ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md); ninguno se reabre.
-- **ADR ya redactada, en estado «Propuesto»:** [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md),
-  *datos clínicos por especialidad* (D15). El usuario debe aceptarla antes de implementar las tareas 2.8 a 2.13.
+- **ADR ya redactada y aceptada por el usuario (2026-10-10):** [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md),
+  *datos clínicos por especialidad* (D15). No resuelve la cuestión abierta de los profesionales que no son médicos.
 - **Código nuevo:** `migrations/*.sql`; `lib/historias/`, `lib/firma/`, `lib/cie10/`, `lib/schemas/historia-clinica.ts`;
   `app/medico/pacientes/**`, `app/administrativo/{asignaciones,accesos-historia}/`, `app/api/{cie10,historias}/**`;
   `scripts/preparar-cie10.ts` y el CSV de origen en `datos/cie10/`; `tests/pgtap/*`, `tests/historias/`, `tests/concurrencia/`,

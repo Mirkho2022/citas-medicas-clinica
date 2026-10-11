@@ -49,10 +49,9 @@ Convenciones de todo el change (leer antes de empezar):
       compartidos (`lib/ui/navegacion.ts`, `package.json`, `.env.example`). Verificar que el contrato de la acción y las
       decisiones constan en `design.md`, D13, y que este change no añade ninguna política ni función sobre `citas`.
 
-- [ ] 0.8 Confirmar con el usuario que acepta la [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (hoy
-      «Propuesto») antes de empezar las tareas 2.8 a 2.13, y que sabe que Odontología, Fisioterapia, Psicología y Podología
-      quedan sin plantilla hasta resolver quién las atiende (D15, «Cuestión abierta»). Verificar que la ADR pasó a «Aceptado»
-      o que el usuario pidió cambios.
+- [x] 0.8 El usuario aceptó la [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) el 2026-10-10 (estado
+      «Aceptado»), sabiendo que Odontología, Fisioterapia, Psicología y Podología quedan sin plantilla hasta resolver quién las
+      atiende (D15, «Cuestión abierta»). Verificado: la ADR dice «Aceptado» y las tareas 2.8 a 2.13 ya pueden empezar.
 
 ## 1. Bloqueo de datos clínicos reales (P-1)
 

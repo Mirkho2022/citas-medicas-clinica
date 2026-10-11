@@ -350,7 +350,7 @@ sobre `citas`.
 Estética y Capilar queda fuera) y `atenciones` es una nota genérica (motivo, anamnesis, examen físico, diagnósticos, plan).
 Añadir campos después de la firma, la huella y las pruebas de RLS obliga a tocar políticas, disparadores y la prueba `47`
 con datos ya firmados; prepararlo ahora cuesta una tabla y dos columnas. La decisión completa está en
-[ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (Propuesto).
+[ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (Aceptado el 2026-10-10).
 
 **Decisión.**
 - **Catálogo `plantillas_clinicas`** (tabla nueva, RLS activada): `id`, `especialidad_id` → `especialidades`, `version`

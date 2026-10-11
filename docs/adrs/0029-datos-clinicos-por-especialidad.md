@@ -2,8 +2,8 @@
 
 ## Estado
 
-**Propuesto** — pendiente de aceptación del usuario. No se implementa hasta que pase a «Aceptado» (tarea 0.8 del change
-`historias-clinicas`). Detalle de diseño en `openspec/changes/historias-clinicas/design.md`, D15.
+**Aceptado** por el usuario el 2026-10-10, tal como está escrita. Acepta el mecanismo; **no** resuelve la cuestión abierta de
+los profesionales que no son médicos (ver abajo). Tarea 0.8 del change `historias-clinicas`. Detalle de diseño en `openspec/changes/historias-clinicas/design.md`, D15.
 
 ## Contexto
 
