@@ -26,6 +26,12 @@ sobre todo el diff: `tasks.md`, 11.5), además de la verificación por mutación
   Zod **en el servidor** y diagnósticos CIE-10, edición de borrador, **firma** y **addendas**. Carga pensada para ser
   rápida (la métrica de 60 % depende de ello; ver `design.md`, D9).
 - **Antecedentes** estructurados (ADR-0015): registrar, marcar como no vigentes y consultar los vigentes.
+- **Punto de extensión por especialidad** (ADR-0029, `design.md` D15): la clínica atiende Medicina general, Odontología,
+  Fisioterapia, Psicología y Podología, y hoy `atenciones` es una nota genérica. Se añade un catálogo `plantillas_clinicas`
+  (versiones inmutables, gestionadas por migración) y dos columnas en `atenciones` (`plantilla_id`, `datos_especialidad`),
+  validadas **en la base** y selladas por la firma. Solo se entrega el mecanismo y la plantilla de **Medicina general**
+  (campos de la primera consulta de la NTS 139, numeral 5.2.1); las demás llegan cuando se resuelva quién las atiende
+  (D15, «Cuestión abierta»).
 - **Adjuntos de respaldo** (ADR-0013/0024): tabla nueva `adjuntos_historia` con RLS (la autoridad de acceso al archivo es
   esa fila, no solo la Server Action), subida directa a Vercel Blob privado y descarga por el servidor.
 - **Catálogo CIE-10 completo** (ADR-0014) cargado por migración de datos versionada, búsqueda por código o texto y
@@ -46,8 +52,8 @@ sobre todo el diff: `tasks.md`, 11.5), además de la verificación por mutación
   prueba pgTAP negativa.
 - **Pruebas**: pgTAP nuevas, un módulo único de acceso a datos clínicos verificado por una prueba que falla si otro
   archivo toca esas tablas, pruebas de concurrencia de firma, E2E con Playwright y accesibilidad con axe.
-- **Cambios en lo existente (no rompen a ningún usuario):** `atenciones` gana dos columnas (`firma_metodo`,
-  `firma_huella`) y la prueba `47_estructura_historia` se actualiza a propósito; `registrar_auditoria()` se reemplaza para
+- **Cambios en lo existente (no rompen a ningún usuario):** `atenciones` gana cuatro columnas (`firma_metodo`,
+  `firma_huella`, `plantilla_id` y `datos_especialidad`) y la prueba `47_estructura_historia` se actualiza a propósito; `registrar_auditoria()` se reemplaza para
   no volcar el nombre de los archivos adjuntos; la política de inserción de `asignaciones_paciente_medico` rechaza un
   `motivo` que empiece por `cita:` o esté vacío.
 
@@ -68,6 +74,8 @@ sobre todo el diff: `tasks.md`, 11.5), además de la verificación por mutación
   administrativo.
 - `catalogo-cie10`: carga, búsqueda y validación de diagnósticos contra el catálogo oficial.
 - `bloqueo-de-datos-clinicos-reales`: el sistema solo admite datos clínicos de demostración hasta que P-1 se cierre.
+- `plantillas-clinicas-por-especialidad`: catálogo de plantillas versionadas y datos de especialidad validados, sellados
+  por la firma y presentados en el formulario.
 
 ### Modified Capabilities
 
@@ -97,11 +105,13 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
   [ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md),
   [ADR-0024](../../../docs/adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) y
   [ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md); ninguno se reabre.
+- **ADR ya redactada, en estado «Propuesto»:** [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md),
+  *datos clínicos por especialidad* (D15). El usuario debe aceptarla antes de implementar las tareas 2.8 a 2.13.
 - **Código nuevo:** `migrations/*.sql`; `lib/historias/`, `lib/firma/`, `lib/cie10/`, `lib/schemas/historia-clinica.ts`;
   `app/medico/pacientes/**`, `app/administrativo/{asignaciones,accesos-historia}/`, `app/api/{cie10,historias}/**`;
   `scripts/preparar-cie10.ts` y el CSV de origen en `datos/cie10/`; `tests/pgtap/*`, `tests/historias/`, `tests/concurrencia/`,
   `e2e/historias*.spec.ts`.
-- **Base de datos:** tablas nuevas `adjuntos_historia` y `configuracion_clinica` (RLS + prueba negativa cada una),
+- **Base de datos:** tablas nuevas `adjuntos_historia`, `configuracion_clinica` y `plantillas_clinicas` (RLS + prueba negativa cada una),
   columnas nuevas en `atenciones` y `accesos_historia`, funciones `SECURITY DEFINER` nuevas o reemplazadas
   (`medico_tiene_paciente()`, `registrar_auditoria()`), disparadores nuevos y la carga de ~14 000 filas de `cie10`.
 - **Dependencias nuevas:** `@vercel/blob` (la descarga/firma exacta se verifica en la tarea 0.3); `date-fns` y
@@ -109,5 +119,11 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
 - **Infraestructura/entorno:** store de Vercel Blob privado, `BLOB_READ_WRITE_TOKEN`, `CLINICA_MODO_DATOS`
   (por defecto `demostracion`).
 - **Fuera de alcance:** pagos, telemedicina, laboratorios o farmacias, inventario, multi-sede, analítica de BI; imprimir o
-  exportar la historia; recetas; acceso del paciente a su historia (el PRD lo excluye); migración de datos reales de papel
+  exportar la historia; recetas y triaje (seguimiento pedido, ver el último punto); acceso del paciente a su historia (el PRD lo excluye); migración de datos reales de papel
   (H8); levantar el bloqueo de datos reales; cambios en agenda, portal, notificaciones o turnos.
+- **Seguimiento pedido por el usuario (2026-10-10), no incluido aquí:** *recetas* (contenido mínimo del DS 014-2011-SA,
+  art. 56; la receta electrónica exige firma digital) y *triaje por enfermería* (signos vitales visibles para el
+  profesional; amplía el permiso hoy mínimo de la enfermera). Cada uno será su propio change y exige antes actualizar el
+  PRD y la regla de roles de `CLAUDE.md` con la skill `generar-prd-conversacional`. El punto de extensión de D15 no los
+  bloquea: ni recetas ni signos vitales se guardan en `datos_especialidad`. Tampoco se resuelve aquí quién atiende
+  Odontología, Fisioterapia, Psicología y Podología (profesionales que no son médicos; D15, «Cuestión abierta»).

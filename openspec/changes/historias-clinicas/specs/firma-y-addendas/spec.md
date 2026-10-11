@@ -26,6 +26,10 @@ SHALL poder modificarla ni eliminarla.
 - **WHEN** se recalcula la huella a partir del contenido guardado de una atención firmada
 - **THEN** coincide con la huella guardada al firmar
 
+#### Scenario: La huella cubre la plantilla y sus datos
+- **WHEN** una atención firmada lleva datos de especialidad y se recalcula su huella
+- **THEN** el cálculo incluye la plantilla usada y esos datos, de modo que alterar cualquiera de ellos hace que la huella deje de coincidir
+
 #### Scenario: Confirmación explícita
 - **WHEN** el médico pulsa «Firmar atención»
 - **THEN** el sistema pide una confirmación que advierte que la atención ya no podrá editarse y que las correcciones se hacen con una addenda
