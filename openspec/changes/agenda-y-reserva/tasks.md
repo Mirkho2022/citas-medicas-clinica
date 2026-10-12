@@ -2,9 +2,10 @@
 
 Convenciones de todo el change (de `openspec/config.yaml`): las migraciones son archivos **nuevos** en `migrations/*.sql`
 (`npm run migrate create <nombre>`), solo hacia adelante y con la sección `down` vacía; nunca se edita una migración ya
-aplicada. **Este change no crea tablas**; aun así, cada función, disparador y la vista nuevas llevan su prueba pgTAP negativa
+aplicada. **Este change crea una sola tabla** (`pacientes_datos_sensibles`, con RLS y su prueba negativa); además, cada función,
+disparador y la vista nuevas llevan su prueba pgTAP negativa
 por rol (`administrativo`, `medico_a`, `medico_b`, `enfermera`, `paciente_a`, `paciente_b`, `sin_rol`) y
-`99_rls_en_todas_las_tablas` debe seguir en verde. Las pruebas pgTAP viven en `tests/pgtap/NN_<área>.test.sql` (34 a 39 y 61,
+`99_rls_en_todas_las_tablas` debe seguir en verde. Las pruebas pgTAP viven en `tests/pgtap/NN_<área>.test.sql` (34 a 39, 61 y 69,
 libres), no asumen tablas vacías y usan identificadores propios. Los datos de prueba son sintéticos (DNI `99…`/`74…`, correos
 `@demo.invalid`); nunca contra `production`. Cada grupo deja sus pruebas y su documentación; el último solo integra. H3
 empieza cuando H2b está aplicado.
@@ -26,6 +27,20 @@ empieza cuando H2b está aplicado.
       `code` en el error de una violación `23P01`, de un `raise exception … using errcode = 'UC001'` y de un `40P01`
       simulado en PL/pgSQL, y si expone `constraint`. Verificar anotando los tres resultados en el PR; el traductor de errores
       (7.1) se escribe sobre lo que el driver realmente devuelve.
+- [ ] 1.5 Revisar con el usuario las preguntas abiertas 8 a 14 de `design.md` (cita cancelada con visita abierta, campos
+      obligatorios de la filiación, `email` obligatorio, datos sensibles, unión de historias, formatos de pasaporte y provisional,
+      y sobre todo la 14: retirar el disparador de H2) y anotar las respuestas en `design.md` antes del grupo 8. Verificar que
+      cada pregunta queda con respuesta o con el valor por defecto aceptado por escrito; sin la respuesta a la 14 no se empieza
+      la tarea 8.5.
+- [ ] 1.6 Listar todo lo que depende del disparador `pacientes_crear_historia` antes de retirarlo: `grep` de
+      `crear_historia_clinica`, `pacientes_crear_historia` y de las pruebas, ayudas y fixtures que registran un paciente y esperan
+      su historia (`tests/pgtap/41_historia_al_registrar.test.sql`, `_ayudas.sql`, `scripts/sembrar-datos-demo.ts`), y correr la
+      suite pgTAP en un branch para ver qué se rompe sin el disparador. Verificar dejando la lista en la descripción del PR y en
+      `design.md` (D15), sin editar nada todavía.
+- [ ] 1.7 Comprobar el estado de H2c (`profesionales-de-la-salud`, ADR-0030): si ya está aplicado, usar `profesional` donde la nota
+      al inicio de `design.md` lo indica (rol, `profesional_id`, `exigirPersonal('profesional')`, `app/profesional/`); si no,
+      conservar `medico` y no renombrar nada a mano. Verificar con `ls migrations` y un `grep` de `profesion_actual`, y anotar la
+      decisión en el PR.
 
 ## 2. Migración 1: disponibilidades sin solape, vigencia en Lima y auditoría de bloqueos
 
@@ -115,12 +130,12 @@ empieza cuando H2b está aplicado.
 
 ## 6. Migración 5: ciclo de estados de la cita (decisión del cliente)
 
-- [ ] 6.1 Crear la migración `transiciones-de-estado-de-cita` con `validar_transicion_estado()` y su disparador
+- [ ] 6.1 Crear la migración `transiciones-de-estado-de-cita` con `validar_transicion_estado()`, el punto de extensión `cita_tiene_visita()` (D16) y su disparador
       `citas_validar_transicion` (`BEFORE INSERT OR UPDATE OF estado`, `SECURITY INVOKER`, `search_path` vacío, actúa solo si
       `current_user = 'authenticated'`) con la matriz de `design.md`, D13, y `marcar_cita_atendida(cita uuid)` (`SECURITY
       DEFINER`, `search_path` vacío, `EXECUTE` solo a `authenticated`, revocado a `public`, solo fija `estado`), con errores
-      `UC002`, `UC004` y `42501`. Verificar con `migrate up` en un branch de desarrollo con datos de demostración, con
-      `pg_proc` (`prosecdef` verdadero solo en `marcar_cita_atendida`, `search_path=""` en ambas), `pg_trigger` (el disparador
+      `UC002`, `UC004`, `UC005` y `42501`. Verificar con `migrate up` en un branch de desarrollo con datos de demostración, con
+      `pg_proc` (`prosecdef` verdadero solo en `marcar_cita_atendida`, `search_path=""` en las tres, y `cita_tiene_visita` `SECURITY INVOKER`), `pg_trigger` (el disparador
       existe y es posterior a `citas_validar_cancelacion` en orden) y `npm run test:pgtap` completo sin romper ninguna prueba de
       H2; si una choca, informar al usuario en vez de editarla.
 - [ ] 6.2 Escribir `tests/pgtap/61_transiciones_de_cita.test.sql`. Positivos: el administrativo confirma una cita futura
@@ -139,10 +154,21 @@ empieza cuando H2b está aplicado.
       de `medico_b`, y quitar `now() < fin` de la confirmación hace fallar la de la cita terminada.
 - [ ] 6.3 Completar `docs/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
       no actúa sobre el dueño de la base. Verificar que los comandos del documento corren tal como están escritos.
-- [ ] 6.4 Revisar el SQL de las cinco migraciones con el agente `code-review` (funciones `SECURITY DEFINER`, `search_path`,
+- [ ] 6.4 Revisar el SQL de las migraciones 1 a 5 con el agente `code-review` (las 6 y 7 se revisan en 8.12) (funciones `SECURITY DEFINER`, `search_path`,
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y
       acceso a historias clínicas vía confirmación). Verificar que no quedan hallazgos críticos abiertos y que los corregidos
       tienen su prueba pgTAP.
+- [ ] 6.5 Ampliar `tests/pgtap/61_transiciones_de_cita.test.sql` con el punto de extensión de visitas (D16). Con la función real
+      (`select false`): «No asistió» de una cita `confirmada` ya empezada funciona como antes. Dentro de la transacción de la
+      prueba, reemplazar `cita_tiene_visita()` por un sustituto que devuelve verdadero (revertido por el `rollback`): la misma
+      transición falla con `UC005` y la cita sigue `confirmada`; con `p_solo_abiertas = true` el sustituto distingue visita
+      abierta de cerrada. Comprobar en `pg_proc` que es `SECURITY INVOKER` con `search_path` vacío, y por mutación que quitar la
+      llamada de `validar_transicion_estado()` hace fallar la prueba. Verificar con `node scripts/ejecutar-pgtap.ts 61`.
+- [ ] 6.6 Documentar en `docs/pruebas-sql.md` y en el comentario de la migración 5 los contratos con otros changes:
+      `cita_tiene_visita()` la reemplaza H6b sin cambiar firma ni seguridad (D16); H6i añade dos disparadores `AFTER` sobre
+      `citas` y llama a `reservar_cita()` sin alterarla (firma y semántica estables), no escribe `citas.estado`, y
+      `marcar_cita_atendida()` sigue siendo la única vía a `atendida`. Verificar con una búsqueda que el texto aparece en ambos
+      sitios y que cita D16.
 
 ## 7. Fundamentos de la aplicación
 
@@ -157,7 +183,7 @@ empieza cuando H2b está aplicado.
       `tests/agenda/lima.test.ts`: 14:30 de Lima del 14/10/2026 es `19:30Z`; las 23:30 de Lima siguen siendo del 14/10 aunque
       en UTC sea el 15; el inicio del día de Lima es `05:00Z`; todo con el proceso en `TZ=UTC` y en `TZ=Asia/Tokyo`. Verificar
       con `TZ=Asia/Tokyo npm run test:agenda` y `TZ=UTC npm run test:agenda`.
-- [ ] 7.3 Crear `lib/schemas/documento.ts`, `paciente.ts`, `cita.ts` y `agenda.ts` (Zod): DNI de 8 dígitos; Carné de Extranjería
+- [ ] 7.3 Crear `lib/schemas/documento.ts`, `paciente.ts`, `cita.ts` y `agenda.ts` (Zod; el pasaporte, la filiación y las reglas del número provisional se amplían en 8.8): DNI de 8 dígitos; Carné de Extranjería
       de 9 a 12 alfanuméricos, recortado y en mayúsculas, con los mensajes de la spec; paciente con correo, sexo M/F/X y
       fecha de nacimiento no futura; cita con identificadores e instantes ISO (y la entrada de una transición: solo el
       identificador de la cita); disponibilidad (día 0 a 6, inicio < fin, slot > 0) y bloqueo (fin > inicio, motivo con
@@ -176,20 +202,84 @@ empieza cuando H2b está aplicado.
       `typecheck-lint-build` de `.github/workflows/ci.yml` (archivo con CRLF: conservarlos). Verificar en el PR que el paso
       aparece y pasa, y que `npm run typecheck` y `npm run lint` siguen en verde.
 
-## 8. Pacientes: documento, búsqueda y registro
+## 8. Pacientes: documento, filiación, apertura de la historia y búsqueda
+
+Orden de ejecución: las tareas 8.4 a 8.7 (base de datos) van antes que las demás del grupo.
 
 - [ ] 8.1 Crear `lib/citas/pacientes.ts` y `app/administrativo/pacientes/acciones.ts` con `buscarPacientes` (documento exacto
       o inicio de apellidos, sin distinguir mayúsculas, comodines escapados, máximo 20, solo datos de identificación y contacto)
-      y `registrarPaciente` (guarda, Zod, `23505` → «Ya existe un paciente con ese documento»). Verificar con pruebas unitarias
+      y `registrarPaciente` (guarda, Zod, `23505` → «Ya existe un paciente con ese documento» y la ficha del existente; se amplía
+      en 8.8 con pasaporte, número provisional y filiación). Verificar con pruebas unitarias
       del escape de comodines en `tests/agenda/` y ejecutando ambas acciones como administrativo en un branch de desarrollo
       (el paciente `99…` queda creado y la búsqueda lo encuentra).
 - [ ] 8.2 Añadir a `tests/concurrencia/` (archivo `21_registro_paciente.test.ts`) el caso de dos altas simultáneas del mismo
-      documento (una fila, la otra recibe `23505`) y, en pgTAP `34`, que el administrativo no ve `historias_clinicas` del
-      paciente que acaba de registrar. Verificar con `npm run test:concurrencia` y `node scripts/ejecutar-pgtap.ts 34`.
+      documento (una fila, la otra recibe `23505`) y, en pgTAP `69` (8.6), que el administrativo no ve el contenido de `historias_clinicas` del
+      paciente que acaba de registrar. Verificar con `npm run test:concurrencia` y `node scripts/ejecutar-pgtap.ts 69`.
 - [ ] 8.3 Crear la página `/administrativo/pacientes` (`auth.protect()`, `exigirRol`, redirección a MFA) con buscador por
       documento o apellido, resultado con la tabla de H2b, formulario de registro con `CampoDocumento` y estados vacío, de
       carga y de error. Verificar a mano en `next dev` con la cuenta de administrativo: DNI de 7 dígitos muestra «El DNI debe
       tener 8 dígitos» bajo el campo, un duplicado ofrece abrir el existente, y el registro nuevo aparece al buscar.
+- [ ] 8.4 Crear la migración `tipos-de-documento-pas-y-prov` con solo `alter type tipo_documento add value if not exists 'PAS'`
+      y `'PROV'` (D1, 6; sola en su archivo). Verificar con `migrate up` en un branch de desarrollo y
+      `select enum_range(null::tipo_documento)`, y que la migración 7 (8.5) no falla por usar los valores en la misma
+      transacción (por eso van separadas).
+- [ ] 8.5 Crear la migración `filiacion-y-apertura-de-historia` (D14, D15) **solo con la respuesta a la pregunta 14**: columnas
+      nulables de filiación en `pacientes` con sus `CHECK` de lista cerrada y de texto no vacío; `pacientes_documento_formato`
+      reemplazada (DNI, CE, `PAS`, `PROV`); secuencia y `documento_provisional_siguiente()`; tabla `pacientes_datos_sensibles`
+      con RLS, política solo para `administrativo`, `GRANT` mínimo y sin disparador de auditoría de contenido; disparador
+      `pacientes_proteger_documento` (`UC007`); `abrir_historia_interna()` (sin `EXECUTE` para usuarios),
+      `abrir_historia_clinica()`, `historias_abiertas()` y `confirmar_identidad_paciente()` (`SECURITY DEFINER`, `search_path`
+      vacío, `EXECUTE` revocado a `public` y concedido a `authenticated`, guarda de rol); y el retiro de
+      `pacientes_crear_historia` y de `crear_historia_clinica()`. Las historias ya existentes no se tocan. Verificar con `migrate
+      up` sobre el branch con datos de demostración (los pacientes actuales siguen con su historia), `pg_proc` (`prosecdef` y
+      `search_path` de las cuatro funciones), `pg_policies` de la tabla nueva y `99_rls_en_todas_las_tablas` en verde; y que el alta
+      de una historia queda en `auditoria` con el administrativo como actor (si H2 no audita `historias_clinicas`, informar al
+      usuario en vez de ampliar el alcance).
+- [ ] 8.6 Escribir `tests/pgtap/69_filiacion_y_apertura_historia.test.sql` (confirmar que el número 69 sigue libre). Positivos: el
+      administrativo registra un paciente sin documento y recibe `PROV-…` distintos en dos registros; abre la historia de un
+      paciente con filiación completa y recibe el correlativo siguiente; la segunda apertura devuelve la misma historia sin
+      gastar número; `historias_abiertas()` devuelve solo `(paciente_id, numero)`; confirma una identidad `PROV → DNI` sobre el
+      mismo `paciente_id` con la historia intacta y con la auditoría mostrando al administrativo. Negativos: registrar un
+      paciente ya no crea historia; la filiación incompleta falla con `UC006` (adulto sin estado civil; menor sin responsable);
+      cambiar el documento de un paciente no provisional, por `UPDATE` directo o por la función, falla con `UC007`; un documento
+      definitivo ya usado falla con `23505` y no cambia nada; médico (incluso a cargo del paciente), enfermera, `paciente_a` y
+      `sin_rol` reciben `42501` en las cuatro funciones, no leen ni escriben `pacientes_datos_sensibles` (cero filas) y el
+      médico a cargo no cambia un dato de `pacientes` (cero filas); el administrativo no ve filas de `historias_clinicas` ni de
+      `atenciones`; la auditoría no contiene el valor de religión; la base rechaza un formato de pasaporte o de `PROV` inválido.
+      Verificar con `node scripts/ejecutar-pgtap.ts 69` y por mutación: quitar la guarda de rol de `abrir_historia_clinica()` o
+      la comprobación de filiación de `abrir_historia_interna()` hace fallar su prueba.
+- [ ] 8.7 Actualizar **a propósito** lo de H2 que dependía del disparador retirado, con la lista de 1.6: reescribir
+      `41_historia_al_registrar.test.sql` (ya no hay historia al registrar; comprueba que la apertura explícita crea exactamente
+      una), hacer que `_ayudas.sql` y los fixtures abran la historia con `abrir_historia_interna()` donde la prueba la necesite, y
+      que `scripts/sembrar-datos-demo.ts` (idempotente, sin desactivar triggers) la abra igual y quede con los mismos datos que
+      antes. Verificar con la suite pgTAP completa en verde y la siembra corrida dos veces sin duplicar; **informar al usuario** de
+      cada archivo de H2 modificado y por qué, y actualizar `docs/datos-demo.md` y `docs/pruebas-sql.md`.
+- [ ] 8.8 Ampliar los esquemas y las acciones: `lib/schemas/documento.ts` (pasaporte; `PROV` nunca como entrada),
+      `lib/schemas/paciente.ts` (filiación, listas cerradas, texto vacío, edad calculada en Lima, reglas de mayores y menores de
+      18 años y una función `faltantesParaAbrirHistoria()` única que usan el formulario y la acción) y, en
+      `app/administrativo/pacientes/acciones.ts`, `registrarPaciente` ampliada, `completarFiliacion`, `guardarDatosSensibles`,
+      `crearHistoriaClinica` (llama a `abrir_historia_clinica()`), `confirmarIdentidadPaciente` y `buscarPacientes` con el número
+      de historia por `historias_abiertas()`; traducción de `UC005` a `UC007` en `traducirError`; los datos sensibles fuera de los
+      resultados, de los registros y de los mensajes de error. Pruebas en `tests/agenda/` con todos los escenarios de
+      `identificacion-de-pacientes` y una que comprueba que ningún error ni registro del servidor incluye religión ni
+      pertenencia étnica. Verificar con `npm run test:agenda`.
+- [ ] 8.9 Ampliar la página de 8.3: la búsqueda precede al formulario de registro; el formulario ofrece «Registrar» y «Registrar y
+      crear historia clínica», documento con pasaporte y la opción «Sin documento» (número provisional), filiación con campos
+      obligatorios marcados según la edad y datos sensibles opcionales en su propio grupo; la ficha muestra «Historia HC-…» o
+      «Sin historia clínica» con el botón «Crear historia clínica» (desactivado con lo que falta), la acción «Confirmar identidad»
+      en pacientes provisionales y, ante un duplicado, la ficha existente con su número. Reutilizar los componentes de H2b.
+      Verificar a mano en `next dev`: registrar sin cita con número provisional, completar la filiación, crear la historia,
+      buscar y ver el número, y registrar un documento repetido.
+- [ ] 8.10 Ampliar `tests/concurrencia/21_registro_paciente.test.ts`: dos aperturas simultáneas de la historia del mismo paciente
+      (una sola fila y el mismo número en ambas respuestas) y dos registros provisionales simultáneos (números distintos).
+      Verificar con `npm run test:concurrencia`.
+- [ ] 8.11 Escribir `e2e/pacientes.spec.ts` con el administrativo de H1 (TOTP): registrar un paciente `99…` sin cita y con número
+      provisional, completar la filiación, crear la historia, ver su número al buscarlo y confirmar su identidad con un DNI `99…`;
+      un documento repetido muestra la ficha existente. Añadir la página a `e2e/accesibilidad.spec.ts`. Limpieza al terminar; sin
+      datos de demostración se omite con un aviso. Verificar con `npm run test:e2e`.
+- [ ] 8.12 Revisar el SQL de las migraciones 6 y 7 con el agente `code-review` (funciones `SECURITY DEFINER`, tabla de datos
+      sensibles, disparador de protección del documento, retiro del disparador de H2 y acceso a historias clínicas). Verificar que
+      no quedan hallazgos críticos abiertos y que los corregidos tienen su prueba pgTAP.
 
 ## 9. Horarios y bloqueos
 
@@ -274,7 +364,7 @@ empieza cuando H2b está aplicado.
 
 - [ ] 13.1 Actualizar `CLAUDE.md` (estado: H3), la tabla de Server Actions y el árbol de rutas de TECH-DESIGN (incluidas
       `confirmarCita`, `marcarNoAsistio` y `marcarAtendida`), `docs/pruebas-e2e.md` (nuevas E2E y su requisito de datos de
-      demostración) y añadir las notas fechadas propuestas en ADR-0008 (códigos `UC001`–`UC004`), ADR-0011 (dirección de
+      demostración) y añadir las notas fechadas propuestas en ADR-0008 (códigos `UC001`–`UC007`), ADR-0011 (dirección de
       `reprogramada_de`) y ADR-0016 (quién confirma: la recepción), **marcadas para revisión humana** y sin cambiar el texto de la
       decisión. Verificar con una búsqueda que todos los documentos citan el mismo mensaje exacto, los mismos códigos y las rutas
       reales, y que ningún enlace relativo se rompe.
@@ -283,6 +373,13 @@ empieza cuando H2b está aplicado.
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las cinco migraciones, que el deployment de producción está
+- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las siete migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.
+- [ ] 13.5 Actualizar la documentación afectada por el registro y la apertura de la historia: la tabla de Server Actions y el árbol
+      de rutas de TECH-DESIGN (`registrarPaciente`, `completarFiliacion`, `crearHistoriaClinica`, `confirmarIdentidadPaciente`), la
+      sección «Apertura de la historia y filiación» (cerrar sus `REVISAR` con lo decidido: lista de campos, lectura acotada del
+      número, `PAS` y `PROV`), `docs/datos-demo.md`, `docs/pruebas-sql.md` y `CLAUDE.md` (el disparador ya no crea la historia),
+      marcando para revisión humana lo que sea decisión del usuario. Dejar anotado para el archivo del change que el requisito «Una
+      carpeta de historia por paciente» de `esquema-rls-pgtap` queda sustituido. Verificar con una búsqueda que ningún documento
+      sigue diciendo que la historia nace con el paciente.

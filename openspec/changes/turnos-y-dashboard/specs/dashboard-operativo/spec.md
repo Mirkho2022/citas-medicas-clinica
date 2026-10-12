@@ -50,49 +50,60 @@ con color.
 - **WHEN** hoy no hay ninguna cita
 - **THEN** el panel muestra los cinco estados en cero y el mensaje «Hoy no hay citas»
 
-### Requirement: Pacientes en espera y minutos desde la hora de la cita
-El sistema SHALL listar a los pacientes en espera. Un paciente está en espera cuando tiene una cita de hoy en estado
-`confirmada` cuya hora de inicio ya llegó y que todavía no está `atendida`: sale de la lista cuando el médico la marca
-atendida, o cuando la recepción la marca «no asistió» o se cancela.
-Por cada uno SHALL mostrar el nombre, el documento, el médico, la hora de la cita y los **minutos transcurridos desde la
-hora programada**, calculados con el reloj de la base de datos. La lista SHALL ordenarse de mayor a menor espera. Cuando la
-espera supere los 20 minutos, la fila SHALL resaltarse con el texto «Supera los 20 min» y un icono, además del color.
+### Requirement: Pacientes en espera y minutos desde su llegada
+El sistema SHALL listar a los pacientes en espera a partir de las **visitas** que registra el change `triaje-y-derivacion` (H6b),
+no de la hora de la cita. Una visita está en espera mientras su estado sea `llegada` (espera su triaje), `con_triaje` sin cita
+(espera que la enfermera la derive), `con_triaje` con cita o `derivada` (espera a un profesional); deja de estarlo al pasar a
+`en_atencion` o a un estado terminal (`atendida`, `abandonada`, `anulada`). Por cada una SHALL mostrar el nombre, el documento, la
+fase de la espera, el médico de la cita o la especialidad de destino cuando existan, la hora de llegada y los **minutos
+transcurridos desde la llegada**, calculados con el reloj de la base de datos; el conteo se detiene cuando un profesional toma al
+paciente. La lista SHALL ordenarse de mayor a menor espera. Cuando la espera supere los 20 minutos, la fila SHALL resaltarse con
+el texto «Supera los 20 min» y un icono, además del color. El dashboard SHALL leer las visitas sin escribirlas y SHALL NO exponer
+ningún dato de triaje ni de derivación.
 
-#### Scenario: Paciente esperando 25 minutos
-- **WHEN** hay una cita confirmada de hoy que empezó hace 25 minutos y aún no está atendida
-- **THEN** el paciente aparece en la lista con «25 min» y con la marca «Supera los 20 min»
+#### Scenario: Paciente esperando su triaje
+- **WHEN** hay una visita en estado `llegada` cuyo paciente llegó hace 25 minutos
+- **THEN** aparece en la lista con «25 min», la fase «Espera su triaje» y la marca «Supera los 20 min»
 
-#### Scenario: Paciente esperando 5 minutos
-- **WHEN** hay una cita confirmada de hoy que empezó hace 5 minutos y aún no está atendida
-- **THEN** aparece con «5 min» y sin la marca de exceso
+#### Scenario: Paciente sin cita que espera derivación
+- **WHEN** hay una visita sin cita en estado `con_triaje` que llegó hace 12 minutos
+- **THEN** aparece con «12 min» y la fase «Espera derivación», sin la marca de exceso
+
+#### Scenario: Paciente que espera a su profesional
+- **WHEN** hay una visita con cita en estado `con_triaje`, o una visita `derivada` a una especialidad
+- **THEN** aparece con la fase «Espera a su profesional» y, si está derivada, con la especialidad de destino
 
 #### Scenario: Orden por espera
 - **WHEN** hay tres pacientes en espera desde hace 8, 31 y 17 minutos
 - **THEN** la lista los muestra en el orden 31, 17 y 8 minutos
 
-#### Scenario: Quien ya no espera sale de la lista
-- **WHEN** una cita que estaba en la lista pasa a `atendida` (la marcó el médico), `no_asistio` o `cancelada`
+#### Scenario: Quien ya fue tomado o terminó sale de la lista
+- **WHEN** una visita que estaba en la lista pasa a `en_atencion`, `atendida`, `abandonada` o `anulada`
 - **THEN** en la siguiente actualización el paciente ya no aparece
 
-#### Scenario: Cita reservada con la hora vencida
-- **WHEN** una cita de hoy sigue `reservada` aunque su hora ya pasó (la recepción todavía no la confirmó)
-- **THEN** no aparece entre los pacientes en espera y sigue contando como «Reservada» en el resumen por estado
+#### Scenario: Cita confirmada sin visita
+- **WHEN** una cita de hoy está `confirmada` pero el paciente no ha llegado (no existe la visita)
+- **THEN** no aparece entre los pacientes en espera y sigue contando por su estado en el resumen por estado
 
-#### Scenario: Cita que aún no empieza
-- **WHEN** una cita de hoy empieza dentro de 10 minutos
-- **THEN** no aparece entre los pacientes en espera
+#### Scenario: Visita de otro día
+- **WHEN** existe una visita no terminal de ayer que nunca se cerró
+- **THEN** no aparece entre los pacientes en espera de hoy
 
 #### Scenario: Nadie espera
-- **WHEN** ninguna cita cumple la condición de espera
+- **WHEN** ninguna visita está en espera
 - **THEN** la sección muestra «Nadie está esperando ahora»
 
-#### Scenario: Cita de otro día
-- **WHEN** existe una cita `confirmada` de ayer que nunca se cerró
-- **THEN** no aparece entre los pacientes en espera de hoy
+#### Scenario: Sin datos de triaje ni de derivación (negativo)
+- **WHEN** el administrativo consulta lo que alimenta la lista de espera, por la pantalla o directamente en la base de datos
+- **THEN** no obtiene mediciones del triaje ni textos de derivación, y la vista no tiene columnas de `triajes` ni de `derivaciones`
+
+#### Scenario: Otros roles (negativo)
+- **WHEN** una enfermera, un médico, un paciente o una sesión sin rol consultan la vista que alimenta la lista de espera
+- **THEN** no reciben ninguna fila
 
 ### Requirement: Resumen de la agenda del día por médico, con los huecos visibles
 El sistema SHALL mostrar, por cada médico activo que hoy tiene horario de atención o citas, una fila de resumen con: su nombre
-y especialidad; cuántas citas tiene hoy en cada estado; cuántos de sus pacientes están en espera y la mayor espera en minutos;
+y especialidad; cuántas citas tiene hoy en cada estado; cuántos de sus pacientes con cita están en espera (visita en espera, según el requisito anterior) y la mayor espera en minutos;
 los **huecos libres que le quedan hoy**, como rangos con hora de inicio y de fin (hasta cuatro, y «+N más» si hay más); y, si
 tiene un bloqueo de agenda hoy, su rango horario sin el motivo. Un hueco es un horario que todavía es reservable según el mismo
 cálculo de disponibilidad de la reserva, así que no SHALL mostrarse como hueco un horario ocupado por una cita `reservada` o
@@ -183,6 +194,19 @@ vista exista; mientras no exista, SHALL mostrarse solo el recuento. El dashboard
 #### Scenario: Otros roles no leen notificaciones (negativo)
 - **WHEN** una enfermera, un médico o un paciente consulta `notificaciones`
 - **THEN** no recibe ninguna fila
+
+### Requirement: Conteo opcional de copias de historia vencidas
+Cuando el change `copia-de-historia-clinica` (H6d) esté aplicado y se haya pedido incluirlo, el dashboard SHALL poder mostrar un
+único número con las solicitudes de copia vencidas y un enlace a la pantalla de seguimiento de H6d. El conteo SHALL NO mostrar
+nombres, documentos ni contenido de las solicitudes, y el dashboard SHALL NO crear, cerrar ni modificar ninguna solicitud.
+
+#### Scenario: Conteo de vencidas
+- **WHEN** hay dos solicitudes de copia vencidas y la opción está incluida
+- **THEN** el panel muestra «2 copias vencidas» con un enlace a la pantalla de H6d, sin datos de pacientes
+
+#### Scenario: Sin la opción
+- **WHEN** la opción no está incluida o el change de copias no está aplicado
+- **THEN** el panel no muestra ninguna sección de copias
 
 ### Requirement: El dashboard no expone datos clínicos ni el motivo de la cita
 El dashboard SHALL mostrar solo datos logísticos: nombre y documento del paciente, médico, especialidad, hora y estado. NO

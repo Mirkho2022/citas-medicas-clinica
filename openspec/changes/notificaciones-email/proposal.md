@@ -54,7 +54,12 @@ verdad (detalle y alternativas en `design.md`):
 - **Pruebas sin correo real:** proveedor simulado inyectable, pruebas de integración del cron con el rol real en una
   transacción que se revierte, prueba de concurrencia y pgTAP (positivas y negativas). La entregabilidad real se revisa a
   mano en el panel de Resend (riesgo P-7), con una lista de comprobación y sin automatizarla.
-- **Fuera de alcance:** WhatsApp/SMS (solo queda la interfaz de proveedor ya prevista), correos al médico o a la
+- **Alcance tras el PRD del 2026-10-11 (sin cambios de comportamiento).** Siguen siendo solo correo: WhatsApp y SMS quedan fuera
+  de alcance por decisión del usuario, y el riesgo P-7 (entregabilidad del correo) se conserva tal cual, con su vía de
+  reactivación de otros canales a través de la interfaz de proveedor ya prevista. **Ninguna notificación nueva:** ni las visitas,
+  ni las recetas ni las copias de la historia envían avisos. Pregunta abierta de `especialidad-psicologia` (U9): si el recordatorio
+  de una cita de Psicología puede nombrar la especialidad (hoy el correo la incluye); ver `design.md`, D17.
+- **Fuera de alcance:** WhatsApp/SMS (decisión del usuario; solo queda la interfaz de proveedor ya prevista), correos al médico o a la
   enfermera, reenvío manual desde la interfaz (ADR-0018), analítica de apertura, reprogramación automática de recordatorios
   y cualquier contenido clínico.
 
@@ -85,7 +90,7 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
 - **Riesgo principal (RLS y datos de paciente):** el change **crea y modifica objetos de seguridad**: un disparador y dos
   funciones `SECURITY DEFINER` que leen `pacientes`, `medicos`, `perfiles` y `especialidades`, y una función invocable por
   `authenticated` que escribe `notificaciones`. **No toca historias clínicas**: ninguna función lee `atenciones`,
-  `antecedentes`, `addendas`, `historias_clinicas` ni `asignaciones_paciente_medico`, y el contenido del aviso excluye
+  `antecedentes`, `addendas`, `historias_clinicas` ni `asignaciones_paciente_medico` (tampoco `visitas`, `triajes`, `derivaciones`, `recetas` ni `solicitudes_copia_historia`, que llegan después), y el contenido del aviso excluye
   `citas.motivo`. Aun así, por tocar RLS y privilegios, merece revisión explícita aparte (agente `code-review`) y cada objeto
   nuevo trae su prueba pgTAP negativa.
 - **Decisión legal (P-1):** no depende de ella. Sin datos clínicos en el correo ni en el cron, H5 puede llegar a
@@ -99,7 +104,7 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
   [ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (aviso de reprogramación). **Dos puntos
   rozan lo ya decidido y no se resuelven aquí:** (a) la regla de `programada_para` (08:00 del día anterior en vez de
   `inicio - 1 día`) y (b) escribir `notificaciones` con un disparador y una función en lugar de un `INSERT` de la Server
-  Action. Ninguno cambia una garantía (idempotencia, credencial mínima, envío síncrono); se proponen como ADR-0029 y notas
+  Action. Ninguno cambia una garantía (idempotencia, credencial mínima, envío síncrono); se proponen como una ADR nueva (el 0029 ya lo ocupa «datos clínicos por especialidad») y notas
   fechadas en ADR-0017 y TECH-DESIGN, para revisión humana (grupo 10 de `tasks.md`). No se reabre ningún ADR en silencio.
 - **Código nuevo:** `lib/notificaciones/` (proveedor, plantillas, avisos, cron), `lib/db/cliente-cron.ts`,
   `app/api/cron/notificaciones/route.ts`, `app/administrativo/notificaciones/page.tsx`, `vercel.json`, `migrations/` (3
@@ -114,3 +119,7 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
   `NOTIFICACIONES_REMITENTE`, `APP_URL` y `DATABASE_CRON_URL` en Vercel (Production), `LOGIN` y contraseña de
   `cron_notificaciones` y dominio verificado en Resend (SPF, DKIM, DMARC); pasos en `docs/pasos-manuales-h5.md`.
 - **Supuestos sobre H3:** estados y eventos que debe exponer, en `design.md` (D13).
+- **Nombres (ADR-0030):** el disparador y las funciones `armar_contenido_aviso` y `programar_recordatorio_de_cita` leen `medicos`
+  (y `perfiles`, `especialidades`), y la prueba 3.3 vigila que no lean `asignaciones_paciente_medico`; con
+  `profesionales-de-la-salud` (H2c) pasan a `profesionales` y `asignaciones_paciente_profesional`. Este change conserva `medico`
+  (ver `design.md`, D17).

@@ -43,7 +43,7 @@ armar el correo) están en el *Why* del proposal. Cada uno se resuelve en D1, D2
 - Que se pueda probar todo sin enviar un correo real, y que la entregabilidad real tenga un procedimiento manual explícito.
 
 **Non-Goals:**
-- Otros canales (WhatsApp, SMS), correos al médico o a la enfermera, reenvío manual desde la interfaz, analítica de apertura
+- Otros canales (WhatsApp, SMS: decisión del usuario, PRD del 2026-10-11), correos al médico o a la enfermera, reenvío manual desde la interfaz, analítica de apertura
   o de clics, plantillas editables por la clínica, preferencias de notificación del paciente.
 - Cambiar la frecuencia del cron o el plan de Vercel (ADR-0028) ni reabrir el envío síncrono de ADR-0017.
 - El flujo de reasignación por baja y las pantallas de agenda (H3), el portal (H4) y el dashboard (H7): H5 solo les entrega
@@ -78,7 +78,7 @@ ADR-0028 y exige plan de pago. (d) **No guardar la hora y elegir por «citas cuy
 elegida pero sin fila programada al reservar, lo que contradice el criterio «al crear una cita se crea una fila».
 
 *Consecuencia documental:* cambian el criterio de aceptación de TECH-DESIGN («`programada_para = inicio - 1 día`») y el
-texto de ADR-0017; se propone con ADR-0029 y notas fechadas (tarea 10.3), no se editan en silencio. Es la pregunta abierta 1.
+texto de ADR-0017; se propone con una ADR nueva (el 0029 ya está ocupado) y notas fechadas (tarea 10.3), no se editan en silencio. Es la pregunta abierta 1.
 
 ### D2. Quién escribe `notificaciones`: un disparador y una función acotada, sin permisos nuevos de escritura
 
@@ -111,8 +111,8 @@ filas `pendiente` de confirmación que ADR-0017 prohíbe expresamente, y que se 
 *Superficie de seguridad nueva* (por eso merece revisión aparte): el disparador y dos funciones leen `pacientes`, `medicos`,
 `perfiles` y `especialidades` con privilegios del dueño; la función pública escribe `notificaciones`. Mitigaciones: `search_path`
 vacío, `revoke execute ... from public` y concesión explícita, ninguna lectura de `atenciones`/`antecedentes`/`addendas`/
-`historias_clinicas`/`asignaciones_paciente_medico`/`citas.motivo`, y pruebas pgTAP positivas y negativas por rol
-(tareas 3.2, 3.3 y 4.2). Es la pregunta de ADR-0029.
+`historias_clinicas`/`asignaciones_paciente_medico`/`visitas`/`triajes`/`derivaciones`/`recetas`/`solicitudes_copia_historia`/`citas.motivo`, y pruebas pgTAP positivas y negativas por rol
+(tareas 3.2, 3.3 y 4.2). Es la pregunta de la ADR nueva de la tarea 10.3 (no es la 0029: ese número ya está ocupado).
 
 ### D3. Cada aviso guarda una copia mínima del contenido
 
@@ -390,6 +390,23 @@ ejecución (un día después: para el recordatorio puede significar «tarde»). 
 fuera de alcance): el seguimiento operativo es la vista de fallidas, los registros de Vercel y la revisión manual del panel de
 Resend (riesgo P-7). El `README` operativo es `docs/pasos-manuales-h5.md`.
 
+### D17. Reconciliación con el PRD del 2026-10-11 (notas, sin cambio de diseño)
+
+- **Sin notificaciones nuevas.** Las visitas, el triaje, las recetas y las copias de la historia (H6b, H6c, H6d) no generan ningún
+  aviso, ni al paciente ni al personal. No hay tipos nuevos en `notificaciones`, ni disparadores nuevos sobre las tablas clínicas
+  ni sobre `visitas`; el cron conserva su `GRANT` mínimo (`citas` y `notificaciones`).
+- **Solo correo.** WhatsApp y SMS siguen fuera de alcance por decisión del usuario. P-7 (entregabilidad) se conserva con su
+  procedimiento de revisión manual (D16); la interfaz de proveedor es la vía por la que se podría reactivar otro canal, sin
+  construirlo ni prepararlo.
+- **U9 de `especialidad-psicologia` (pregunta abierta).** ¿El recordatorio de una cita de Psicología puede nombrar la
+  especialidad? Hoy `armar_contenido_aviso` incluye la especialidad en el correo, como con cualquier otra cita. Mientras U9 no se
+  resuelva no cambia nada; si la respuesta es «no», habría que dar a las citas de esa especialidad un texto neutro en esa función
+  `SECURITY DEFINER` y en la spec `contenido-de-correos`, con su prueba pgTAP. Se pregunta al cliente; no se decide aquí.
+- **Nombres (ADR-0030).** El disparador y las funciones de este change leen `medicos` y la prueba 3.3 comprueba que no leen
+  `asignaciones_paciente_medico`; con H2c pasan a `profesionales` y `asignaciones_paciente_profesional` (y la columna `medico_id`
+  de `citas` a `profesional_id`). Este change conserva `medico`. La prueba 3.3 gana además `visitas`, `triajes`,
+  `derivaciones`, `recetas` y `solicitudes_copia_historia` como tablas que ninguna función de H5 puede referenciar.
+
 ## Risks / Trade-offs
 
 - **[Un cron diario, sin reintento de la plataforma: si una ejecución falla entera, los recordatorios de ese día salen tarde
@@ -462,3 +479,4 @@ anotan para el reporte.
 9. **«Marcar como revisada»** en la vista de fallidas: ADR-0018 no la prevé y la lista solo crece.
 10. **Precisión y límites del cron de Hobby** y **ventana de la clave de idempotencia de Resend**: confirmar en la documentación
     vigente al implementar (tareas 5.2 y 7.4); no cambian el diseño, solo cifras de un comentario y de un documento.
+11. **U9 (viene de `especialidad-psicologia`).** ¿El recordatorio de una cita de Psicología puede nombrar la especialidad? Ver D17.

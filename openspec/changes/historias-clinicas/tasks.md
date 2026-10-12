@@ -52,6 +52,11 @@ Convenciones de todo el change (leer antes de empezar):
 - [x] 0.8 El usuario aceptó la [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) el 2026-10-10 (estado
       «Aceptado»), sabiendo que Odontología, Fisioterapia, Psicología y Podología quedan sin plantilla hasta resolver quién las
       atiende (D15, «Cuestión abierta»). Verificado: la ADR dice «Aceptado» y las tareas 2.8 a 2.13 ya pueden empezar.
+- [ ] 0.9 Reconciliar con el PRD del 2026-10-11 antes de empezar (D16): confirmar con el usuario si H2c
+      (`profesionales-de-la-salud`) se aplica antes de este change (entonces se usan los nombres de profesional y el tipo
+      `profesion_salud` ya existe para 2.8) o después (entonces se conserva `medico` y 2.8 espera a H2c para `exige_profesion`);
+      y comprobar que ningún otro change haya creado ya la restricción de `tipo_acceso` (4.1). Anotar la respuesta en `design.md`,
+      D16. Verificar que la decisión consta y que 2.8 y 4.1 la reflejan.
 
 ## 1. Bloqueo de datos clínicos reales (P-1)
 
@@ -117,11 +122,11 @@ Convenciones de todo el change (leer antes de empezar):
 - [ ] 2.7 Revisión con el agente `code-review` del disparador de diagnósticos (reescritura de `jsonb`, `SECURITY DEFINER`) y
       de la ruta de búsqueda. Verificar que los hallazgos quedan resueltos o justificados.
 - [ ] 2.8 Migración `plantillas-clinicas` (**antes** de `sello-y-huella-de-atenciones`, 3.1; ver D15 y el plan de migración):
-      tabla `plantillas_clinicas` (`especialidad_id`, `version`, `nombre`, `campos` `jsonb`, `vigente`, `unique
+      tabla `plantillas_clinicas` (`especialidad_id`, `version`, `nombre`, `campos` `jsonb`, `vigente`, `exige_profesion` (tipo `profesion_salud` de H2c; nula = cualquier profesión), `unique
       (especialidad_id, version)` y `CHECK` de la forma del arreglo de campos), RLS activada, `SELECT` solo para el rol médico y
       **sin** `INSERT`, `UPDATE` ni `DELETE` para ningún rol de usuario; columnas `plantilla_id` y `datos_especialidad` en
       `atenciones` (`CHECK` de objeto, valor por defecto `'{}'`), ampliación del `GRANT` de columnas de `authenticated` y
-      disparador `atenciones_validar_datos_especialidad` (`SECURITY DEFINER`, `search_path` vacío, `HC005`). Verificar con
+      disparador `atenciones_validar_datos_especialidad` (`SECURITY DEFINER`, `search_path` vacío, `HC005`) que además aplica `exige_profesion` con `profesion_actual()` (mismo `HC005`, mensaje propio; nunca la profesión del cliente). Verificar con
       `npm run migrate -- up` en un branch de desarrollo, con `relrowsecurity` de la tabla nueva y con que las pruebas 40 a 47
       siguen en verde salvo `47`, que se actualiza en 3.5.
 - [ ] 2.9 Migración de datos `plantilla-medicina-general` (idempotente, `on conflict (especialidad_id, version) do nothing`) con
@@ -132,7 +137,7 @@ Convenciones de todo el change (leer antes de empezar):
       (`has_table_privilege` falso también para `anonymous`, `cron_notificaciones` y `sync_identidad`); y, de la validación:
       campo obligatorio ausente o solo con espacios o invisibles, tipo equivocado, fuera de rango, opción no listada, clave
       ajena descartada, `datos_especialidad` no vacío sin plantilla, plantilla inexistente o no vigente al insertar (un
-      borrador existente conserva la suya), plantilla de otra especialidad que la del médico autor, y que firmar deja los
+      borrador existente conserva la suya), plantilla de otra especialidad que la del médico autor, **plantilla con `exige_profesion` usada por otra profesión** (negativa: se rechaza con `HC005`; la profesión sale de `profesion_actual()`, nunca del cliente) y plantilla con `exige_profesion` nula (la usa cualquier profesión de la especialidad), y que firmar deja los
       datos inmutables. No asume tablas vacías. Verificar que pasa y que `99_rls_en_todas_las_tablas` sigue en verde.
 - [ ] 2.11 `lib/schemas/plantilla.ts` (esquema Zod `.strict()` derivado de la definición de campos, mensajes en español, misma
       regla de texto con contenido de D3) y `tests/historias/plantilla.test.ts` con `node:test`: un caso por tipo de campo y
@@ -141,7 +146,7 @@ Convenciones de todo el change (leer antes de empezar):
       de acceso), `docs/pruebas-sql.md` (prueba 62) y el enlace a la ADR-0029 en su tabla de ADR. Verificar que los enlaces
       relativos resuelven y que los textos no contradicen a `CLAUDE.md`.
 - [ ] 2.13 Revisión con el agente `code-review` de la migración, de la política de la tabla y del disparador de validación
-      (`jsonb` reescrito, `SECURITY DEFINER`, regla de especialidad). Verificar que los hallazgos quedan resueltos o
+      (`jsonb` reescrito, `SECURITY DEFINER`, reglas de especialidad y de profesión). Verificar que los hallazgos quedan resueltos o
       justificados.
 
 ## 3. Integridad en la base de datos: sello, huella, cita y perfil activo
@@ -179,10 +184,10 @@ Convenciones de todo el change (leer antes de empezar):
 ## 4. Acceso a datos clínicos y auditoría de accesos
 
 - [ ] 4.1 Migración `accesos-historia-tipo`: columnas `tipo_acceso` (`historia`, `atencion`, `adjunto`; por defecto `historia`)
-      y `adjunto_id` en `accesos_historia`. Verificar que se aplica sin tocar las filas existentes.
+      y `adjunto_id` en `accesos_historia`; la restricción de `tipo_acceso` es la lista cerrada que otros changes amplían por unión (cada uno lee la restricción vigente y la recrea con la unión de valores; D16). Verificar que se aplica sin tocar las filas existentes.
 - [ ] 4.2 Prueba pgTAP `tests/pgtap/56_accesos_historia_tipo.test.sql`: cada tipo permitido se inserta, uno no permitido falla
       con `23514`; negativos: médico sin asignación, médico a nombre de otro, administrativo, paciente y enfermera no insertan;
-      médico, paciente y enfermera no leen; el administrativo lee; sigue siendo solo-agregar. Verificar que pasa y que 52 sigue
+      médico, paciente y enfermera no leen; el administrativo lee; sigue siendo solo-agregar. La prueba se **actualiza** en cada change que amplía los tipos (añade sus valores; no se duplica). Verificar que pasa y que 52 sigue
       en verde.
 - [ ] 4.3 `lib/historias/guardia.ts` (`auth.protect()`, `exigirRol("medico")`, MFA) y `lib/historias/repositorio.ts` con
       ejecutor inyectable: `listarPacientesACargo`, `abrirHistoria` y `abrirAtencion`, cada una en una sola transacción
@@ -193,7 +198,7 @@ Convenciones de todo el change (leer antes de empezar):
       `lib/historias/` contiene SQL contra las tablas clínicas, de asignaciones o de accesos. Verificar que pasa y que falla
       al añadir temporalmente una consulta en otro archivo (revertida).
 - [ ] 4.5 Pantalla `app/administrativo/accesos-historia/page.tsx` (`auth.protect()`, `exigirRol("administrativo")`, MFA):
-      filtros por documento del paciente, médico y rango de fechas, paginación, hora de Lima y sin contenido clínico; activar
+      filtros por documento del paciente, actor (quien accedió) y rango de fechas, paginación, filas de tipo `copia` visibles (las escribe H6d), hora de Lima y sin contenido clínico; activar
       el destino en `lib/ui/navegacion.ts`. Verificar con `npm run typecheck` y `npm run lint`; su E2E se cubre en 6.4.
 - [ ] 4.6 Documentar: TECH-DESIGN («Seguridad»: lectura atómica con auditoría y tipos de acceso) y `CLAUDE.md` (regla: todo SQL
       clínico vive en `lib/historias/`). Verificar que los textos coinciden entre sí y que los enlaces resuelven.

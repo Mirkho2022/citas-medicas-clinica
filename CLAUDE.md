@@ -38,6 +38,19 @@ sin el `authToken` de la sesión de Clerk adjunto.
   decisión de hosting. Este bloqueo es sobre datos **reales** de pacientes: al ser un proyecto de muestra, se
   permiten datos **sintéticos** de demostración (script `scripts/sembrar-datos-demo.ts`, ver
   [datos-demo.md](docs/datos-demo.md)), nunca mezclados con datos reales.
+- **Acreditación del sistema ante el MINSA y otros puntos legales nuevos** (PRD del 2026-10-11): acreditación del sistema de
+  historia clínica electrónica (DS 009-2017-SA y Directiva 373-MINSA/OGTI-2025, plazos ampliados por la RM 188-2026-MINSA),
+  registro del banco de datos ante la ANPD, reglas de salud mental (Psicología aparte y su copia al paciente) y qué
+  profesiones pueden recetar. Hallazgos verificados y dudas para el asesor en
+  [investigacion-marco-legal-y-saniape.md](docs/investigacion-marco-legal-y-saniape.md). Tampoco se deciden sin el asesor.
+- **ADR propuestas por la actualización del PRD** (no están aceptadas: no las des por hechas):
+  [ADR-0030](docs/adrs/0030-profesional-de-la-salud.md) (profesional de la salud),
+  [ADR-0031](docs/adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) (Psicología aparte),
+  [ADR-0032](docs/adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) (pacientes sin cita),
+  [ADR-0033](docs/adrs/0033-visita-del-paciente-llegada-y-estados.md) (visita del paciente),
+  [ADR-0034](docs/adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) (emisión de la copia),
+  [ADR-0035](docs/adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) (recetas) y
+  [ADR-0036](docs/adrs/0036-mecanismos-clinicos-comunes.md) (planes de sesiones e instrumentos).
 
 Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y quedaron
 formalizadas como ADR — no las reabras sin que el cliente lo pida:
@@ -58,13 +71,17 @@ plantéalo y termina el resto del trabajo.
 
 | Rol | Puede |
 |---|---|
-| Administrativo | Agendar, reprogramar y cancelar citas de cualquier paciente |
-| Médico | Ver sus turnos y citas confirmadas; registrar y consultar historias clínicas **solo de los pacientes a su cargo** |
-| Enfermera | Consultar su turno y con qué médico/servicio trabaja. Acceso limitado: nada más |
+| Administrativo (recepción) | Registrar al paciente nuevo, con o sin cita, y abrir su historia clínica con la filiación de la NTS 139; agendar, reprogramar y cancelar citas de cualquier paciente; entregar la copia de la historia al paciente o a su representante tras verificar su identidad |
+| Profesional de la salud (médico, odontólogo, fisioterapeuta, psicólogo, podólogo) | Ver sus turnos y citas confirmadas; registrar y consultar historias clínicas **solo de los pacientes a su cargo** (compartidas entre especialidades, **salvo la información de Psicología**, que solo ve el psicólogo a cargo); derivar a otra especialidad; emitir recetas solo si su profesión puede recetar |
+| Enfermera | Registrar el triaje (signos vitales) y derivar al paciente a una especialidad; consultar su turno y con qué especialidad trabaja. **Sin acceso a historias clínicas** |
 | Paciente | Reservar y cancelar **su propia** cita vía portal de autoservicio. Sin acceso a historias clínicas ni a funciones administrativas |
 
-El aislamiento de historias clínicas por médico a cargo debe aplicarse **en la base de datos**
-(RLS), no solo en la capa de aplicación. La seguridad de las historias clínicas es el riesgo
+«Profesional de la salud» reemplaza a «Médico» en el PRD (2026-10-11). El rol técnico se renombra solo si se acepta la
+[ADR-0030](docs/adrs/0030-profesional-de-la-salud.md); hasta entonces el esquema y el código vigentes siguen usando `medico`.
+
+El aislamiento de historias clínicas por profesional a cargo debe aplicarse **en la base de datos**
+(RLS), no solo en la capa de aplicación; la información de Psicología queda aparte incluso entre profesionales a cargo
+([ADR-0031](docs/adrs/0031-aislamiento-de-la-informacion-de-psicologia.md), propuesta). La seguridad de las historias clínicas es el riesgo
 principal declarado del proyecto: cualquier cambio que toque acceso a historias clínicas merece
 revisión explícita.
 
@@ -77,32 +94,56 @@ revisión explícita.
   reservar, mostrar la advertencia de esta restricción.
 - **Historia clínica**: no se guarda con campos vacíos o datos inválidos. Los datos que vienen
   del registro del paciente son **de solo lectura** desde la historia clínica.
-- **Doctor de baja o emergencia**: los pacientes agendados con ese doctor se reasignan a otro
-  médico; debe existir un flujo para ello.
+- **Profesional de baja o emergencia**: los pacientes agendados con ese profesional se reasignan a otro
+  de la misma especialidad; debe existir un flujo para ello.
 - **Notificación**: recordatorio/confirmación automática al paciente **un día antes** de la cita.
 - **Identificación del paciente**: DNI o Carné de Extranjería (documentos peruanos) — valida
-  ambos formatos, no solo DNI.
+  ambos formatos, no solo DNI. La NTS 139 admite además pasaporte (extranjero en tránsito) y un número correlativo
+  provisional (sin documento) hasta confirmar la identidad.
+- **Apertura de la historia**: recepción registra al paciente nuevo, con o sin cita, y abre una historia única con el
+  formato de filiación mínimo de la NTS 139; si el documento ya existe, no se abre otra.
+- **Pacientes sin cita y derivación**: la enfermera hace el triaje y deriva a una **especialidad**; un profesional también
+  puede derivar a otra especialidad. Derivar no da acceso a la historia por sí solo: un profesional de la especialidad
+  «toma» al paciente ([ADR-0032](docs/adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md), propuesta).
+- **Triaje**: presión arterial, frecuencia cardíaca, frecuencia respiratoria, temperatura, saturación de oxígeno, peso y
+  talla (IMC calculado), visible para el profesional que atiende.
+- **Recetas**: solo receta común impresa desde una plantilla, numerada y guardada como datos estructurados; una receta emitida
+  no se edita (se anula y se emite otra). Sin receta electrónica ni especial, y sin alertas automáticas de interacción.
+- **Psicología aparte**: resultados y notas de sesión solo los ven los psicólogos a cargo; los demás profesionales ven los
+  medicamentos (que salen de las recetas). Se impone en la base de datos.
+- **Copia de la historia** (NTS 139): se entrega al paciente o a su representante legal en 5 días como máximo, verificando la
+  identidad del solicitante y registrando quién la emite; incluye la información de Psicología.
 
 ## Alcance — no lo amplíes
 
-Incluido: agendar/reprogramar/cancelar citas, portal de autoservicio del paciente, historias
-clínicas electrónicas, notificaciones automáticas, dashboard operativo (vista de agenda y
-estado), gestión de turnos de enfermería.
+Incluido: agendar/reprogramar/cancelar citas, portal de autoservicio del paciente, atención de pacientes con y sin
+cita (registro y apertura de la historia con filiación), triaje por enfermería y derivación entre especialidades,
+historias clínicas electrónicas compartidas entre especialidades (Psicología aparte), recetas comunes impresas, copia de
+la historia al paciente, las cinco especialidades completas entregadas juntas (Medicina general, Odontología,
+Fisioterapia, Psicología y Podología), notificaciones automáticas, dashboard operativo (vista de agenda y estado),
+gestión de turnos de enfermería.
 
 **Fuera de alcance de esta versión** (no lo construyas ni lo sugieras como parte del trabajo):
-pagos y facturación en línea, telemedicina, integración con laboratorios o farmacias,
-inventario de insumos, multi-sede, reportes/analítica de BI. El dashboard es una vista
-operativa simple, no un módulo analítico.
+pagos y facturación en línea (incluidos presupuestos y cuotas de tratamientos), telemedicina, integración con
+laboratorios o farmacias, inventario de insumos, multi-sede, reportes/analítica de BI, receta electrónica y especial,
+alertas automáticas de interacción de medicamentos, WhatsApp y SMS, dictado por voz e IA, la especialidad de Estética y
+Capilar y el acceso del paciente a su historia desde el portal. El dashboard es una vista operativa simple, no un
+módulo analítico.
 
 ## Métricas que definen el éxito (a 4-5 meses de uso)
 
 - 75% de citas reservadas o canceladas por el propio paciente vía portal.
 - 60% de historias clínicas digitalizadas.
 - Tiempo de espera del paciente ≤ 20 minutos (hoy ~1 hora).
+- 90 % o más de las recetas se emiten e imprimen desde el sistema.
+- 90 % o más de las atenciones tienen el triaje registrado antes de la consulta, con y sin cita.
+- 100 % de las solicitudes de copia de la historia se entregan en 5 días o menos.
+
+(El 75 % se mide sobre citas: los pacientes sin cita no cuentan para ese porcentaje.)
 
 Al diseñar, favorece lo que mueve estas métricas: el portal de autoservicio debe ser lo
 suficientemente simple para que un paciente lo use sin ayuda, y la carga de historias clínicas
-debe ser rápida para el médico.
+debe ser rápida para el profesional.
 
 ## Convenciones
 

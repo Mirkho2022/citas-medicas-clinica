@@ -6,6 +6,12 @@ Garantizar que solo el médico a cargo pueda abrir la historia clínica de un pa
 pantalla) lo haga cumplir para cada rol, y que el contenido clínico no se escape por canales laterales como la caché, los
 títulos, las direcciones o los mensajes de error.
 
+Nota (PRD del 2026-10-11; ADR-0030 y ADR-0031): la historia clínica es **compartida entre las especialidades** para todo
+profesional a cargo del paciente, y la información de Psicología queda aparte de esa historia compartida. Esta capacidad no
+implementa esa separación (la implementa `especialidad-psicologia`) ni el cambio de «médico» a «profesional» (lo implementa
+`profesionales-de-la-salud`): los requisitos de abajo hablan del médico a cargo y se leerán como «profesional a cargo» cuando
+H2c se aplique.
+
 ## ADDED Requirements
 
 ### Requirement: Solo el médico a cargo abre la historia clínica

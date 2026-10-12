@@ -202,6 +202,11 @@ Todo con una sola transacción HTTP por pantalla, bajo la identidad del paciente
 - Opción «Ya sé con qué médico» salta a `medico=` con su especialidad deducida. No se ofrece «cualquier médico»: obligaría a
   decidir una regla de asignación entre médicos que nadie ha pedido y añade una decisión más a quien ya duda.
 
+**Nombres (ADR-0030).** Este change usa «médico»: la búsqueda recorre `especialidades` y `medicos` y llama a
+`slots_disponibles(p_medico, p_fecha)` de H3. Al aplicar `profesionales-de-la-salud` (H2c), esa lista pasa a ser de **profesionales**
+(tabla `profesionales`, `slots_disponibles` con su parámetro renombrado, `medico_id` → `profesional_id` en esquemas Zod, consultas y
+rutas) y los rótulos «médico» de la pantalla se revisan con el cliente; la búsqueda por especialidad ya es neutral.
+
 ### D7. Reserva: un paso por pantalla con el estado en la URL
 
 `/paciente/citas/nueva?especialidad=…&medico=…&dia=2026-10-14&hora=<instante UTC ISO>`. El servidor decide el paso por los
@@ -259,6 +264,14 @@ y ya está `cancelada` responde que ya lo está. Tras el éxito llama a `notific
 fija `validar_cancelacion()`. La métrica del PRD se define como **(reservas con `origen = 'portal'` + cancelaciones cuyo
 `cancelada_por` es un perfil de rol `paciente`) / (todas las reservas + todas las cancelaciones)**. Las consultas se dejan
 documentadas y se comprueban con datos de demostración; no se construye pantalla ni vista nueva (el dashboard no es analítico).
+
+**Alcance del indicador (PRD del 2026-10-11).** La fórmula mide reservas y cancelaciones **de citas**: los pacientes que llegan
+sin cita (visitas de `triaje-y-derivacion`) no entran ni al numerador ni al denominador. Queda una decisión abierta de
+`mecanismos-clinicos-comunes` (H6i): las citas de sesiones de un plan las agenda la recepción (`origen = 'administrativo'`) y, con
+planes de varias sesiones, inflan el denominador y alejan la meta del 75 %. Opciones: **excluirlas del indicador** (filtrar las
+citas que no pertenecen a un plan, sin cambiar este change) o **permitir que el paciente reserve sus sesiones en el portal**, que
+sería un change de H4 aparte sobre el vínculo cita-sesión de H6i. Este change no lo decide (Q10). El paciente no ve su historia
+clínica en el portal (PRD) y este change no añade ninguna ruta hacia ella.
 
 ### D11. Estrategia de pruebas
 
@@ -330,3 +343,6 @@ Las que cambian el diseño o las tareas se señalan: no se pudieron preguntar al
 - **Q8.** Pacientes menores de edad o sin correo propio: el PRD supone correo propio; hoy los agenda el administrativo fuera del portal.
 - **Q9.** Cuando el correo o la fecha de una ficha existente no coinciden, ¿qué herramienta tiene el administrativo para corregirlos
   (H3 solo promete registrar y buscar pacientes)? Sin ella el paciente queda atascado.
+- **Q10 (decisión del cliente; viene de `mecanismos-clinicos-comunes`).** ¿Las citas de sesiones que agenda la recepción se
+  excluyen del indicador del 75 %, o el paciente podrá reservar sus sesiones en el portal (un change de H4)? Hasta decidirlo, el
+  indicador cuenta todas las citas (D10).

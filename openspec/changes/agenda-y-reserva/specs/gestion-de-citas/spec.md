@@ -425,3 +425,22 @@ necesita avisar de ellos. Las tres operaciones SHALL responder con el resultado 
 #### Scenario: Resultado tipado ante un rechazo
 - **WHEN** una de las tres operaciones es rechazada
 - **THEN** la respuesta es un fallo con mensaje en español y código de error, sin texto de la base de datos
+
+### Requirement: Una cita con visita registrada no se marca «No asistió»
+Una cita SHALL NO poder pasar a «No asistió» si el paciente ya llegó, es decir, si la cita tiene una visita no anulada (en
+cualquier estado de la visita), porque el paciente asistió. La base de datos SHALL rechazar la transición con un error propio,
+`UC005`, y la acción SHALL mostrar «El paciente ya llegó: la cita tiene una visita registrada y no puede marcarse “No asistió”».
+Mientras no exista el módulo de visitas (H6b), la consulta que decide esto, `cita_tiene_visita()`, SHALL devolver falso y la
+transición SHALL comportarse como antes. Las visitas, la llegada, el triaje y la derivación no son de este change.
+
+#### Scenario: Cita confirmada con una visita registrada
+- **WHEN** la recepción marca «No asistió» una cita confirmada, ya empezada, que tiene una visita no anulada
+- **THEN** se rechaza con `UC005`, la cita sigue `confirmada` y se muestra el mensaje
+
+#### Scenario: Visita anulada
+- **WHEN** la única visita de la cita está anulada
+- **THEN** la transición a «No asistió» se permite como en cualquier otra cita confirmada y ya empezada
+
+#### Scenario: Sin módulo de visitas
+- **WHEN** no existe ninguna visita
+- **THEN** «No asistió» se comporta exactamente como antes (solo desde `confirmada` y desde la hora de inicio)

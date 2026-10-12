@@ -54,18 +54,16 @@ repositorio (2026-10-08):
 
 ## Decisions
 
-### D1. Dos vistas `security_invoker` y ninguna tabla nueva; una prueba global que las vigila
+### D1. Tres vistas `security_invoker` y ninguna tabla nueva; una prueba global que las vigila
 El dashboard lee de `public.dashboard_citas`: una fila por cita de **hoy y de mañana** (día calendario de Lima) con
 médico, especialidad, paciente (nombres, tipo y número de documento), `estado`, `inicio`, `fin`, `dia` (`'hoy'`/`'manana'`)
-y `minutos_espera` (nulo salvo que la cita esté en espera, ver D2). **No incluye `motivo`** ni ningún dato clínico. Los
-turnos con aviso salen de `public.turnos_enfermeria_con_aviso` (D8). Ambas:
+y nada más de espera (la espera ya no se calcula aquí: sale de `public.dashboard_visitas`, ver D2). **No incluye `motivo`** ni ningún dato clínico. Los
+turnos con aviso salen de `public.turnos_enfermeria_con_aviso` (D8), y la espera sale de `public.dashboard_visitas` (D2). Las tres:
 
 ```sql
 -- Ilustrativo; la migración real fija nombres de columna y se prueba con pgTAP.
 create view public.dashboard_citas with (security_invoker = true) as
-select c.id as cita_id, c.inicio, c.fin, c.estado, /* dia, medico, especialidad, paciente… */
-       case when c.estado = 'confirmada' and c.inicio <= now()
-            then floor(extract(epoch from now() - c.inicio) / 60)::int end as minutos_espera
+select c.id as cita_id, c.inicio, c.fin, c.estado /* , dia, medico, especialidad, paciente… (sin minutos_espera: ver D2) */
 from public.citas c
   join public.medicos m on m.id = c.medico_id /* … perfiles, especialidades, pacientes … */
 where (select public.rol_actual()) = 'administrativo'
@@ -80,6 +78,13 @@ grant select on public.dashboard_citas to authenticated;   -- sin acceso para an
   con la identidad del usuario que consulta.
 - **Doble cerrojo:** además de la RLS, la propia vista filtra por `rol_actual() = 'administrativo'`. Si alguien concediera
   por error más acceso a `citas`, la vista seguiría devolviendo cero filas a los demás roles.
+- **`public.dashboard_visitas` (PRD del 2026-10-11, ver D2).** Segunda vista de lectura, `security_invoker`, con el mismo filtro
+  de `rol_actual() = 'administrativo'`: una fila por visita de `triaje-y-derivacion` (H6b) que llegó hoy (día de Lima de
+  `llegada_en`) y sigue en espera (`llegada`, `con_triaje`, `derivada`), con `visita_id`, `estado`, `fase_espera`, `llegada_en`,
+  `minutos_espera`, `cita_id` (nulo si no tenía cita), el médico y la especialidad de esa cita cuando existe, la especialidad
+  de destino cuando está `derivada` y el paciente (nombres, tipo y número de documento). **No incluye ninguna columna de
+  `triajes` ni de `derivaciones`** (ni mediciones, ni motivos, ni campos de texto libre): la fase se deduce del estado de la
+  visita. El administrativo ya tiene `SELECT` sobre `visitas` (H6b, D14); este change no concede nada ni escribe en ellas.
 - **Rango del día:** intervalo semiabierto en horas de Lima calculado desde `hoy_lima()` (que ya se usa en H2 porque
   `current_date` depende del `TimeZone` del servidor). Se expresa como rango sobre `inicio` y no como
   `inicio::date = …` para que la consulta use `citas_estado_inicio_idx` / `citas_medico_inicio_idx`. Perú no tiene horario de
@@ -93,7 +98,28 @@ grant select on public.dashboard_citas to authenticated;   -- sin acceso para an
   (c) Vistas materializadas: sin motivo con el volumen de una clínica y obligarían a refrescarlas.
 
 ### D2. «En espera» es un estado derivado, no un campo nuevo
-Un paciente **está en espera** cuando su cita de hoy está `confirmada`, su `inicio` ya llegó y todavía no es `atendida`. Los
+
+**Actualización por el PRD del 2026-10-11 (cierra Q1).** `triaje-y-derivacion` (H6b; ADR-0032 y ADR-0033) registra la llegada
+del paciente en `visitas`, y su D14 entrega a este change los estados y el reloj. «En espera» se deriva de la **visita**, no de
+la hora de la cita:
+
+| Estado de la visita | Qué espera | Fase en el dashboard |
+|---|---|---|
+| `llegada` | su triaje | `esperando_triaje` |
+| `con_triaje`, sin cita | que la enfermera lo derive | `por_derivar` |
+| `con_triaje`, con cita | a su profesional | `esperando_profesional` |
+| `derivada` | un profesional de `especialidad_destino_id` | `esperando_profesional` |
+| `en_atencion`, `atendida`, `abandonada`, `anulada` | — | no está en espera |
+
+El reloj es `floor((now() − llegada_en) / 60 s)` con el reloj de la base de datos (minutos enteros) y se detiene cuando un
+profesional toma al paciente (`atencion_iniciada_en`); el resalte sigue siendo `UMBRAL_ESPERA_MIN = 20`, con texto e icono. Una
+cita `confirmada` sin visita **deja de ser «en espera»**: solo espera quien llegó. Una visita no terminal de un día anterior no
+es «en espera» de hoy (H6b la lleva a «visitas sin cerrar»; ver Q6). El dashboard **lee** `visitas` mediante `dashboard_visitas`
+(D1), no escribe en ninguna tabla de H6b y no necesita ni expone `triajes` ni `derivaciones`. El texto de la pantalla pasa de
+«Se cuenta desde la hora de la cita» a «Se cuenta desde la llegada del paciente». Lo que sigue en esta sección es la definición
+original: queda **sustituida** por la anterior y se conserva para trazabilidad.
+
+*Definición original (sustituida):* un paciente **está en espera** cuando su cita de hoy está `confirmada`, su `inicio` ya llegó y todavía no es `atendida`. Los
 minutos son `floor((now() − inicio) / 60 s)` con el reloj de la base de datos (no el del navegador). El umbral de resalte es
 la constante `UMBRAL_ESPERA_MIN = 20` (la métrica de éxito del PRD), aplicada en la capa de presentación; el resalte lleva
 siempre texto e icono.
@@ -102,11 +128,11 @@ siempre texto e icono.
   atendida. Por eso solo `confirmada` cuenta: una cita `reservada` con la hora vencida todavía no pasó por recepción y no se
   trata como espera (sigue visible en el resumen por estado). La cita sale de la lista cuando el médico la marca atendida, la
   recepción la marca «no asistió» o se cancela.
-- **Limitación aceptada:** sin registro de la llegada real del paciente, la espera se mide desde la hora de la cita y no desde
+- **Limitación aceptada (superada por H6b):** sin registro de la llegada real del paciente, la espera se mide desde la hora de la cita y no desde
   que el paciente llegó, y un paciente confirmado que nunca llegó cuenta como «en espera» hasta que la recepción lo marque
   «no asistió». Y el criterio de éxito «≤ 20 min» **no se puede medir** con lo que existe: el dashboard ayuda a reducir la
-  espera en vivo, no a certificarla. Queda como pregunta abierta (Q1), sin resolver aquí.
-- *Alternativas descartadas:* estado nuevo `en_sala` o columna `llegada_en` (cambia el esquema y el proceso de recepción:
+  espera en vivo, no a certificarla. Era la pregunta abierta Q1, que H6b respondió (ver arriba).
+- *Alternativas descartadas (H6b adoptó después la columna `llegada_en` y los estados de visita, ADR-0033):* estado nuevo `en_sala` o columna `llegada_en` (cambia el esquema y el proceso de recepción:
   exige ADR y decisión del cliente); contar también `reservada` (contradice la decisión del usuario de que la recepción
   confirma y haría crecer la lista con citas que nadie ha atendido en recepción).
 
@@ -209,6 +235,11 @@ devuelve el fallo `NO_AUTORIZADO`); los códigos propios de turnos se registran 
   confundirlo con los turnos de enfermería. Que además vea qué enfermera lo acompaña requiere una política nueva sobre
   `turnos_enfermeria` y leer perfiles de enfermeras: cambia la matriz de acceso y merece revisión explícita, así que queda como
   pregunta abierta (Q3) y **no** se incluye.
+- **La enfermera, el triaje y la derivación (PRD del 2026-10-11).** El alcance de la enfermera incluye ahora triaje y derivación,
+  que son de H6b (`registrar_triaje`, `derivar_paciente`; ella lee por funciones con lista blanca de columnas y no tiene
+  política sobre ninguna tabla). «Mi turno» no cambia y no recibe esos datos. La enfermera sigue **sin acceso a historias
+  clínicas**: la prueba negativa de la tarea 6.2 se mantiene y gana `visitas`, `triajes` y `derivaciones` entre las tablas de
+  las que no obtiene filas por consulta directa.
 
 ### D8. Punto de contacto con la baja del médico (H3): un aviso, no un efecto
 `public.turnos_enfermeria_con_aviso` (`security_invoker`, filtrada a `administrativo`) devuelve los turnos con `fecha >= hoy_lima()`
@@ -254,9 +285,9 @@ lleva identificadores de pacientes (los filtros son `?especialidad=` y `?medico=
 incluyen datos de pacientes.
 
 ### D12. Pruebas
-- **pgTAP** (`tests/pgtap/`): `62_dashboard_citas` (opciones de la vista, filas por rol, frontera de Lima, `minutos_espera`,
+- **pgTAP** (`tests/pgtap/`): `62_dashboard_citas` (opciones de la vista, filas por rol, frontera de Lima,
   ausencia de `motivo`), `63_turnos_con_aviso`, `64_contrato_slots` (contrato con H3), `65_turnos_escritura` (negativas de
-  escritura por rol), `66_vista_enfermera`, `67_jornada_medico` y `98_vistas_con_security_invoker`. Las
+  escritura por rol), `66_vista_enfermera`, `67_jornada_medico`, `86_dashboard_visitas` (la vista de visitas: fases, minutos y ausencia de columnas de triaje y derivación) y `98_vistas_con_security_invoker`. Las
   negativas de `turnos_enfermeria`, `citas` y `pacientes` por rol ya existen en H2 (`50`, `32`, `23`); aquí se añade la
   negativa nueva: la vista no devuelve nada a enfermera, médico, paciente ni sesión sin rol.
 - **Concurrencia** (`tests/concurrencia/20_turnos.test.ts`): N asignaciones simultáneas de la misma enfermera, fecha y
@@ -272,23 +303,44 @@ incluyen datos de pacientes.
 - Las pruebas **no asumen tablas vacías** (hay datos de demostración) y usan fechas lejanas (p. ej. 2032) para turnos.
 
 ### D13. Datos de demostración
-El script de siembra solo crea citas con día relativo y hora fija; no sirve para ver «en espera». Se le añade la opción
+El script de siembra solo crea citas con día relativo y hora fija; no sirve para ver «en espera» (que ahora necesita visitas de H6b; ver la tarea 9.1). Se le añade la opción
 opt-in `--citas-de-ahora`, que crea citas confirmadas que empezaron hace 5, 18 y 32 minutos, dos citas `reservada` para mañana
 y una cita en cada estado restante, y un turno con un médico que tiene un bloqueo; las rehace en cada ejecución (solo las
 marcadas y aún no atendidas) para no acumular filas. Sigue sin tocar producción sin `--incluir-produccion`.
 
 ### D14. Sin ADR nueva
 Las decisiones de este change se apoyan en ADR existentes (ver proposal). Lo que **sí** requeriría una ADR y por eso no se
-decide aquí: registrar la llegada del paciente (D2), y que el médico vea a su enfermera (D7).
+decide aquí: que el médico vea a su enfermera (D7). Registrar la llegada del paciente, que antes figuraba aquí, ya lo decidió H6b (ADR-0033; D2).
+
+### D15. Reconciliación con el PRD del 2026-10-11 (H6b, H6d, H2c)
+
+- **Espera desde las visitas (D1, D2).** Dependencia nueva: H6b (`triaje-y-derivacion`). Si `visitas` no existe al llegar a la
+  tarea 2.9, se detienen 2.9, 2.10 y los bloques de espera de 3.3, 7.x y 9.1 y se consulta al usuario; el resto del change no
+  depende de H6b. La definición original (desde la hora de la cita) no se conserva como respaldo.
+- **Copias vencidas (opcional).** H6d (`copia-de-historia-clinica`, D10) calcula `vencida` como condición derivada y deja a H7
+  decidir si muestra su conteo. Si el usuario lo pide, el dashboard muestra **solo el número** y un enlace a la pantalla de H6d,
+  tomado de lo que H6d expone al administrativo, sin nombres, documentos ni contenido; si H6d no expone un conteo reutilizable
+  no se construye. Por defecto no se incluye (Q7).
+- **Nombres (ADR-0030, change `profesionales-de-la-salud`).** Este change conserva «médico». Al aplicar H2c cambiarían, según la
+  tabla de renombres de ese change: `turnos_enfermeria.medico_id` → `profesional_id` (y con él `turnos_enfermeria_con_aviso` y
+  las columnas `medico_id` y `medico` de las vistas), `medico_actual()` → `profesional_actual()`, `exigirRol("medico")`,
+  `app/medico/**` (la página `app/medico/page.tsx`, la jornada con el destino `/medico/jornada` de `lib/ui/navegacion.ts` y
+  `app/medico/acciones-cita.ts`) → `app/profesional/**`, `lib/medico/`, `E2E_MEDICO_TOTP_SECRET`, `slots_disponibles(p_medico …)`
+  y las pruebas `*_jornada_medico`. La «jornada» pasa a ser la **jornada del profesional** (sus horarios de atención y sus citas
+  confirmadas), sin cambio de alcance, y «Panel del médico» pasa a «Panel del profesional». El orden de merge recomendado por H2c
+  es H2c antes que el código de este change; si no, esta lista es la que hay que aplicar al renombrar.
+- **Numeración de pgTAP.** Los números 62–67 de este change coinciden con los de otros changes (62 `plantillas_clinicas` de H6;
+  63–65 de H2c; 66–68 de H6b); la prueba nueva de `dashboard_visitas` usa el 86, que está libre. La renumeración global es una
+  decisión del usuario y no se hace aquí.
 
 ## Risks / Trade-offs
 
 - [Una vista olvida `security_invoker` y salta la RLS] → opción obligatoria en la migración, prueba pgTAP con una fila por
   rol y la prueba global `98_` que falla ante cualquier vista de `public` sin ella.
-- [«En espera» infla la lista con pacientes confirmados que nunca llegaron, o queda vacía si nadie confirma ni marca atendidas]
-  → la definición está escrita (D2) y visible en la pantalla («Se cuenta desde la hora de la cita»); depende de que H3 aporte
-  las transiciones de la decisión del usuario; la tarea 1.1 se detiene si no existen. Una cita `reservada` con hora vencida no
-  cuenta hasta que la recepción la confirme.
+- [La lista de espera queda vacía o desfasada si la recepción no registra la llegada o nadie cierra las visitas] → la definición
+  está escrita (D2) y visible en la pantalla («Se cuenta desde la llegada del paciente»); depende de que H6b aporte `visitas` con
+  sus estados y su reloj; la tarea 1.1 se detiene si no existen. Una cita `confirmada` sin visita no cuenta como espera y una
+  visita no terminal de un día anterior sale de la lista (Q6).
 - [H3 cambia `slots_disponibles` o no la expone a `authenticated`] → un solo adaptador (`lib/dashboard/huecos.ts`) y una prueba de
   contrato (tarea 2.5) que falla de forma clara.
 - [H2b aún no está aplicado cuando empiece H7] → H7 no arranca el trabajo de interfaz sin sus componentes; las migraciones y las
@@ -326,17 +378,20 @@ decide aquí: registrar la llegada del paciente (D2), y que el médico vea a su 
 - **A5 (H3):** el flujo de reasignación por baja no escribe en `turnos_enfermeria` y expone `citas_por_reasignar` a
   `authenticated` con `security_invoker`.
 - **A6 (H5):** la vista de notificaciones fallidas es de H5, en `/administrativo/notificaciones`.
+- **A7 (H6b):** existe `visitas` con `estado`, `llegada_en`, `atencion_iniciada_en`, `cita_id` (nulo si no hay cita) y
+  `especialidad_destino_id`, y el administrativo tiene `SELECT` sobre ella; el contrato es el D14 de `triaje-y-derivacion`. H7 no
+  escribe en `visitas` ni lee `triajes` o `derivaciones`.
+- **A8 (H2c):** los nombres de profesional (D15) se aplican al renombrar; mientras H2c no esté aplicado este change usa «médico».
 
 ## Open Questions
 
-Ninguna cambia las tablas de este change (no crea ninguna). **Q1 sí podría cambiar la spec del dashboard**: no se pudo
-consultar con el cliente al planificar y queda abierta, con la definición derivada de D2 como supuesto. Cada pregunta dice
+Ninguna cambia las tablas de este change (no crea ninguna). **Q1 ya está resuelta** (ver abajo); las demás quedan abiertas: no se pudo
+consultar con el cliente al planificar, con un supuesto escrito en cada una. Cada pregunta dice
 qué se toca si la respuesta es otra.
 
-- **Q1. ¿Se registra la llegada real del paciente (columna `llegada_en` o estado nuevo)?** Sin ella la espera se mide desde la
-  hora de la cita y el objetivo de ≤ 20 min **no se puede medir** (D2). Es cambio de esquema y de proceso en recepción: ADR
-  aparte y decisión del cliente. Si se acepta, `minutos_espera` pasaría a medirse desde la llegada, cambiaría quién la
-  registra (¿la recepción?) y habría que decidir si la analítica sigue fuera de alcance. No se resuelve en este change.
+- **Q1. RESUELTA (PRD del 2026-10-11).** ¿Se registra la llegada real del paciente? Sí: lo hace H6b (`visitas.llegada_en`,
+  ADR-0033) y este change la consume (D2). La espera se mide desde la llegada y el objetivo de ≤ 20 min deja de ser inmedible;
+  la analítica sigue fuera de alcance (Q5).
 - **Q2. ¿Qué horas tiene cada franja (mañana, tarde, noche) y qué pasa con la noche que cruza la medianoche?** Hoy no hay
   horas en ningún documento; no se inventan. Afecta a: cómo cruzar un turno con el horario del médico, y qué ve una
   enfermera a las 02:00 (¿su turno de noche de «ayer»?). La vista de la enfermera muestra «Hoy» por fecha calendario.
@@ -346,3 +401,6 @@ qué se toca si la respuesta es otra.
   (iniciales en lugar de nombre completo) y el cierre automático de sesión.
 - **Q5. Duda de alcance (BI):** ¿se necesita ver cuántos pacientes esperaron más de 20 minutos *ayer* o *esta semana*? Sería
   analítica y está fuera de alcance; no se construye ni se prepara (no se guardan históricos de espera).
+- **Q6.** ¿El dashboard muestra el conteo de **visitas sin cerrar** de días anteriores (D2)? Por defecto no: salen de la lista de
+  espera y quedan en H6b (`cerrar_visita`). Si se quiere, es un número con enlace a la pantalla de H6b, sin analítica.
+- **Q7.** ¿Se incluye el conteo de **copias de historia vencidas** que H6d deja disponible (D15)? Por defecto no.

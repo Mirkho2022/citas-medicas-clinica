@@ -73,6 +73,29 @@ cuenta y no confiar en la definición que envíe el cliente.
 - **WHEN** una solicitud lograra saltarse la validación del servidor con un dato inválido de especialidad
 - **THEN** la base de datos rechaza la fila y el usuario recibe un mensaje en español, nunca el error interno
 
+### Requirement: Una plantilla puede reservarse a una profesión
+El catálogo de plantillas SHALL poder indicar, por plantilla, la profesión de salud que la usa (`exige_profesion`; nula significa
+cualquier profesión). Cuando la plantilla la indique, el servidor y la base de datos SHALL rechazar la atención de un profesional
+de otra profesión. La profesión SHALL leerse siempre de la identidad del profesional autenticado en la base de datos, nunca de lo
+que envíe el cliente ni de la sesión. La regla SHALL vivir en la misma validación de los datos de especialidad, junto a la regla
+de especialidad: ninguna especialidad crea una validación propia.
+
+#### Scenario: Profesión que coincide
+- **WHEN** un profesional de la profesión que exige la plantilla registra una atención con ella
+- **THEN** la atención se guarda con sus datos de especialidad
+
+#### Scenario: Otra profesión (negativo)
+- **WHEN** un profesional de otra profesión intenta usar una plantilla que exige una profesión distinta
+- **THEN** se rechaza con un mensaje propio en español y no se guarda la atención
+
+#### Scenario: Profesión declarada por el cliente (negativo)
+- **WHEN** la solicitud declara una profesión distinta de la del profesional autenticado
+- **THEN** la declaración se ignora y la base de datos decide con la identidad del profesional
+
+#### Scenario: Plantilla sin restricción
+- **WHEN** la plantilla no indica profesión
+- **THEN** la usa cualquier profesional de la especialidad de la plantilla, como hasta ahora
+
 ### Requirement: Los datos de especialidad se sellan con la firma
 Los datos de especialidad y la plantilla usada SHALL ser parte del contenido firmado: al firmar la atención SHALL quedar
 inmutables y SHALL estar cubiertos por la huella.

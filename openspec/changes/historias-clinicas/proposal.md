@@ -32,6 +32,8 @@ sobre todo el diff: `tasks.md`, 11.5), además de la verificación por mutación
   validadas **en la base** y selladas por la firma. Solo se entrega el mecanismo y la plantilla de **Medicina general**
   (campos de la primera consulta de la NTS 139, numeral 5.2.1); las demás llegan cuando se resuelva quién las atiende
   (D15, «Cuestión abierta»).
+  Cada plantilla puede además reservarse a una profesión (`exige_profesion`, con el tipo `profesion_salud` de H2c): la regla
+  común vive en el mismo disparador de validación y las especialidades no crean disparadores propios (D15).
 - **Adjuntos de respaldo** (ADR-0013/0024): tabla nueva `adjuntos_historia` con RLS (la autoridad de acceso al archivo es
   esa fila, no solo la Server Action), subida directa a Vercel Blob privado y descarga por el servidor.
 - **Catálogo CIE-10 completo** (ADR-0014) cargado por migración de datos versionada, búsqueda por código o texto y
@@ -107,6 +109,17 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
   [ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md); ninguno se reabre.
 - **ADR ya redactada y aceptada por el usuario (2026-10-10):** [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md),
   *datos clínicos por especialidad* (D15). No resuelve la cuestión abierta de los profesionales que no son médicos.
+- **Reconciliación con el PRD del 2026-10-11 y las ADR 0030 a 0036 (notas; este change no se rediseña).**
+  - *Nombres (ADR-0030, `profesionales-de-la-salud`, H2c):* este change conserva `medico`. Al aplicar H2c cambiarían
+    `exigirRol("medico")`, `app/medico/pacientes/**`, `atenciones.medico_id`, `asignarPacienteAMedico`, `medico_tiene_paciente()`
+    (→ `profesional_tiene_paciente()`) y la prueba `47_estructura_historia`; ver `design.md`, D16.
+  - *Historia compartida (ADR-0031):* la historia es **compartida entre las especialidades** para todo profesional a cargo, y la
+    información de Psicología queda aparte; esa separación la implementa `especialidad-psicologia`, no este change.
+  - *Integraciones:* el triaje que lee el profesional al abrir la historia (`triaje-y-derivacion`), el panel de medicamentos
+    (`recetas-medicas`), la copia de la historia con su tipo de acceso `copia` (`copia-de-historia-clinica`) y la **unión de
+    valores de `accesos_historia.tipo_acceso`**, que este change crea y otros amplían; ver D16.
+  - *Plantillas por profesión:* regla común `exige_profesion` en el mismo disparador de validación (D15), sin disparadores por
+    especialidad.
 - **Código nuevo:** `migrations/*.sql`; `lib/historias/`, `lib/firma/`, `lib/cie10/`, `lib/schemas/historia-clinica.ts`;
   `app/medico/pacientes/**`, `app/administrativo/{asignaciones,accesos-historia}/`, `app/api/{cie10,historias}/**`;
   `scripts/preparar-cie10.ts` y el CSV de origen en `datos/cie10/`; `tests/pgtap/*`, `tests/historias/`, `tests/concurrencia/`,
@@ -119,7 +132,7 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
 - **Infraestructura/entorno:** store de Vercel Blob privado, `BLOB_READ_WRITE_TOKEN`, `CLINICA_MODO_DATOS`
   (por defecto `demostracion`).
 - **Fuera de alcance:** pagos, telemedicina, laboratorios o farmacias, inventario, multi-sede, analítica de BI; imprimir o
-  exportar la historia; recetas y triaje (seguimiento pedido, ver el último punto); acceso del paciente a su historia (el PRD lo excluye); migración de datos reales de papel
+  exportar la historia; las recetas (son del change `recetas-medicas`, H6c) y el triaje (es del change `triaje-y-derivacion`, H6b); acceso del paciente a su historia (el PRD lo excluye); migración de datos reales de papel
   (H8); levantar el bloqueo de datos reales; cambios en agenda, portal, notificaciones o turnos.
 - **Seguimiento pedido por el usuario (2026-10-10), no incluido aquí:** *recetas* (contenido mínimo del DS 014-2011-SA,
   art. 56; la receta electrónica exige firma digital) y *triaje por enfermería* (signos vitales visibles para el
@@ -127,3 +140,6 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
   PRD y la regla de roles de `CLAUDE.md` con la skill `generar-prd-conversacional`. El punto de extensión de D15 no los
   bloquea: ni recetas ni signos vitales se guardan en `datos_especialidad`. Tampoco se resuelve aquí quién atiende
   Odontología, Fisioterapia, Psicología y Podología (profesionales que no son médicos; D15, «Cuestión abierta»).
+  *Actualización del 2026-10-11:* el PRD ya se actualizó y esos seguimientos son los changes `recetas-medicas` (H6c) y
+  `triaje-y-derivacion` (H6b); quién atiende las demás especialidades lo resuelve la ADR-0030 (H2c) y sus plantillas llegan con
+  `especialidad-odontologia`, `especialidad-fisioterapia`, `especialidad-psicologia` y `especialidad-podologia`.

@@ -1,5 +1,16 @@
 # Design
 
+> **Nombres: sujetos a ADR-0030; si se acepta, léase `profesional`.** Este change conserva `medico` (rol, columnas y nombres de
+> código) porque ADR-0030 y su change `profesionales-de-la-salud` (H2c) están propuestos. No se renombra a mano: si se acepta,
+> H2c hace el renombre en sus migraciones y este change se ajusta al aplicarse después (tarea 1.7). Lo que cambiaría:
+> `exigirPersonal('medico')` → `exigirPersonal('profesional')` y el rol `medico` que comprueba `marcar_cita_atendida()`;
+> `medico_id` (en `citas`, `disponibilidades` y `bloqueos_agenda`), `medico_actual()` y la tabla `medicos`;
+> `slots_disponibles(p_medico, …)`, `horario_en_agenda()` y `propuestas_reasignacion()` (que además de la especialidad
+> compararían la **profesión**: un psicólogo no sustituye a un médico); `app/medico/acciones-cita.ts` → `app/profesional/…`;
+> la ruta `/administrativo/horarios/[medicoId]`; los usuarios de prueba `medico_a` y `medico_b` y `asignaciones_paciente_medico`;
+> y los textos «médico dueño» y «el médico» de las specs y la interfaz. El **alta de personal** no es de este change (fuera de
+> alcance); la de H2c pedirá `profesion` y `colegiatura`.
+
 ## Context
 
 Motivación y alcance en [proposal.md](proposal.md); requisitos en `specs/` (`disponibilidad-y-slots`, `gestion-de-citas`,
@@ -23,6 +34,13 @@ Motivación y alcance en [proposal.md](proposal.md); requisitos en `specs/` (`di
   aplicado. H3 se implementa después de él.
 - Los datos de demostración traen 4 médicos de 4 especialidades distintas (ninguno tiene un colega de su especialidad) y un
   bloqueo; las pruebas de reasignación necesitan un segundo médico de una misma especialidad (tarea 5.4).
+- **Pacientes, verificado en `migrations/`:** `pacientes` tiene `tipo_documento` (`DNI`, `CE`), `numero_documento`, nombres,
+  apellidos, `fecha_nacimiento`, `sexo`, `telefono`, `email` (obligatorio) y `direccion`, con `pacientes_documento_unico` y
+  `pacientes_documento_formato` (solo DNI y CE). El disparador `pacientes_crear_historia` (función `crear_historia_clinica()`,
+  migración `crear-historia-al-registrar-paciente`) inserta la fila de `historias_clinicas`, con su correlativo `HC-000001`, al
+  registrar un paciente: de él dependen la prueba `41_historia_al_registrar`, la siembra de demostración y lo que H4 y H6
+  suponen de la historia (D15). El administrativo no lee `historias_clinicas`. Con el PRD del 2026-10-11 la recepción registra
+  al paciente con o sin cita y **abre** su historia con la filiación mínima de la NTS 139 (D14, D15).
 
 ## Goals / Non-Goals
 
@@ -31,16 +49,21 @@ Motivación y alcance en [proposal.md](proposal.md); requisitos en `specs/` (`di
   reserva, ventana de 1 hora, atomicidad de reprogramar/reasignar y coherencia de la reasignación viven en la base de datos.
 - Un único punto de inserción de citas que H4 reutilice, con un único traductor de errores.
 - Poder demostrar con pruebas (pgTAP, concurrencia con sesiones reales, E2E) cada escenario de las specs.
+- Que abrir una historia clínica sea una acción explícita, única por paciente y con la filiación mínima completa, y que el
+  documento de un paciente no cambie salvo para confirmar una identidad provisional: ambas reglas viven en la base de datos.
 
 **Non-Goals:**
-- Tablas nuevas, columnas nuevas en `citas`, estados nuevos en `estado_cita`, o cambios en las políticas de historias clínicas.
+- Tablas nuevas salvo `pacientes_datos_sensibles` (D14), columnas nuevas en `citas`, estados nuevos en `estado_cita`, o cambios
+  en las políticas de historias clínicas.
 - La pantalla de la jornada del médico y su botón «Atendida» (H7): H3 entrega la operación y la acción, no la pantalla.
 - Enviar correos o crear filas en `notificaciones` (H5); alta o baja definitiva de médicos; vista de agenda del médico; gráficos.
 - Búsqueda de «próximo día con horarios» o rangos de fechas: la consulta de slots es por día, como pide ADR-0010.
+- Registrar la llegada, las visitas, el triaje y la derivación (H6b), las recetas (H6c) y la copia de la historia (H6d): H3 deja un
+  punto de extensión y reglas de contacto (D16) y no define sus tablas ni pantallas. Tampoco une historias duplicadas.
 
 ## Decisions
 
-### D1. Cinco migraciones nuevas, sin tablas
+### D1. Siete migraciones nuevas y una sola tabla
 
 Archivos nuevos en `migrations/` (con `npm run migrate create`, solo hacia adelante, sección `down` vacía), en este orden:
 
@@ -50,9 +73,16 @@ Archivos nuevos en `migrations/` (con `npm run migrate create`, solo hacia adela
 3. `reservar-y-reprogramar-cita`: `reservar_cita` y `reprogramar_cita`.
 4. `reasignacion-por-baja`: `reasignar_cita_por_baja`, `propuestas_reasignacion` y la vista `citas_por_reasignar`.
 5. `transiciones-de-estado-de-cita`: `validar_transicion_estado()` con su disparador `citas_validar_transicion` y la función
-   `marcar_cita_atendida` (D13).
+   `marcar_cita_atendida` (D13) y el punto de extensión `cita_tiene_visita()` (D16).
+6. `tipos-de-documento-pas-y-prov`: `alter type tipo_documento add value` para `PAS` y `PROV`. **Va sola en su archivo**: Postgres no
+   deja usar en la misma transacción un valor de enum recién añadido, y `node-pg-migrate` corre cada archivo en una
+   transacción; la restricción que los usa va en la migración siguiente.
+7. `filiacion-y-apertura-de-historia`: columnas de filiación en `pacientes`, `pacientes_documento_formato` ampliada, tabla
+   `pacientes_datos_sensibles`, secuencia del número provisional, protección del documento, `abrir_historia_interna()`,
+   `abrir_historia_clinica()`, `historias_abiertas()` y `confirmar_identidad_paciente()`, y retiro del disparador
+   `pacientes_crear_historia` y de `crear_historia_clinica()` (D14, D15).
 
-Como no hay tablas nuevas, la regla «tabla nueva = RLS + prueba negativa» no se activa, pero cada función y la vista traen su
+La única tabla nueva (`pacientes_datos_sensibles`) nace con RLS y su prueba negativa, y cada función y la vista traen su
 prueba negativa por rol y `99_rls_en_todas_las_tablas` debe seguir en verde. El orden respeta que las funciones `LANGUAGE
 sql` validan al crearse los objetos que citan.
 
@@ -144,10 +174,13 @@ confunde con la doble reserva.
 | Confirmar, «No asistió», «Atendida»: transición o condición no válida | `UC004` | según la acción: «Solo se puede confirmar una cita reservada que aún no terminó» · «Solo se puede marcar «No asistió» una cita confirmada cuya hora ya empezó» · «Solo se puede marcar «Atendida» una cita confirmada cuya hora ya empezó» | `TRANSICION_INVALIDA` |
 | Rol o política (`42501`) | `42501` | No tiene permiso para realizar esta operación | `NO_AUTORIZADO` |
 | Alta de paciente | `23505` | Ya existe un paciente con ese documento | `DOCUMENTO_DUPLICADO` |
+| «No asistió» sobre una cita con visita registrada | `UC005` | El paciente ya llegó: la cita tiene una visita registrada y no puede marcarse «No asistió» | `CITA_CON_VISITA` |
+| Abrir la historia con la filiación mínima incompleta | `UC006` | Falta completar la filiación del paciente para abrir su historia clínica | `FILIACION_INCOMPLETA` |
+| Cambiar el documento de un paciente que no es provisional | `UC007` | El documento de este paciente no se puede modificar | `DOCUMENTO_NO_MODIFICABLE` |
 | Disponibilidades / bloqueos | `23P01` | Mensajes propios de solape (ver spec) | `SOLAPE` |
 | Cualquier otro | — | No se pudo completar la operación. Intente nuevamente. | `ERROR_INTERNO` |
 
-`UC001`–`UC004` son códigos definidos por la aplicación (clase `UC`, de las reservadas por el estándar a la implementación). Las
+`UC001`–`UC007` son códigos definidos por la aplicación (clase `UC`, de las reservadas por el estándar a la implementación). Las
 funciones nunca usan `P0001` por su cuenta, de modo que `P0001` sigue significando únicamente «ventana de cancelación»
 (ADR-0008). El error inesperado se registra en el servidor con acción y `SQLSTATE`, nunca con datos del paciente ni el texto
 completo de la excepción hacia el cliente. Se verifica en la tarea 1.4 que el driver de Neon entrega `code` también para
@@ -299,6 +332,139 @@ no puede vivir en la aplicación.
   (confirmar ya no procede, cancelar lo impide la ventana y `reservada → no_asistio` no está permitida). Queda visible en la
   agenda como `reservada` vencida (ver Open Questions).
 
+### D14. Registro de pacientes: documentos, filiación mínima de la NTS 139 y datos sensibles
+
+La lista sale del informe legal (`docs/investigacion-marco-legal-y-saniape.md`, §4.1, «Formato de filiación», NTS 139,
+numeral 5.2.2, nivel A) y del reparto de TECH-DESIGN (el dueño del detalle es este change, ítem 5). Todas las columnas nuevas
+son **nulables**: un paciente registrado por el portal, o por recepción sin completar la filiación, es válido; lo que se exige
+es completar la filiación **para abrir la historia** (D15). Los obligatorios se validan con Zod en el servidor y otra vez en la
+base de datos, dentro de `abrir_historia_interna()` (una `CHECK` de tabla no puede depender de si existe la historia).
+
+| Campo de la NTS 139 | Dónde vive | Para abrir la historia |
+|---|---|---|
+| Identificación estándar y categoría de la IPRESS | constante de la clínica en la configuración de la aplicación (se imprime en los formatos y en la copia); no es dato del paciente | no aplica |
+| Número de historia clínica | `historias_clinicas.numero` (existe) | lo asigna el sistema |
+| Nombres y apellidos | `nombres`, `apellidos` (existen) | obligatorio |
+| Fecha de nacimiento y edad | `fecha_nacimiento` (existe); la edad se **calcula** en Lima y nunca se guarda | obligatorio |
+| Lugar de nacimiento | `lugar_nacimiento` (nueva, texto) | obligatorio |
+| Sexo | `sexo` (existe: M, F, X) | obligatorio |
+| Grupo sanguíneo y factor Rh | `grupo_sanguineo` (A, B, AB, O) y `factor_rh` (+, −) (nuevas) | opcional (nulo = no informado) |
+| Domicilio actual | `direccion` (existe; se conserva el nombre) | obligatorio |
+| Domicilio de procedencia | `domicilio_procedencia` (nueva) | opcional |
+| Teléfono | `telefono` (existe) | opcional |
+| Documento de identificación | `tipo_documento` y `numero_documento`: DNI, CE, `PAS` o `PROV` | obligatorio |
+| Número de seguro (EsSalud, SIS, SOAT u otros) | `seguro_tipo` (essalud, sis, soat, privado, otro) y `seguro_numero` (nuevas); el número exige el tipo | opcional |
+| Estado civil | `estado_civil` (nueva: soltero, casado, conviviente, divorciado, viudo) | obligatorio si es mayor de 18 años |
+| Grado de instrucción | `grado_instruccion` (nueva: sin_instruccion, inicial, primaria, secundaria, superior_tecnica, superior_universitaria, posgrado) | obligatorio si es mayor de 18 años |
+| Ocupación | `ocupacion` (nueva, texto; «Ninguna» es válida) | obligatorio si es mayor de 18 años |
+| Acompañante o responsable: nombre, documento, domicilio y parentesco | `responsable_nombre`, `responsable_documento`, `responsable_domicilio`, `responsable_parentesco` (nuevas) | obligatorio si es menor de 18 años; opcional si no |
+| Religión | `pacientes_datos_sensibles.religion` | opcional, dato sensible |
+| Pertenencia étnica (formatos de primera atención) | `pacientes_datos_sensibles.pertenencia_etnica` | opcional, dato sensible |
+
+<!-- REVISAR: la norma lista estos campos como contenido mínimo del formato, pero no dice cuáles debe llenar recepción ni qué hacer si el paciente no los sabe. La propuesta exige un núcleo (identidad, nacimiento, sexo, domicilio) y, para los mayores de 18 años, estado civil, instrucción y ocupación; exime a los menores a cambio del responsable; y deja opcional lo que el paciente puede ignorar o no querer decir (sangre, procedencia, teléfono, seguro). Confirmar con la clínica y con el asesor legal (pregunta 9). -->
+
+- **Restricciones.** Listas cerradas por `CHECK` (grupo, Rh, estado civil, instrucción, tipo de seguro), `seguro_numero` solo con
+  `seguro_tipo`, y ningún texto vacío o de solo espacios (`length(btrim(x)) > 0`), por la regla de no guardar campos vacíos.
+  `email` sigue siendo obligatorio (H2): pregunta 10.
+- **Documentos.** `tipo_documento` gana `PAS` (pasaporte, extranjero en tránsito) y `PROV` (número correlativo provisional para
+  quien no tiene documento hasta confirmar su identidad), como adelanta TECH-DESIGN. `pacientes_documento_formato` se
+  reemplaza en la migración 7: DNI `^[0-9]{8}$` y CE `^[A-Za-z0-9]{9,12}$` (sin cambio), `PAS` `^[A-Za-z0-9]{6,20}$` (la
+  aplicación lo normaliza a mayúsculas) y `PROV` `^PROV-[0-9]{6,}$` (pregunta 13). `pacientes_documento_unico` no cambia: un
+  mismo documento no abre una segunda historia.
+- **El número provisional lo genera el sistema**, nunca el usuario: `documento_provisional_siguiente()` (`nextval` de una
+  secuencia propia con `'PROV-' || lpad(…, 6, '0')`, guarda `administrativo`) se llama dentro del `INSERT` de
+  `registrarPaciente`, en una sola sentencia. Zod no admite `PROV` como entrada. La base no distingue quién escribió el número
+  (la política de `INSERT` del administrativo es de H2): si alguien insertara a mano uno que la secuencia emitirá después, la
+  unicidad lo detiene (`23505`) y se reintenta.
+- **El documento no cambia, salvo de provisional a definitivo.** El disparador `pacientes_proteger_documento` (`BEFORE UPDATE OF
+  tipo_documento, numero_documento`, actúa solo si `current_user = 'authenticated'`, como el de D13) rechaza con `UC007` todo
+  cambio hecho por un usuario. La única vía es `confirmar_identidad_paciente(paciente, tipo, numero)` (`SECURITY DEFINER`,
+  solo `administrativo`): exige que el paciente sea `PROV` y que el nuevo tipo no lo sea, y reemplaza el documento **sobre el
+  mismo `paciente_id`**, de modo que la historia no se duplica ni cambia de dueño. El cambio queda en `auditoria` por
+  `pacientes_auditoria`, con el administrativo como actor (sale del token, como en D13). Si el documento definitivo ya
+  pertenece a otro paciente, `23505` y no cambia nada: unir la historia provisional con la existente queda fuera de alcance
+  (pregunta 12).
+- **Datos sensibles en una tabla aparte.** `pacientes_datos_sensibles(paciente_id uuid primary key references pacientes(id) on
+  delete cascade, religion text, pertenencia_etnica text, actualizado_en timestamptz)`, con RLS activada y política solo para
+  el rol `administrativo` (lectura, alta y modificación; sin `DELETE`) y ningún acceso para médico, enfermera ni paciente.
+  Quedan fuera de `buscarPacientes`, del portal, de las notificaciones y de los registros del servidor, y **no** se les conecta
+  el disparador de auditoría de H2, porque copiaría el valor a `auditoria` (pregunta 11). *Alternativa descartada:* dos columnas
+  en `pacientes` con privilegio de columna; la RLS no filtra por columna, el médico lee la fila entera de sus pacientes y habría
+  que revisar los privilegios con cada columna nueva. <!-- REVISAR: tabla aparte y acceso solo del administrativo son una propuesta; la lista de roles que pueden leerlos la decide el usuario. -->
+- **Pacientes sin cita.** `registrarPaciente` no crea ni exige una cita. Un paciente sin cita no entra al denominador del
+  indicador del 75 % (que mide citas reservadas o canceladas por el propio paciente) porque no genera ninguna cita; su
+  llegada, su visita, el triaje y la derivación son de H6b (D16).
+
+### D15. Abrir la historia es una acción explícita; el disparador de H2 se sustituye
+
+Hoy `pacientes_crear_historia` inserta la historia al registrar al paciente. El PRD del 2026-10-11 pide que recepción la abra
+con la filiación mínima. Alternativas:
+
+- **(a) Conservar el disparador** y tratar «abrir» como «completar la filiación». No toca H2, H4 ni H6 y mantiene que todo
+  paciente tiene historia. Pero la historia nacería con la filiación incompleta, los registros del portal consumirían
+  correlativos `HC-` y contarían en el 60 % de historias digitalizadas sin haberse atendido, y no habría un momento en que
+  recepción consulte el registro antes de abrir (NTS 139, numeral 5.3.1).
+- **(b) Sustituirlo por una acción explícita (recomendada).** Una migración nueva retira el disparador y su función. La historia
+  se abre con `abrir_historia_clinica(paciente)`: `SECURITY DEFINER`, `search_path` vacío, `EXECUTE` solo a `authenticated`,
+  guarda `rol_actual() = 'administrativo'` (`42501`), paciente inexistente `UC002`. Si el paciente ya tiene historia **la
+  devuelve** con `ya_existia = true` (no crea otra ni gasta correlativo); si no, exige la filiación mínima (`UC006`) e inserta
+  con `on conflict (paciente_id) do nothing`, de modo que dos aperturas simultáneas dan una sola historia (el correlativo puede
+  saltar, como hoy). Devuelve solo el número.
+- **(c) Híbrida:** el disparador abre sola la historia únicamente si el `INSERT` ya trae la filiación completa. Ahorra un clic,
+  pero oculta el acto de abrir y deja dos caminos con reglas distintas. Descartada.
+
+Se adopta (b) como propuesta, **sujeta a la pregunta 14** y a la decisión del usuario sobre el efecto en H4, H6 y H6b.
+
+- **Dos funciones, una interna.** `abrir_historia_interna(paciente)` hace la inserción y la comprobación de filiación, sin guarda
+  de rol y **sin `EXECUTE` para ningún rol de usuario**; la usan `abrir_historia_clinica()` (con su guarda), la siembra de
+  demostración y la carga de H8, que corren como dueño de la base (donde una guarda por rol no se puede cumplir).
+- **Recepción ve el número, nada más.** `historias_abiertas(pacientes uuid[])` (`SECURITY DEFINER`, solo `administrativo`)
+  devuelve `(paciente_id, numero)` de los pacientes pedidos, para que `buscarPacientes` muestre «Historia HC-000123» o «Sin
+  historia clínica». Cierra el `REVISAR` de TECH-DESIGN sin darle al administrativo política alguna sobre `historias_clinicas`
+  (se mantiene lo que dice H6). El número no es dato clínico.
+- **Un documento, una historia.** `pacientes_documento_unico` impide la segunda fila y `historias_clinicas.paciente_id` único, la
+  segunda historia. Si `registrarPaciente` recibe `23505`, la acción **busca al paciente existente y muestra su ficha y el número
+  de su historia**, no solo el error. El formulario de registro se ofrece después de la búsqueda por documento o apellido: así se
+  «consulta el registro» antes de abrir y se ven posibles duplicados de quien no tiene documento.
+- **Interfaz.** En la ficha del paciente: «Sin historia clínica» con el botón «Crear historia clínica» (desactivado y con la lista
+  de lo que falta si la filiación está incompleta, que se completa ahí mismo) o «Historia HC-…». El formulario de registro ofrece
+  «Registrar» y «Registrar y crear historia clínica»: la segunda ejecuta `registrarPaciente` y luego `crearHistoriaClinica`; si
+  la segunda falla, el paciente queda registrado y la ficha muestra la acción pendiente (un paciente sin historia es ahora un
+  estado válido, así que no hace falta atomicidad entre ambas).
+- **Solo lectura desde la historia.** El médico y los demás roles no tienen `UPDATE` sobre `pacientes` (H2): la filiación solo se
+  corrige en `/administrativo/pacientes`, con `pacientes_auditoria` registrando el cambio. Las pantallas de H6 la muestran sin
+  campos editables. Se prueba con un `UPDATE` directo del médico a cargo (cero filas).
+- **Citas y asignaciones no dependen de la historia:** se puede agendar y confirmar la cita de un paciente aún sin historia.
+- **Efectos sobre otros changes** (a coordinar, no se editan aquí): la prueba `41_historia_al_registrar` y toda prueba o ayuda de
+  H2 que registre un paciente y espere su historia se actualizan **a propósito** (tarea 8.7) y se informa al usuario; la siembra
+  de demostración abre las historias con `abrir_historia_interna()`; el requisito «Una carpeta de historia por paciente» de
+  `esquema-rls-pgtap` queda sustituido; H4 (registro por el portal) crea pacientes **sin** historia; H6 y H6b no pueden suponer
+  que existe (pregunta 14).
+
+### D16. Puntos de contacto con la llegada del paciente (H6b)
+
+H6b (`triaje-y-derivacion`) es dueño de `visitas`, `triajes`, `derivaciones` y de la llegada con o sin cita
+(`registrar_llegada(paciente, cita?)`); H3 es dueño de las citas y de sus transiciones. Este change no define esas tablas. Dos
+puntos de contacto que H6b le pidió a H3:
+
+1. **Una cita con visita no anulada no puede marcarse «No asistió».** El paciente llegó, aunque la visita ya esté atendida o
+   abandonada. `visitas` no existe hasta H6b, así que H3 deja un punto de extensión: `public.cita_tiene_visita(p_cita uuid,
+   p_solo_abiertas boolean default false) returns boolean`, `LANGUAGE sql STABLE SECURITY INVOKER`, `search_path` vacío, con
+   cuerpo `select false` mientras no haya visitas. `validar_transicion_estado()` la llama en la fila `confirmada → no_asistio`
+   (con `p_solo_abiertas = false`: cualquier visita no anulada) y rechaza con `UC005`. H6b la reemplaza con `create or replace`
+   sin cambiar la firma ni la seguridad (la lee el administrativo con la política de `visitas` que H6b le da; no se abre
+   superficie `SECURITY DEFINER`). *Alternativas:* (a) un disparador propio de H6b sobre `citas`, que reparte la matriz en dos
+   disparadores; (b) la función de extensión (**recomendada**): la matriz queda en un solo lugar y H3 la prueba con un
+   sustituto dentro de la transacción de la prueba pgTAP (`create or replace` revertido por el `rollback`); (c) que H6b
+   reemplace `validar_transicion_estado()` entera, lo que duplica la matriz y la deja divergir.
+2. **Una cita cancelada, reprogramada o reasignada con la visita abierta.** La visita queda atada a una cita que ya no es válida;
+   H6b la cierra a mano (su D9: `anulada` si no tiene triaje, `abandonada` con motivo `cita_cancelada` si lo tiene). Qué hace H3
+   queda como **pregunta 8**; el valor por defecto es permitir y avisar: la agenda marca «Paciente ya llegó»
+   (`cita_tiene_visita(cita, true)`) y el diálogo de cancelar o reprogramar lo advierte. La baja del médico incluye este caso
+   (la excepción de la ventana permite cancelar una cita cuyo paciente ya llegó).
+
+`cita_tiene_visita()` se crea en la migración 5, junto a la matriz que la usa.
+
 ## Contratos hacia H4, H5, H6 y H7
 
 - **H4 (portal):** reservar solo con `public.reservar_cita()` (no un `INSERT` propio) y mapear errores con `traducirError`
@@ -318,8 +484,24 @@ no puede vivir en la aplicación.
   H3 hace transitar (`confirmada` = ingresó o confirmó por teléfono; `no_asistio` lo marca la recepción); para «citas
   afectadas por una baja sin atender» usar la vista `citas_por_reasignar`; reutilizar `TablaAgenda`, `slots_disponibles()` y
   los destinos de `navegacion.ts`. Una cita `atendida` solo es posible desde `confirmada`.
+- **H4 (registro por el portal), añadido:** el paciente que se registra por el portal queda **sin historia**; la abre recepción
+  (D15). Reutilizar `lib/schemas/documento.ts` (DNI, CE y pasaporte; `PROV` no se acepta como entrada) y no crear historias desde
+  el portal.
+- **H6 y H6b (historias y llegada), añadido:** una historia puede no existir todavía: la lectura, la llegada (`registrar_llegada`) y
+  las pantallas tratan «sin historia» como un estado con la acción «Crear historia clínica» de H3 (`abrir_historia_clinica()`),
+  no como un error. La filiación se lee de `pacientes`, en solo lectura. `cita_tiene_visita()` es de H3 y la reemplaza H6b (D16);
+  H6b decide qué hace con una visita cuya cita se cancela (pregunta 8).
+- **H6d (copia de la historia):** el compilado debe clasificar `pacientes_datos_sensibles` (su prueba de cobertura falla con una
+  tabla clínica sin clasificar) y decidir si la copia incluye religión y pertenencia étnica; se propone a H6b adjuntar
+  `registrar_auditoria_sin_contenido()` a esa tabla (D14).
+- **H6i (mecanismos clínicos comunes):** añade dos disparadores `AFTER` sobre `citas` y llama a `reservar_cita()` sin alterarla.
+  H3 se compromete a no cambiar su firma ni su semántica sin coordinarlo; los disparadores de H6i no escriben `citas.estado` (si
+  lo hicieran como dueño de la base, saltarían la matriz de D13, que no actúa sobre el dueño); y `marcar_cita_atendida()` sigue
+  siendo la **única** vía a `atendida` (un `UPDATE` directo da `42501` a todo usuario). `citas_validar_transicion` es `BEFORE` y
+  los de H6i `AFTER`, así que no hay conflicto de orden.
 - **H8:** debe normalizar los Carné de Extranjería a mayúsculas al migrar, igual que el registro, y cargar las citas históricas
-  como dueño de la base (el disparador de transiciones no actúa sobre el dueño).
+  como dueño de la base (el disparador de transiciones no actúa sobre el dueño). Los pacientes sin documento válido entran como
+  `PROV` y sus historias se abren con `abrir_historia_interna()`, no con el disparador retirado.
 
 ## Risks / Trade-offs
 
@@ -350,14 +532,31 @@ no puede vivir en la aplicación.
 - **H2b aún no aplicado** → H3 no empieza (tarea 1.1) hasta que existan sus componentes y utilidades.
 - **Las E2E dependen de los datos de demostración** (médicos y plantillas) → se documenta como requisito y la siembra se amplía
   (tarea 5.4); sin ellos las pruebas se omiten con un aviso, no pasan en falso.
+- **Retirar el disparador de H2 deja pacientes sin historia y rompe lo que lo suponía** (`41_historia_al_registrar`, ayudas y
+  fixtures de pgTAP, la siembra, H4, H6, H6b) → la tarea 1.6 lista de antemano lo que depende de él; la 8.7 lo actualiza a
+  propósito y lo informa; `abrir_historia_interna()` mantiene a la siembra y a H8 sin elevar privilegios de usuario; «sin
+  historia» es un estado explícito de la interfaz. Es un cambio de comportamiento de H2: se confirma con el usuario antes de
+  aplicar (pregunta 14).
+- **`ALTER TYPE … ADD VALUE` y su uso en la misma transacción** → `PAS` y `PROV` van en una migración propia (D1, 6); la
+  restricción que los usa, en la siguiente.
+- **Los datos sensibles se filtran por un camino lateral** (auditoría, búsqueda, registros, copia, correos) → tabla aparte con
+  RLS solo para el administrativo, sin disparador de auditoría de contenido, fuera de `buscarPacientes` y de los esquemas
+  públicos; prueba negativa por rol y una que comprueba que `auditoria` no contiene el valor.
+- **Un paciente con identidad provisional que se duplica después** (el mismo paciente registrado como `PROV` y luego con su DNI) →
+  la búsqueda por apellido previa al registro lo hace visible; unir historias no se resuelve aquí (pregunta 12).
+- **Un correo inventado para poder registrar** (el campo es obligatorio) → pregunta 10; mientras no se responda, el registro exige
+  un correo real.
 
 ## Migration Plan
 
-1. Rama de trabajo con commits por grupo de tareas; las cinco migraciones se aplican en orden a un branch de desarrollo y
+1. Rama de trabajo con commits por grupo de tareas; las siete migraciones se aplican en orden a un branch de desarrollo y
    luego al branch efímero del PR (`neon-branch-pr.yml` corre `migrate up`, pgTAP y concurrencia).
 2. Comprobar antes los solapes de `disponibilidades` (tarea 1.2) y que la suite completa sigue en verde con datos de demostración.
-3. Merge: `migrar-produccion.yml` aplica las migraciones (aditivas: funciones, vista, una restricción y dos disparadores) y
-   después se despliega la aplicación; ninguna migración rompe a la versión anterior de la aplicación.
+3. Merge: `migrar-produccion.yml` aplica las migraciones (aditivas salvo la 7, que retira el disparador `pacientes_crear_historia`; el resto son funciones, una vista, restricciones,
+   columnas nulables, una tabla y disparadores) y
+   después se despliega la aplicación. Salvo la 7, ninguna migración rompe a la versión anterior de la aplicación; hasta que se
+   despliegue «Crear historia clínica», un paciente registrado quedaría sin historia, así que la migración 7 y el despliegue se
+   aplican en la misma ventana.
 4. Sin variables de entorno, roles ni JWKS nuevos. La siembra de demostración ampliada es una acción explícita aparte.
 5. Reversión: no hay marcha atrás destructiva; un defecto se corrige con una migración nueva, nunca restaurando el branch
    principal de Neon. Las funciones se reemplazan con `create or replace` en una migración posterior.
@@ -382,4 +581,28 @@ Se pueden responder después sin cambiar las specs ni el desglose de tareas; los
    distingue mayúsculas; los datos que cargue H8 deben normalizarse igual.
 7. **Documentación a corregir al archivar** (no se edita en este change): ADR-0011 describe `reprogramada_de` «apuntando a la
    nueva» y el esquema lo guarda en la nueva apuntando a la original; ADR-0008 debe listar los códigos nuevos; la tabla de Server
-   Actions de TECH-DESIGN debe añadir `buscarPacientes`, `guardarDisponibilidad`, `crearBloqueo` y los destinos reales de ruta.
+   Actions de TECH-DESIGN debe añadir `buscarPacientes`, `registrarPaciente`, `completarFiliacion`, `crearHistoriaClinica`, `confirmarIdentidadPaciente`,
+   `guardarDisponibilidad`, `crearBloqueo` y los destinos reales de ruta; el requisito «Una carpeta de historia por paciente» de
+   `esquema-rls-pgtap` debe corregirse a la apertura explícita.
+8. **Cita cancelada, reprogramada o reasignada con la visita abierta** (D16). Propuesta por defecto: permitir y avisar («Paciente ya
+   llegó» en la agenda y en el diálogo; recepción cierra la visita, como ya prevé H6b). Alternativas: bloquear mientras haya una
+   visita abierta (choca con la baja del médico, que sí debe poder cancelar) o que la cancelación cierre la visita en la misma
+   operación (exige que H6b exponga esa función). Validar con el usuario y con H6b.
+9. **Qué campos de la filiación son obligatorios para abrir la historia** (D14). Propuesta en la tabla de D14; confirmar con la
+   clínica y con el asesor legal, incluidos el lugar de nacimiento (texto libre o catálogo de ubigeo) y qué escribir cuando el
+   paciente no tiene ocupación.
+10. **`email` obligatorio.** Un paciente sin cita, de urgencia o con número provisional rara vez tiene correo; hoy habría que
+    inventar uno. Propuesta: volverlo opcional (`alter column email drop not null`), lo que afecta a H4 (vinculación por correo)
+    y a H5 (sin correo no hay recordatorio). No se hace sin la decisión del cliente; por defecto sigue obligatorio.
+11. **Religión y pertenencia étnica:** por defecto solo los lee y modifica el administrativo; decidir si el profesional a cargo
+    debe verlos, si la copia de la historia (H6d) los incluye (son datos del titular) y cómo se audita su cambio sin copiar el
+    valor (`registrar_auditoria_sin_contenido()` es de H6b, posterior a este change). Marcado `REVISAR` en D14.
+12. **Unión de historias duplicadas.** Si un paciente `PROV` ya tiene historia y su documento definitivo corresponde a otro
+    paciente, la confirmación se rechaza y nada se une. Decidir si hace falta un flujo de unión (con revisión y auditoría) o se
+    resuelve a mano.
+13. **Formatos del pasaporte y del número provisional.** Propuesta: pasaporte de 6 a 20 caracteres alfanuméricos en mayúsculas;
+    provisional `PROV-` más seis dígitos o más. Confirmar con recepción y con el asesor legal (la NTS los admite junto al DNI y
+    el Carné de Extranjería).
+14. **Efecto de retirar el disparador sobre H4, H6 y H6b.** Ellos suponen que la historia existe desde el registro. Decidir (a) si
+    se acepta la apertura explícita (propuesta) o se conserva el disparador (alternativa a de D15), y (b) si la llegada de H6b
+    exige historia abierta (propuesta: sí, ofreciendo «Crear historia clínica») o puede abrirla.

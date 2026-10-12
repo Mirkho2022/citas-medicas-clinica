@@ -2,6 +2,7 @@
 title: "Technical Design Document — Sistema de Gestión de Citas e Historias Clínicas Electrónicas"
 documento_fuente: "PRD.md"
 fecha: "2026-09-21"
+actualizado: "2026-10-11"
 ---
 
 # Technical Design Document: Sistema de Gestión de Citas e Historias Clínicas Electrónicas
@@ -17,23 +18,50 @@ derivó directamente del PRD (esquema SQL detallado en «Modelo de datos» más 
 > Este documento especifica el **cómo**. El **qué** y el **por qué** están en el PRD; ante
 > cualquier contradicción, manda el PRD.
 
+> **Actualización del 2026-10-11 (PRD del mismo día).** El PRD añadió el perfil «Profesional de la salud» (reemplaza a
+> «Médico»), cinco especialidades, el triaje por enfermería, la atención de pacientes sin cita, las recetas y la copia de
+> la historia al paciente. Convenciones de esta actualización:
+>
+> - **Nombres técnicos.** `medico`, `medicos` y `medico_tiene_paciente()` siguen siendo los nombres **vigentes** del
+>   esquema y del código (H1 y H2). `profesional` es una **propuesta** sujeta a
+>   [ADR-0030](adrs/0030-profesional-de-la-salud.md) (estado Propuesto): donde aparece junto a un nombre vigente se indica
+>   «hoy `medico`, ADR-0030»; si la ADR se rechaza, léase `medico`/`medicos` y la profesión pasa a ser una columna de
+>   `medicos`. En el texto de producto se escribe «profesional».
+> - **«Propuesta».** Marca un diseño que no viene del PRD ni de una ADR aceptada (de las nuevas, solo ADR-0029 lo está).
+>   Los comentarios `REVISAR` (HTML) marcan un supuesto del autor. Ambos se confirman con el usuario antes de construir.
+> - **Dueño del detalle.** Las tablas nuevas se describen aquí a nivel esquemático (columnas clave y RLS en prosa); el
+>   diseño fino, las migraciones y las pruebas viven en el change de OpenSpec de cada hito (ver «Plan de implementación
+>   sugerido»). Ante cualquier diferencia de nombres de columna, manda el change.
+
 ## Resumen
 
-Se construirá una aplicación web multi-rol (administrativo, médico, enfermera, paciente) que
+Se construirá una aplicación web multi-rol (administrativo o recepción, profesional de la salud, enfermera, paciente) que
 reemplaza la gestión actual por Excel/Google Forms (citas) y papel (historias clínicas), con cuatro
 superficies sobre una misma base de datos:
 
 | Superficie | Rol | Función principal |
 |---|---|---|
-| Panel administrativo | Administrativo | Agendar, reprogramar y cancelar citas; registrar pacientes; dashboard operativo |
-| Panel clínico | Médico | Ver agenda propia; registrar y consultar historias clínicas de sus pacientes |
-| Panel de turnos | Enfermera | Consultar turno asignado y médico/servicio correspondiente |
+| Panel administrativo | Administrativo (recepción) | Agendar, reprogramar y cancelar citas; registrar pacientes y abrir su historia con la filiación de la NTS 139; registrar la llegada (con o sin cita); entregar la copia de la historia; dashboard operativo |
+| Panel clínico | Profesional de la salud (hoy rol `medico`, ADR-0030) | Ver agenda propia; registrar y consultar historias clínicas de sus pacientes a cargo (compartidas entre especialidades, salvo Psicología); tomar pacientes derivados; emitir recetas si su profesión puede recetar |
+| Panel de triaje y turnos | Enfermera | Registrar el triaje y derivar al paciente a una especialidad; consultar turno asignado y especialidad con la que trabaja. Sin acceso a historias clínicas |
 | Portal de autoservicio | Paciente | Reservar y cancelar su propia cita; recibir recordatorios por email |
 
+**El paso de un paciente por la clínica** (PRD, 2026-10-11): llega (con o sin cita) → recepción lo registra y abre su
+historia con la filiación mínima de la NTS 139 → la enfermera hace el triaje (signos vitales) y lo deriva a una
+especialidad → un profesional de esa especialidad lo toma y lo atiende, con la historia compartida entre especialidades
+(salvo Psicología) → si corresponde, emite la receta, que se imprime desde el sistema → a solicitud, recepción entrega la
+copia de la historia en 5 días como máximo. El paciente con cita sigue el mismo camino, pero llega con el profesional ya
+a cargo (la cita confirmada le da el acceso, [ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) y no
+necesita derivación.
+
 El diseño se ordena alrededor de dos exigencias del PRD: la doble reserva debe bloquearse a prueba
-de concurrencia, y el acceso a historias clínicas debe aislarse por médico a cargo **en la base de
+de concurrencia, y el acceso a historias clínicas debe aislarse por profesional a cargo **en la base de
 datos** mediante Row Level Security (RLS) de PostgreSQL, no solo en la aplicación — es el riesgo
 principal declarado del proyecto y toda la arquitectura se ordena alrededor de él.
+
+Ese aislamiento tiene una excepción deliberada: la información de Psicología (resultados de tests y notas de sesión) solo
+la ven los psicólogos a cargo, no los demás profesionales a cargo
+([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md), propuesta), y también se impone en la base de datos.
 
 ## Arquitectura de componentes
 
@@ -43,12 +71,12 @@ para mantener el conjunto de ADRs alineado con lo que realmente se va a construi
 
 - **Proyecto Vercel** (Next.js 15 App Router, sin adaptador — Vercel es el target nativo de
   Next.js): sirve las cuatro superficies — portal de autoservicio del paciente, panel
-  administrativo, panel clínico, panel de turnos — bajo un único despliegue. Entra a Postgres
+  administrativo, panel clínico, panel de triaje y turnos — bajo un único despliegue. Entra a Postgres
   como el rol `authenticator` y cambia a `authenticated` en cada petición; RLS es la autoridad de acceso a datos
   ([ADR-0020](adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md)).
 - **Vercel Cron Jobs**: un solo cron diario ejecuta el Route Handler de notificaciones
   (recordatorio 24h y reintentos), usando el rol de Postgres `cron_notificaciones` — sin
-  privilegios sobre `atenciones`/`antecedentes`
+  privilegios sobre `atenciones`/`antecedentes` ni sobre ninguna tabla clínica nueva (triaje, recetas, copias, Psicología)
   ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)).
 - **Clerk**: autenticación, MFA/TOTP de personal, invitaciones, sesión por cookies
   ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)).
@@ -57,9 +85,14 @@ para mantener el conjunto de ADRs alineado con lo que realmente se va a construi
 - **Neon**: PostgreSQL 15+ con RLS, branching (staging) y PITR (backups)
   ([ADR-0021](adrs/0021-base-de-datos-neon.md)).
 - **Vercel Blob**: adjuntos clínicos (escaneos de respaldo), acceso vía URL firmada de corta
-  duración generada tras verificar `medico_tiene_paciente()`
+  duración generada tras verificar `medico_tiene_paciente()` (hoy; `profesional_tiene_paciente()` si se acepta ADR-0030).
+  Hoy solo PDF: admitir imágenes (radiografías, fotos de evolución) es una decisión pendiente (P-15)
   ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)).
 - **Resend**: envío de correo transaccional, detrás de una interfaz de proveedor (sin cambios).
+- **Áreas por rol** (áreas planas fijadas en H1): `/administrativo`, `/profesional` (propuesta de ADR-0030; hoy
+  `/medico`), `/enfermera` (triaje, derivación y turnos) y `/paciente`. Cada área verifica el rol en servidor, pero la
+  autoridad de acceso sigue siendo RLS. Las tablas clínicas nuevas (triaje, recetas, Psicología) no reciben `GRANT` para
+  `cron_notificaciones` ni para `sync_identidad`.
 
 ```
                    Internet
@@ -139,8 +172,15 @@ sistema existente).
 | [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) | Controles de borde: anti-bots y rate limiting | Aceptado |
 | [ADR-0027](adrs/0027-herramienta-de-migraciones.md) | Herramienta de migraciones: node-pg-migrate | Aceptado |
 | [ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md) | Notificaciones: un solo cron diario (plan Hobby) | Aceptado |
+| [ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md) | Datos clínicos por especialidad: plantillas versionadas y datos validados en la base | Aceptado |
+| [ADR-0030](adrs/0030-profesional-de-la-salud.md) | Profesional de la salud: generalizar el rol «médico» | **Propuesto** |
+| [ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) | Aislamiento de la información de Psicología | **Propuesto** |
+| [ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) | Acceso a la historia de pacientes sin cita: derivación | **Propuesto** |
+| [ADR-0033](adrs/0033-visita-del-paciente-llegada-y-estados.md) | Visita del paciente: llegada, estados y quién transiciona | **Propuesto** |
+| [ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) | Emisión de la copia de la historia clínica | **Propuesto** |
+| [ADR-0035](adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) | Recetas: escritura por funciones acotadas, numeración correlativa y lectura de medicamentos | **Propuesto** |
 
-Solo se listan los ADR vigentes — los que describen lo que realmente se va a construir. El diseño
+Solo se listan los ADR vigentes — los que describen lo que realmente se va a construir (más las propuestas 0030–0035, marcadas como tales). El diseño
 pasó antes por un stack distinto (Cloudflare Workers + Supabase, con planes de pago de Vercel para
 el cron); esas decisiones descartadas no se mantienen como ADRs activos, pero siguen accesibles en
 el historial de git (`git log --all -- adrs/ docs/adrs/`) para quien necesite el porqué de un número salteado
@@ -164,6 +204,17 @@ plan de pago) refleja que este proyecto es un MVP académico, no un despliegue d
 clínica. ADR-0023 pasó por su propia revisión: la primera versión proponía un mecanismo casero
 (`SET LOCAL`); la vigente usa la integración nativa de Neon con Clerk (`pg_session_jwt`).
 
+El ADR 0029 (**aceptado** el 2026-10-10) fija el mecanismo de datos clínicos por especialidad: un catálogo de plantillas
+versionadas por migración y un `jsonb` validado en la base, antes de que existan la firma y la huella. Los ADR 0030–0035
+nacen del PRD del 2026-10-11 y están **propuestos**: el 0030 generaliza el rol «médico» a «profesional de la salud»; el
+0031 aísla la información de Psicología con RLS; el 0032 da acceso a la historia de los pacientes sin cita mediante
+derivaciones que un profesional «toma», y modifica el modelo de acceso de
+[ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md); el 0033 introduce la visita del paciente (la llegada, con sus
+estados) de la que cuelgan triaje y derivación; el 0034 fija cómo se emite la copia de la historia sin abrir contenido clínico
+a recepción; y el 0035, cómo se escriben las recetas (funciones acotadas, numeración correlativa) y se leen los medicamentos. Se listan para que el diseño que depende de ellas sea
+trazable, pero tocan el acceso a historias clínicas y el esquema ya en producción: no se implementan sin decisión
+explícita del usuario y revisión con el agente `code-review`.
+
 ## Modelo de datos
 
 ### Extensiones y tipos
@@ -180,6 +231,18 @@ create type tipo_turno          as enum ('manana','tarde','noche');
 create type estado_notificacion as enum ('pendiente','enviada','fallida');
 create type tipo_antecedente    as enum ('personal_patologico','quirurgico','alergico','familiar','habito_nocivo');
 ```
+
+Tipos que el PRD del 2026-10-11 obliga a ampliar (**Propuesta**; cada uno se crea con una migración nueva del hito
+indicado, nunca editando una migración aplicada):
+
+| Tipo | Cambio | Hito |
+|---|---|---|
+| `rol_usuario` | `medico` pasa a `profesional` ([ADR-0030](adrs/0030-profesional-de-la-salud.md)); los demás valores no cambian | H2c |
+| `profesion_salud` (nuevo) | `medico`, `odontologo`, `fisioterapeuta`, `psicologo`, `podologo` | H2c |
+| `tipo_documento` | Se añaden `PAS` (pasaporte) y `PROV` (número correlativo provisional que genera el sistema): la NTS 139, numeral 4.2.23, los admite junto al DNI y el Carné de Extranjería | H3 |
+
+Los estados de las tablas nuevas se modelan como enumeraciones (`estado_visita`, `estado_derivacion`) o como `text` con
+`CHECK`; lo decide el change de cada hito.
 
 ### Identidad y personas
 
@@ -242,6 +305,37 @@ create table enfermeras (
 `pacientes.perfil_id` es nulo a propósito: el administrativo puede registrar a un paciente que
 nunca cree cuenta en el portal. Cuando el paciente se registra, se vincula por
 `(tipo_documento, numero_documento)`.
+
+**Propuestas del PRD del 2026-10-11 para esta sección** (cada una con su hito; los nombres sujetos a
+[ADR-0030](adrs/0030-profesional-de-la-salud.md) siguen la convención de la nota inicial):
+
+- **`profesionales`** (**Propuesta**, ADR-0030; hoy `medicos`; hito H2c, change `profesionales-de-la-salud`). Reemplaza a
+  `medicos`. Columnas clave: `id`, `perfil_id` (único, `on delete restrict`), `profesion` (`profesion_salud`), `colegiatura`
+  (reemplaza a `cmp`, que era la colegiatura médica; único junto con la profesión, porque colegios distintos pueden repetir un
+  número), `especialidad_id` y `activo`. Las especialidades de la clínica son cinco: Medicina general, Odontología,
+  Fisioterapia, Psicología y Podología (los datos de demostración de H2 traen otras, solo sintéticas).
+  - `profesion` es un dato de la base, nunca del cliente: de ella dependen la plantilla clínica
+    ([ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md)), el permiso de recetar (H6c) y el aislamiento de Psicología
+    ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)). Por eso **no se cambia con un `UPDATE`**: el
+    privilegio de actualización no incluye `profesion` y un disparador (`proteger_profesional()`, SQLSTATE `HC010`) lo rechaza
+    aunque alguien ampliara el `GRANT`. Una profesión mal registrada se corrige con una migración revisada, no con una pantalla.
+    La función `profesion_actual()` es el único punto de lectura de la profesión.
+  - El renombre es coherente en todo el esquema: `citas.profesional_id`, `disponibilidades.profesional_id`,
+    `bloqueos_agenda.profesional_id`, `atenciones.profesional_id`, `addendas.profesional_id`, `antecedentes.registrado_por`,
+    `turnos_enfermeria.profesional_id`, `asignaciones_paciente_profesional`, `profesional_actual()` y
+    `profesional_tiene_paciente()`, sin alias de los nombres viejos (ver P-13). Si ADR-0030 se rechaza, la alternativa es
+    conservar `medicos` y añadirle `profesion`.
+  <!-- REVISAR: la coherencia entre `profesion` y `especialidad_id` (p. ej. un psicólogo solo en Psicología) no la fija el PRD; proponer un CHECK o un disparador por migración. -->
+- **Filiación mínima en `pacientes`** (**Propuesta**; el dueño del detalle es `agenda-y-reserva`, H3, ítem 5). Para abrir la
+  historia con el formato de filiación de la NTS 139, `pacientes` gana columnas que hoy no tiene: lugar de nacimiento,
+  estado civil, grado de instrucción, ocupación, domicilio (hoy `direccion`) y, para menores o personas con representante,
+  el responsable y su parentesco; el tipo de documento admite `PAS` y `PROV` (y `pacientes_documento_formato` se amplía a
+  ellos). El documento sigue siendo único: si ya está registrado, no se abre una segunda historia
+  (`pacientes_documento_unico` y `historias_clinicas.paciente_id` único).
+  - El número provisional (`PROV`) lo genera el sistema, nunca el usuario. Al confirmar la identidad, el documento definitivo
+    reemplaza al provisional sobre el mismo `paciente_id`, de modo que la historia no se duplica ni cambia de dueño; el
+    cambio queda en `auditoria`.
+  <!-- REVISAR: la lista exacta de campos del formato de filiación de la NTS 139 no se verificó en la investigación (solo el numeral 4.2.23 sobre la identificación y el art. 22.g del DS 009-2017-SA); la fija `agenda-y-reserva` con el texto de la norma. -->
 
 ### Agenda y citas
 
@@ -420,6 +514,8 @@ simplificación deliberada (ver trade-off en ADR-0016), mitigada por la auditor�
 cargados desde el registro del paciente no son editables desde la historia clínica") se cumple por
 estructura, no por validación: el formulario de historia clínica no tiene esas columnas que
 escribir, así que no existe ruta de código capaz de modificarlas.
+Esa misma separación entre `pacientes` (filiación) y `atenciones` (información clínica) es la que el art. 22.g del
+DS 009-2017-SA pide a los sistemas acreditables (ver P-11); la comprobación formal contra la norma queda pendiente.
 
 Los antecedentes del paciente son datos persistentes del **paciente** (no de una atención puntual)
 y deben ser consultables en tiempo real, por eso viven en su propia tabla en vez de en un campo de
@@ -461,6 +557,21 @@ validación exacta (`CHECK`, trigger o `FOREIGN KEY` funcional sobre el `jsonb`)
 construir el formulario de diagnóstico (hito H6), junto con la carga inicial del catálogo por
 migración de datos (ver [ADR-0014](adrs/0014-catalogo-cie-10.md) para fuente y mecanismo de carga).
 
+**Datos por especialidad** ([ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md), Aceptado el 2026-10-10; detalle en
+`openspec/changes/historias-clinicas/design.md`, D15). No se crea una tabla por especialidad:
+
+- `plantillas_clinicas`: catálogo con una fila inmutable por versión de la plantilla de una especialidad
+  (`especialidad_id`, `version`, `nombre`, `campos` en `jsonb` con los tipos `texto`, `entero`, `decimal`, `opcion`,
+  `si_no` y `fecha`, y `vigente`). Se gestiona **por migración**: solo la lee el profesional (hoy, el médico) y ningún rol
+  de usuario escribe. Cambiar una plantilla es publicar la versión siguiente.
+- `atenciones.plantilla_id` (la versión exacta con que se llenó la atención) y `atenciones.datos_especialidad` (`jsonb`,
+  objeto, vacío por defecto), validados por un disparador de la base (SQLSTATE `HC005`) contra la plantilla vigente de la
+  especialidad del autor, inmutables al firmar y dentro de la huella desde su primera versión. La regla «especialidad del
+  autor» se reescribe sobre `profesionales` si se acepta ADR-0030.
+- H6 entrega el mecanismo y la plantilla de **Medicina general**. Las otras cuatro especialidades añaden su plantilla en
+  H6e–H6h (migración de datos, no de esquema) y, donde la plantilla no basta (odontograma, plan de sesiones, tests con
+  puntaje), tablas propias de su change.
+
 ### Turnos de enfermería
 
 ```sql
@@ -476,6 +587,211 @@ create table turnos_enfermeria (
   check (medico_id is not null or especialidad_id is not null)
 );
 ```
+
+Con el PRD del 2026-10-11 el turno de la enfermera no cambia de estructura (`medico_id`, o `profesional_id` si se acepta
+ADR-0030): ella consulta su turno y con qué especialidad trabaja, que `especialidad_id` ya cubre. El turno no concede
+lectura clínica alguna; lo nuevo que la enfermera escribe es el triaje y la derivación de la sección siguiente.
+
+### Visitas, triaje y derivaciones
+
+> **Propuesta** — hito H6b, change `triaje-y-derivacion` (su `design.md` fija el detalle y este resumen lo sigue);
+> [ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) está Propuesta. Esquema a nivel de columnas clave. Toda
+> tabla de esta sección nace con RLS activada y con su prueba pgTAP negativa por rol.
+
+Hoy la unidad de la agenda es la cita; la **llegada** del paciente (con o sin cita) no existe en el modelo. El PRD atiende
+a ambos y exige medir la espera y el triaje previo, así que se añaden tres tablas. **Ningún rol de usuario las escribe
+directamente**: cada operación es una función `SECURITY DEFINER` acotada.
+
+| Tabla | Columnas clave |
+|---|---|
+| `visitas` | `paciente_id`, `cita_id` (nulo = sin cita; una visita por cita), `estado` (`llegada`, `con_triaje`, `derivada`, `en_atencion`, `atendida`, `abandonada`, `anulada`), `profesional_id` (quien la atiende ahora), `especialidad_destino_id` (mientras está derivada), `llegada_en`, `atencion_iniciada_en`, `finalizada_en` (sellados por la base), `registrada_por` |
+| `triajes` | `visita_id` y `paciente_id` (clave foránea compuesta con la visita, como `atenciones`), `presion_sistolica`, `presion_diastolica`, `frecuencia_cardiaca`, `frecuencia_respiratoria`, `temperatura_c`, `saturacion_oxigeno`, `peso_kg`, `talla_cm`, `imc` (columna generada), `registrado_por`, `registrado_en` |
+| `derivaciones` | `visita_id` y `paciente_id`, `especialidad_destino_id`, `origen` (`enfermera` o `profesional`), `creada_por`, `vence_en`, `motivo` (opcional, corto), `estado` (`pendiente`, `tomada`, `cerrada`, `vencida`, `anulada`), `tomada_por`, `tomada_en`, `derivacion_previa_id` |
+
+- **Visita** ([ADR-0033](adrs/0033-visita-del-paciente-llegada-y-estados.md)). Una sola en curso por paciente, con una máquina de estados cerrada (una operación por transición) que valida
+  la base. **No se acopla a la cita**: llegar no cambia `citas.estado` (es de H3) y el paciente sin cita no tiene fila en
+  `citas`, así que no entra en el 75 % de autogestión. Una visita de un día anterior se cierra de forma perezosa, sin un cron
+  nuevo ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md) limita el proyecto a uno diario). El vínculo con la
+  atención no es una columna nueva de `atenciones`, para no reabrir la estructura firmada y con huella de H6 (D15 de
+  `historias-clinicas`). Recepción registra antes al paciente y abre su historia (H3, ítem 5); la llegada toma a un paciente ya
+  registrado.
+- **Triaje.** Las siete mediciones del PRD, cada una con un `CHECK` de rango de plausibilidad; el IMC (`peso_kg / (talla_cm /
+  100)^2`) es una columna generada, nunca la escribe el cliente. Es dato clínico pero no una atención: no se firma, **no se
+  edita** y puede haber varios por visita (corregir es registrar otro; vale el más reciente). Peso y talla son opcionales como
+  par, para quien no puede ponerse de pie.
+  <!-- REVISAR: los rangos de plausibilidad y que peso y talla sean opcionales como par son propuestas del change `triaje-y-derivacion`; el PRD lista siete mediciones y los rangos los valida el personal clínico. -->
+- **Derivación** ([ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md)). El destino es una **especialidad**,
+  nunca un profesional (la tabla no tiene columna para indicarlo). La enfermera deriva visitas sin cita que ya tienen triaje;
+  un profesional que tiene al paciente en atención puede derivarlo a **otra** especialidad. Crear una derivación **no da
+  acceso a nadie**, tampoco a la enfermera. `vence_en` es el fin del día de Lima y se evalúa al leer, sin cron. Incluye el estado
+  `anulada` (corregir un error antes de que alguien tome al paciente), que ya recoge la ADR-0032.
+- **Tomar al paciente.** `tomar_paciente(visita)` (`SECURITY DEFINER`, `search_path` vacío) bloquea la fila de la visita, de
+  modo que si dos profesionales de la especialidad de destino lo intentan a la vez gana uno y el otro recibe un error propio de
+  H6b (la exclusividad la da la base, como en la doble reserva). Marca la derivación `tomada` y la visita `en_atencion`, y un
+  disparador inserta la asignación en `asignaciones_paciente_profesional` (append-only, motivo `derivacion:<id>`, vigencia
+  acotada). Si el paciente tiene cita, la toma el profesional de la cita y **no** crea una asignación nueva (la cita confirmada
+  ya la dio, [ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)).
+  <!-- REVISAR: ADR-0032 no fija la vigencia de la asignación por derivación. El change propone 7 días de forma provisional (una sola función a cambiar); lo decide el usuario con la clínica y, por ser acceso a datos de salud, conviene llevarlo al asesor. -->
+
+**RLS (Propuesta, siguiendo el change).**
+
+- **Escritura:** ningún `GRANT` de `INSERT`, `UPDATE` ni `DELETE` a ningún rol de usuario ni a `anonymous`,
+  `cron_notificaciones` o `sync_identidad`; solo las funciones `registrar_llegada`, `cerrar_visita`, `registrar_triaje`,
+  `derivar_paciente`, `anular_derivacion`, `tomar_paciente` y `terminar_atencion`, cada una con un guarda de rol y de
+  actividad como primera sentencia y la identidad tomada del token, nunca de un parámetro.
+- **Lectura directa:** el administrativo lee `visitas` (datos logísticos), pero no `triajes` ni `derivaciones`; el profesional
+  lee las visitas que atiende, los `triajes` de los pacientes que tiene a cargo (`profesional_tiene_paciente()`) y las
+  derivaciones que creó o tomó.
+- **La enfermera no tiene política sobre ninguna tabla**, ni siquiera `pacientes`: un `SELECT` de RLS expondría todas sus
+  columnas. Triar con las funciones `visitas_para_triaje()` (visitas de hoy: nombre, documento, fecha de nacimiento, estado y hora
+  de llegada, y nada de filiación ni contacto) y `triajes_de_la_visita()` (mientras la visita no ha sido tomada). Una prueba
+  fija la lista exacta de columnas devueltas.
+- **Cola del profesional:** `derivaciones_pendientes()` devuelve, de su propia especialidad, solo quién espera y desde cuándo
+  (nombre, llegada, origen), sin documento, motivo ni triaje: aún no tiene al paciente a cargo y la derivación no da acceso.
+- `asignaciones_paciente_profesional`: la inserción por derivación solo ocurre en el disparador de «tomar»; la política de
+  inserción del administrativo rechaza también el prefijo `derivacion:`, además de `cita:`.
+
+### Recetas
+
+> **Propuesta** — hito H6c, change `recetas-medicas` y [ADR-0035](adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md)
+> (su `design.md` fija el detalle y este resumen lo sigue). Esquema a nivel de columnas clave. Toda tabla nace con RLS y su prueba pgTAP negativa por rol.
+
+| Tabla | Columnas clave | Nota |
+|---|---|---|
+| `profesiones_que_recetan` | `profesion` (clave), `puede_recetar`, `confirmada`, `referencia` | Catálogo gestionado **por migración**; ningún rol de usuario lo lee ni lo escribe. Semilla: médico sí y psicólogo no (confirmados por el usuario); odontólogo, fisioterapeuta y podólogo en «no» y sin confirmar hasta que se decida. Una profesión sin confirmar nunca queda autorizada |
+| `recetas` | `id` (lo aporta el formulario: idempotencia), `numero` (correlativo único), `paciente_id`, `atencion_id` (opcional), `profesional_id` (emisor, de la sesión), `reemplaza_a`, instantánea del emisor (nombre, colegiatura, profesión y especialidad), `establecimiento`, `lugar_emision`, `emitida_en`, `valida_hasta`, `indicaciones_generales`, `estado` (`emitida` o `anulada`), `motivo_anulacion`, `anulada_por`, `anulada_en`, `huella` | Datos estructurados; la hoja impresa se genera de ellos |
+| `receta_items` | `receta_id`, `orden` (1 a 8), `dci` (denominación común, obligatoria), `nombre_comercial`, `concentracion`, `forma_farmaceutica`, `via`, `dosis_por_toma`, `frecuencia`, `duracion_dias`, `cantidad_total`, `indicaciones` | Un ítem por medicamento; inmutable |
+| `impresiones_receta` | `receta_id`, `secuencia`, `impreso_por`, `impreso_en` | Solo-agregar; la primera impresión es «Original» y las siguientes «Duplicado» |
+
+- **Solo receta común impresa.** La plantilla es una hoja de la aplicación con hoja de estilos de impresión sobre los datos
+  guardados, con espacio para firma y sello manuscritos: no se almacena un PDF ni hay firma digital de receta ni receta
+  especial (fuera de alcance). La receta no copia la filiación del paciente (el DS 009-2017-SA, art. 22.g, pide separarla de la
+  información clínica): nombre, documento y edad se leen de `pacientes` al imprimir.
+  <!-- REVISAR: contenido mínimo de la receta según el DS 014-2011-SA, art. 56 (conocido solo por Saniape, nivel C de la investigación) y plazo de validez de la receta (no se conoce de ninguna norma); validar con el asesor. -->
+- **Emisión atómica e inmutable.** Ningún rol de usuario escribe las tablas: `emitir_receta()` (`SECURITY DEFINER`) valida rol,
+  profesión, paciente a cargo y contenido, fija número, fecha y emisor con el reloj y la base del servidor, y guarda cabecera,
+  ítems y huella en una sola transacción; llamarla dos veces con el mismo `id` devuelve la misma receta. Una receta con datos
+  incompletos no se emite ni se imprime (la base rechaza también los campos vacíos o con solo caracteres invisibles). Una receta
+  emitida no se edita ni se borra: `anular_receta()` la anula, solo su emisor y con motivo, y se emite otra que la reemplaza,
+  en un solo paso si se desea. Errores propios `HC030`–`HC036`.
+- **Numeración correlativa, sin huecos y a prueba de concurrencia.** El número se toma dentro de la transacción de emisión con
+  un bloqueo consultivo de transacción: una emisión que falla no consume número, y la anulada conserva el suyo.
+- **Solo quien puede recetar.** `profesional_puede_recetar()` contrasta `profesion_actual()` (leída de `profesionales`, no del
+  token) con el catálogo; un profesional sin permiso no emite ni por consulta directa. Solo el emisor imprime
+  (`registrar_impresion_receta()`), y solo recetas emitidas.
+- **Medicamentos del paciente.** La vista `medicamentos_vigentes_del_paciente` (`security_invoker`) entrega los medicamentos
+  de las recetas emitidas cuyo tratamiento sigue vigente (fecha de emisión más la duración, con un día de margen) a todo
+  profesional que tenga al paciente a cargo, psicólogos incluidos, y a nadie más; solo depende de `recetas` y `receta_items` y no
+  expone nada de Psicología. Se muestra antes de recetar y **sin alertas automáticas de interacción**: el sistema muestra y el
+  profesional decide (ver P-7).
+- **RLS (Propuesta, siguiendo el change).** Leen `recetas` y `receta_items` los profesionales que tienen al paciente a cargo, de
+  cualquier profesión (historia compartida: ven las de sus colegas); `impresiones_receta`, solo el emisor. No las leen el
+  administrativo (salvo la copia), la enfermera ni el paciente, que recibe el papel. Sin `GRANT` para `anonymous`,
+  `cron_notificaciones` ni `sync_identidad`. Cada lectura se registra en `accesos_historia` (tipos `receta` y `medicamentos`) en
+  la misma transacción, y la auditoría de escritura no copia contenido.
+- **Indicador del 90 %.** «Emitidas e impresas» se mide con `impresiones_receta`.
+
+### Solicitudes de copia de la historia
+
+> **Propuesta** — hito H6d, change `copia-de-historia-clinica` y [ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md)
+> (su `design.md` fija el detalle y este resumen lo sigue). La
+> NTS 139 (4.2.14 y literal h) exige entregar la copia al paciente en máximo 5 días (verificado en la
+> [investigación](investigacion-marco-legal-y-saniape.md), sección 3).
+
+`solicitudes_copia_historia` (RLS activada, sin `UPDATE` ni `DELETE` para ningún rol de usuario). Columnas clave: `numero`
+(correlativo visible, el **folio** de la copia), `paciente_id`, el solicitante (`solicitante_tipo`: `paciente` o
+`representante_legal`, y el change propone además `autoridad`; nombres, tipo y número de documento, vínculo), `registrada_por`,
+`solicitada_en` y `vence_en` (fijados por la base), la verificación (`verificada_por`, `verificada_en`, método de identidad,
+acreditación de la representación), el rechazo (`rechazada_por`, motivo) y la emisión (`generaciones`, huella del contenido,
+`emitida_por`, `emitida_en`, motivo de la demora si fue tarde). Estados almacenados: `solicitada` → `verificada` → `emitida`, y
+`rechazada`; **`vencida` no se almacena**: es una condición derivada (abierta y pasada de `vence_en`), porque un estado
+almacenado exigiría un cron que el plan Hobby no permite.
+<!-- REVISAR: la NTS 139 dice «máximo 5 días»; no se verificó si son hábiles o calendario. El change cuenta días calendario desde el día de la solicitud (el criterio más estricto) mediante una función reemplazable. -->
+
+- **Quién y cómo.** Recepción registra la solicitud, **verifica la identidad** del solicitante en persona con el documento
+  original (el paciente, o su representante legal con su acreditación) y registra quién la emite. Una persona menor de edad no
+  la pide por sí misma: la solicita su representante. Si la identidad no se verifica o el representante no acredita serlo, la
+  solicitud pasa a `rechazada` con motivo y **queda registrada**: no se borra.
+  <!-- REVISAR: se supone una solicitud presencial en recepción (el PRD no incluye pedirla desde el portal); quién puede solicitar (herederos, autoridades) y qué acredita la representación lo decide el asesor. -->
+- **Contenido.** La copia incluye filiación y número de historia, antecedentes, atenciones **firmadas** y sus addendas,
+  triajes, recetas, las secciones de las especialidades, la información de Psicología (decisión del usuario) y los adjuntos
+  vigentes; no entran los borradores sin firmar, y la copia declara qué excluye. Una prueba de cobertura (tarea 3.4 del change)
+  falla si se crea una tabla de `public` que el compilado no menciona ni figura en su lista de exclusiones con su razón: toda
+  tabla clínica nueva, incluidas las de H6i y las de las especialidades, se clasifica y aporta su sección.
+- **Cómo se produce sin abrir la historia al administrativo.** El administrativo no lee contenido clínico, y un no psicólogo no
+  puede leer Psicología. **Propuesta del change (la recomendada entre cuatro alternativas):** la función
+  `compilar_copia_historia()` (`SECURITY DEFINER`, solo administrativo, solicitud verificada, a lo sumo 3 generaciones)
+  inserta el registro de acceso (`accesos_historia`, tipo `copia`) en la misma transacción y entrega el contenido **solo al
+  servidor**, que arma el documento en memoria; recepción lo imprime frente al solicitante, en sobre cerrado, y
+  `confirmar_entrega_copia()` cierra la solicitud. Ninguna pantalla muestra contenido clínico; el documento no se guarda en
+  Blob. El límite de la garantía es que quien tiene el papel puede leerlo.
+  <!-- REVISAR: el usuario debe aceptar que el documento impreso transite por el navegador y la impresora de recepción (ver P-16); si no, habría que enmendar el PRD (acceso del paciente por cuenta propia). El doble control y el aviso al paciente son endurecimientos opcionales del change. -->
+- **Plazo.** `app/administrativo/copias-historia/` lista las solicitudes abiertas por vencimiento («Vence en 3 días»,
+  «Vencida hace 2 días»), sin gráficos ni cron; sirve al indicador del 100 % de solicitudes entregadas en 5 días o menos.
+- **Autenticación de la copia.** Folio y «Página n de N» en cada página, huella del contenido y sello del sistema detrás de
+  una interfaz reemplazable (como `ProveedorFirma`, P-5). Ninguna pantalla afirma que cumple la NTS 139: que un sello del
+  sistema baste como «copia autenticada» lo decide el asesor.
+- **RLS (Propuesta, siguiendo el change).** `SELECT` e `INSERT` solo del administrativo; profesional, enfermera y paciente no la
+  leen, ni siquiera el titular: no hay portal para esto.
+
+### Información de Psicología
+
+> **Propuesta** — [ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) está Propuesta. Las tablas de Psicología
+> (evaluación estructurada, tests con puntaje, notas de sesión, sesiones recurrentes) son del change
+> `especialidad-psicologia` (H6g), aún no escrito; aquí solo se describe cómo se aíslan.
+
+- **Categoría restringida, impuesta en la base.** Toda tabla de Psicología lleva `paciente_id` y el profesional autor, nace con
+  RLS y tiene una única política de lectura y escritura: `psicologo_tiene_paciente(paciente_id)` (nombre propuesto), es decir,
+  rol profesional, profesión `psicologo` (de `profesionales.profesion`, nunca del token), activo y con el paciente a cargo. No
+  hay política para el administrativo, la enfermera, el paciente, los demás profesionales a cargo, `anonymous`,
+  `cron_notificaciones` ni `sync_identidad`. Abrir la dirección de la pantalla de un tercero devuelve «no existe» (404), sin
+  confirmar la existencia.
+- **Los tests y las sesiones de Psicología** usan los mecanismos comunes de H6i (aplicaciones de instrumentos con
+  `area = psicologia` y planes de sesiones de un psicólogo): heredan esta misma restricción y no abren una vía paralela.
+- **Los medicamentos no pasan por aquí.** Salen de `recetas`, que Psicología no emite, y son visibles para todo profesional a
+  cargo: la excepción no los filtra.
+- **La atención genérica del psicólogo.** `atenciones` es legible por todo profesional a cargo; si un psicólogo escribe allí
+  su motivo, examen o diagnóstico, esa información dejaría de estar reservada. **Propuesta:** la política de lectura de
+  `atenciones` y `addendas` oculta las de autor psicólogo a quien no sea psicólogo a cargo (defensa en profundidad, con una
+  función `SECURITY DEFINER` sobre la profesión del autor). Lo decide `especialidad-psicologia`.
+  <!-- REVISAR: el PRD fija qué es reservado (resultados y notas de sesión) pero no si el resto de la atención de un psicólogo también lo es; los diagnósticos CIE-10 de un psicólogo (códigos F) caen en la misma duda. -->
+- **Lo que otros changes ya respetan.** Una derivación hecha por un psicólogo no lleva texto libre (H6b, D10); la copia al
+  paciente sí incluye Psicología tras verificar la identidad (H6d); los medicamentos se muestran sin Psicología (H6c).
+- **Adjuntos y auditoría.** Si Psicología admite adjuntos, la clave del archivo se obtiene solo de una fila legible por el
+  psicólogo a cargo (mismo patrón que `adjuntos_historia`). Cada lectura registra su acceso y la auditoría de escritura usa
+  `registrar_auditoria_sin_contenido()` (H6b), que no vuelca el contenido de estas tablas.
+- **Pruebas.** Prueba pgTAP negativa **por rol y por profesión** (el médico, el odontólogo, el fisioterapeuta y el podólogo
+  a cargo no leen; un psicólogo sin el paciente a cargo, tampoco), verificación por mutación y revisión con `code-review`.
+  Las reglas de salud mental y el caso de emergencia se llevan al asesor legal (P-14).
+
+### Mecanismos comunes de las especialidades
+
+> **Propuesta** — hito H6i, change `mecanismos-clinicos-comunes` (aún por escribir; se construye antes que H6e a H6h). Aquí
+> solo se anota lo que ya fija la actualización del PRD; el diseño fino será del change.
+
+Varias especialidades necesitan lo mismo, así que se construye una vez y cada una lo **usa** con su propio catálogo de
+protocolos o de instrumentos, sin redefinirlo:
+
+- **Planes de sesiones** (`planes_de_sesiones`, `sesiones_del_plan`): un plan de un paciente con un profesional (descripción o
+  protocolo, total de sesiones, frecuencia en días, vigencia y estado `activo`, `completado` o `cancelado`) que se apoya en
+  las **citas** de H3 sin reemplazarlas —cada sesión es una cita o queda por agendar— y lleva el **contador de sesiones
+  restantes**. Sin cobros ni saldos en dinero. Cubre la sesión a la que el paciente no asiste, la reprogramada, el paciente
+  que abandona y el plan con sesiones recurrentes programadas solas. Lo usan el plan de sesiones de Fisioterapia, el plan de
+  controles y los protocolos por sesiones de Podología y las sesiones recurrentes de Psicología.
+  <!-- REVISAR: «programadas solas» no debe exigir un cron nuevo (ADR-0028 limita el proyecto a uno diario); H6i propone (D9) que la base proponga la serie y que recepción la confirme, una transacción por sesión, porque el profesional no crea citas en H3 y no hay cron nuevo; a confirmar con el usuario. -->
+- **Instrumentos de evaluación con puntaje** (`instrumentos_evaluacion`, `aplicaciones_instrumento`): catálogo gestionado
+  **por migración** (clave, nombre, ítems, reglas de puntaje, interpretación, `area` —`psicologia`, `fisioterapia`…— y
+  `uso_libre`) y aplicaciones con las respuestas y un puntaje **calculado en el servidor y en la base**. El profesional puede
+  ajustar la interpretación, no el puntaje. Solo instrumentos de uso libre. Lo usan los tests de Psicología y el test
+  funcional de Fisioterapia.
+  <!-- REVISAR: las licencias de los instrumentos no están verificadas; «de uso libre» es la condición del PRD, no una comprobación hecha (ver P-18). -->
+- **Visibilidad** ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)). Lo de `area = psicologia` (las
+  aplicaciones de sus tests y los planes de sesiones de un psicólogo) es información restringida: solo lo lee y escribe un
+  psicólogo a cargo. Lo de las demás áreas lo lee todo profesional a cargo y lo escribe solo un profesional de la profesión
+  que corresponde (`profesion_actual()`).
+- **Reglas comunes.** Estas tablas nacen con RLS y su prueba pgTAP negativa por rol y por profesión (pruebas 80–81, SQLSTATE
+  `HC090`–`HC099`), reutilizan `registrar_auditoria_sin_contenido()` de H6b, registran cada lectura de contenido clínico y se
+  clasifican en el compilado de la copia (H6d, tarea 3.4).
 
 ### Notificaciones y auditoría
 
@@ -524,9 +840,16 @@ create table accesos_historia (
 create index accesos_historia_paciente_idx on accesos_historia (paciente_id, creado_en desc);
 ```
 
-El registro de accesos de lectura no es opcional: sin él, "un médico no puede acceder a historias
+El registro de accesos de lectura no es opcional: sin él, "un profesional no puede acceder a historias
 de pacientes que no tiene a cargo" es una afirmación que nadie puede verificar tras un incidente. Se
 escribe desde la Server Action que abre una historia clínica.
+
+**Propuesta (PRD del 2026-10-11):** el mismo registro cubre las lecturas de las tablas nuevas —triaje, recetas y
+medicamentos, Psicología y la generación de la copia— con su propio tipo de acceso (la columna `tipo_acceso` la introduce H6,
+D6 de `historias-clinicas`; H6c y H6d la amplían). Una lectura de Psicología deja siempre su rastro, y la auditoría de
+escritura de las tablas clínicas nuevas usa `registrar_auditoria_sin_contenido()` (creada por H6b y reutilizada por los demás
+changes, para no pisar la lista cerrada de `registrar_auditoria()`), de modo que no vuelca contenido, igual que ya hace H2 con
+las suyas.
 
 ## Seguridad y control de acceso
 
@@ -569,6 +892,12 @@ referencia — de ahí las funciones de resolución de «Funciones de apoyo».
 Consecuencia operativa: un cambio de rol **no surte efecto hasta que la sesión de Clerk se refresca**. Al
 desactivar o degradar a un usuario hay que revocar sus sesiones activas vía la API de Clerk
 (`banUser`/revocar sesiones), no solo actualizar la fila en `perfiles`.
+
+El renombre `medico` → `profesional` (ADR-0030, **Propuesta**) es un cambio de rol de todo el personal clínico a la vez, y
+Clerk, la aplicación y la base cambian por separado. H2c lo resuelve con una sola migración atómica (sin alias de los nombres
+viejos), con una tolerancia transitoria que hace que `rol_actual()` trate el valor `medico` del token como `profesional`, y
+con un script que actualiza el metadato de cada usuario de Clerk; cuando no queda ninguno, otra migración restituye la
+función estricta (ver P-13).
 
 ### Funciones de apoyo
 
@@ -614,6 +943,21 @@ as $$
 $$;
 ```
 
+Funciones de apoyo que añade el PRD del 2026-10-11 (**Propuesta**; todas siguen la regla de esta sección:
+`SECURITY DEFINER` con `search_path` vacío cuando leen `auth.*` o cruzan RLS, y `EXECUTE` solo para quien corresponde):
+
+| Función | Qué hace | Hito | Estado |
+|---|---|---|---|
+| `profesional_actual()`, `profesional_tiene_paciente(p_paciente)` | Reemplazan a `medico_actual()` y `medico_tiene_paciente()`: misma fuente (`asignaciones_paciente_profesional` vigente, fechas de Lima, profesional activo) | H2c | Propuesta (ADR-0030) |
+| `profesion_actual()` | La profesión del profesional autenticado, leída de `profesionales`; único punto de lectura de la profesión | H2c | Propuesta (ADR-0030) |
+| `psicologo_tiene_paciente(p_paciente)` | `profesional_tiene_paciente()` **y** `profesion = 'psicologo'` (nombre propuesto) | H6g | Propuesta (ADR-0031) |
+| `profesional_puede_recetar()` | La profesión del profesional actual figura como autorizada en `profesiones_que_recetan` | H6c | Propuesta |
+| `emitir_receta()`, `anular_receta()`, `registrar_impresion_receta()` | Únicas vías de escritura de las recetas y sus impresiones: validan rol, profesión, paciente a cargo, autoría y contenido; `insertar_receta()` es interna y numera bajo un bloqueo consultivo | H6c | Propuesta |
+| `registrar_llegada()`, `registrar_triaje()`, `derivar_paciente()`, `anular_derivacion()`, `tomar_paciente(p_visita)`, `terminar_atencion()`, `cerrar_visita()` | Únicas vías de escritura de visitas, triajes y derivaciones; «tomar» bloquea la fila y concede la asignación por disparador | H6b | Propuesta (ADR-0032) |
+| `visitas_para_triaje()`, `triajes_de_la_visita()`, `derivaciones_pendientes()` | Lecturas con lista blanca de columnas para la enfermera y para la cola del profesional; lanzan `42501` a quien no es del rol | H6b | Propuesta |
+| `compilar_copia_historia()`, `confirmar_entrega_copia()` y las de verificar o rechazar la solicitud | Únicas vías de la copia; la primera es la **única** por la que el administrativo obtiene contenido clínico | H6d | Propuesta |
+| Funciones de los planes de sesiones y de los instrumentos | Escrituras acotadas y puntaje calculado en la base; las define el change | H6i | Propuesta |
+
 ### Políticas RLS
 
 RLS se activa en **todas** las tablas del esquema `public`, sin excepción (incluida la tabla de control de
@@ -651,6 +995,27 @@ de magnitud.
 `antecedentes`, `addendas` e `historias_clinicas` siguen el mismo patrón que `atenciones` (solo el médico a cargo;
 ver [ADR-0015](adrs/0015-modelo-de-antecedentes-del-paciente.md)). La addenda solo procede sobre una atención
 **firmada** y con la autoría del propio médico.
+
+**Cómo cambian las políticas con el PRD del 2026-10-11** (**Propuesta**; ninguna se implementa sin aceptar su ADR, sin
+revisión con `code-review` y sin verificación por mutación de las pruebas negativas):
+
+- **Rol y función central** ([ADR-0030](adrs/0030-profesional-de-la-salud.md)): en `atenciones`, `addendas`, `antecedentes`,
+  `historias_clinicas` y `citas`, `rol_actual() = 'medico'` pasa a `'profesional'` y `medico_actual()` /
+  `medico_tiene_paciente()` a `profesional_actual()` / `profesional_tiene_paciente()`. Es un cambio de nombres, no de lógica:
+  H2c lo demuestra con una instantánea normalizada de las políticas antes y después.
+- **Psicología** ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)): lo reservado exige además
+  `psicologo_tiene_paciente(paciente_id)`, y las tablas de Psicología solo tienen esa política. Las atenciones de autor
+  psicólogo se tratan igual (ver «Información de Psicología»); las de los demás profesionales siguen visibles para todo
+  profesional a cargo.
+- **Asignaciones** ([ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md)): `asignaciones_paciente_profesional`
+  sigue siendo la **única** fuente de acceso y sigue siendo append-only. Una asignación nace de una cita confirmada
+  (disparador), de la asignación manual del administrativo —cuya política de inserción rechaza los motivos `cita:` y
+  `derivacion:`— o del disparador de «tomar». Ningún rol inserta por su cuenta una asignación por derivación.
+- **Visitas, triajes y derivaciones** (H6b): sin escritura directa para ningún rol de usuario; lectura del triaje solo por el
+  profesional a cargo. La enfermera no tiene política `SELECT` sobre `pacientes` ni sobre ninguna tabla clínica.
+- **Recetas** (H6c): sin escritura directa; `emitir_receta()` exige profesión autorizada, autoría propia y paciente a cargo; la lectura es la de `atenciones` (cualquier profesión a cargo) y la vista de medicamentos es `security_invoker`, de modo que no abre filas que las tablas no dan.
+- **Copia** (H6d): el administrativo no gana `SELECT` clínico; la única excepción a la regla «el administrativo NO lee
+  contenido clínico. Nunca.» del bloque anterior es la función `compilar_copia_historia()`, acotada y auditada (ver P-16).
 
 ```sql
 alter table citas enable row level security;
@@ -700,6 +1065,45 @@ roles son supuestos conservadores sujetos a revisión, ver `design.md` de H2, D3
 | `accesos_historia` | lee | inserta los propios | — | — |
 | `cie10` | — (solo migración de datos) | lee | lee | lee |
 
+**Matriz de acceso objetivo del PRD del 2026-10-11** (**Propuesta**; solo los cambios y las tablas nuevas respecto de la
+matriz de H2, que sigue vigente para todo lo que no se menciona aquí; «Profesional» es hoy el rol `medico`; todo lo que no
+figura está denegado; «por función» = solo con la función acotada indicada en «Funciones de apoyo»):
+
+| Tabla | Administrativo (recepción) | Profesional | Enfermera | Paciente |
+|---|---|---|---|---|
+| `pacientes` (con filiación) | lee, registra, corrige y completa la filiación | lee con cita vigente o asignación vigente (sin cambio) | no lee la tabla; ve nombre, documento, fecha de nacimiento y hora de llegada de las visitas del día por función | lee el propio |
+| `profesionales` (hoy `medicos`) | gestiona; la profesión no se cambia | lee | lee | lee |
+| `historias_clinicas`, `atenciones`, `addendas`, `antecedentes` | — (salvo la generación de la copia, por función) | lee y registra solo con el paciente a cargo; **lo de Psicología, solo el psicólogo a cargo** | — | — |
+| `plantillas_clinicas` | — | lee | — | — |
+| `asignaciones_paciente_profesional` | lee e inserta la manual (motivo con contenido y sin prefijo `cita:` ni `derivacion:`) | lee las suyas; la de derivación la crea el disparador de «tomar» | — | — |
+| `visitas` | lee todas; crea con `registrar_llegada()` | lee las que atiende | solo por función, las del día | — |
+| `triajes` | — | lee los de sus pacientes a cargo | escribe con `registrar_triaje()`; lee los de visitas aún sin tomar por función | — |
+| `derivaciones` | — | lee las que creó o tomó; crea con `derivar_paciente()`; ve la cola de su especialidad por función y toma | crea con `derivar_paciente()`; no lee | — |
+| `profesiones_que_recetan` | — | — | — | — |
+| `recetas`, `receta_items` | — (salvo la copia) | lee las de sus pacientes a cargo; emite y anula las propias si su profesión puede recetar | — | — |
+| `impresiones_receta` | — | el emisor lee las suyas y registra la impresión | — | — |
+| `solicitudes_copia_historia` | lee e inserta; el resto de transiciones, por función | — | — | — |
+| Tablas de Psicología (H6g) y lo de `area = psicologia` de H6i | — | solo el psicólogo a cargo | — | — |
+| Planes de sesiones e instrumentos de las demás áreas (H6i), y tablas de las otras especialidades (H6e, H6f, H6h) | — | lee todo profesional a cargo; escribe solo un profesional de la profesión que corresponde | — | — |
+
+**Casos negativos que cada tabla nueva debe probar** (regla de [CLAUDE.md](../CLAUDE.md): RLS activada y prueba pgTAP
+negativa por rol —administrativo, profesional a cargo, otro profesional, enfermera, paciente, sin rol, `anonymous`,
+`cron_notificaciones` y `sync_identidad`—; números de prueba sugeridos por hito, sin chocar con los ya usados):
+
+| Tabla (hito, prueba) | Quién sí | Casos negativos mínimos |
+|---|---|---|
+| `profesionales` (H2c, 63–65) | administrativo gestiona; los demás leen | enfermera, paciente y `anonymous` no escriben; nadie cambia `profesion` con `UPDATE`; `sync_identidad` y `cron_notificaciones` sin acceso; la suite de acceso a historias pasa completa con el rol `profesional` |
+| `plantillas_clinicas` (H6, 62) | profesional lee | administrativo, enfermera, paciente, `anonymous`, `cron_notificaciones` y `sync_identidad` no leen; nadie escribe |
+| `visitas` (H6b, 66–68) | administrativo lee; profesional lee las que atiende | paciente, `anonymous`, sin rol, `cron_notificaciones` y `sync_identidad` no ven; un profesional que no la atiende no la ve; ningún rol de usuario escribe la tabla directamente |
+| `triajes` (H6b) | profesional a cargo lee | administrativo y paciente no leen; otro profesional no lee; la enfermera con consulta directa recibe cero filas y solo ve lo que devuelve su función; nadie edita ni borra |
+| `derivaciones` (H6b) | profesional que la creó o tomó lee | administrativo, enfermera y paciente no leen; un profesional de otra especialidad no toma; la enfermera no puede indicar un profesional; una derivación `pendiente` no da lectura de `atenciones` ni de `historias_clinicas`; de dos tomas simultáneas prospera una |
+| `asignaciones_paciente_profesional` (H6b) | disparador de «tomar»; administrativo inserta la manual | el administrativo no inserta motivos `cita:` ni `derivacion:`; un profesional no inserta por su cuenta |
+| `profesiones_que_recetan`, `recetas`, `receta_items`, `impresiones_receta` (H6c, 70–72) | profesional a cargo lee las recetas; el emisor, sus impresiones | nadie de los roles de usuario lee ni escribe el catálogo; un psicólogo (u otro sin permiso) no emite, ni por consulta directa; otro profesional sin el paciente a cargo (o con asignación vencida) no lee; administrativo, enfermera y paciente no leen; `UPDATE` de contenido y `DELETE` rechazados; solo el emisor anula e imprime; la vista de medicamentos no devuelve nada a quien no tiene al paciente a cargo |
+| `solicitudes_copia_historia` (H6d, 73–74) | administrativo | profesional, enfermera, paciente (ni el titular), `anonymous` no leen; `UPDATE` y `DELETE` rechazados; las funciones de la copia no son ejecutables por otro rol; la solicitud, `accesos_historia` y `auditoria` no contienen texto clínico |
+| Tablas de Psicología (H6g, 77–78) | psicólogo a cargo | el médico, el odontólogo, el fisioterapeuta y el podólogo a cargo no leen; un psicólogo sin el paciente a cargo no lee; administrativo, enfermera, paciente, `anonymous`, `cron_notificaciones` y `sync_identidad` no leen; la dirección directa devuelve «no existe» |
+| Planes de sesiones e instrumentos (H6i, 80–81) | profesional a cargo; psicólogo a cargo en `area = psicologia` | los de Psicología no los lee un médico, odontólogo, fisioterapeuta ni podólogo a cargo; un profesional de otra profesión no escribe en un área ajena; el puntaje no se acepta si no coincide con el calculado; administrativo, enfermera, paciente, `anonymous`, `cron_notificaciones` y `sync_identidad` no leen |
+| Tablas de Odontología, Fisioterapia y Podología (H6e 75, H6f 76, H6h 79) | profesional a cargo (como `atenciones`); escribe solo un profesional de esa profesión | las mismas negativas que `atenciones`; otro profesional a cargo lee pero no escribe; la enfermera no lee |
+
 ### Escalada de privilegios
 
 RLS de PostgreSQL no tiene granularidad por columna, así que un usuario con permiso de actualización sobre su propio
@@ -737,7 +1141,7 @@ distinto del tráfico de usuario (`authenticator`/`authenticated`) y de `cron_no
 historias clínicas ni agenda. Es el único camino, junto con el propio administrativo, que puede escribir
 `perfiles.rol` (el trigger lo reconoce por `current_user`).
 
-Las cuentas de personal (administrativo, médico, enfermera) **no se auto-registran**: las crea un administrativo por
+Las cuentas de personal (administrativo, profesional de la salud, enfermera) **no se auto-registran**: las crea un administrativo por
 invitación vía la API de Clerk. El registro público solo produce rol `paciente`.
 
 ### Controles adicionales
@@ -748,7 +1152,8 @@ invitación vía la API de Clerk. El registro público solo produce rol `pacient
 | Bots en el portal | Vercel BotID en registro y reserva ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
 | Fuerza bruta | Upstash Ratelimit en rutas de auth: 5 intentos / 15 min por IP ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
 | Cifrado | TLS en tránsito; cifrado en reposo de Neon; backups (PITR) cifrados |
-| Adjuntos clínicos | Vercel Blob privado, acceso vía URL firmada de corta duración tras verificar `medico_tiene_paciente()` — la Server Action es la autoridad de acceso, no RLS ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
+| Adjuntos clínicos | Vercel Blob privado, acceso vía URL firmada de corta duración tras verificar `medico_tiene_paciente()` (hoy; `profesional_tiene_paciente()` y, para Psicología, `psicologo_tiene_paciente()`) — la Server Action es la autoridad de acceso, no RLS ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
+| Salidas impresas (receta, copia de la historia) | Se generan desde datos guardados; ninguna se almacena como archivo. La receta lleva su número y cada impresión queda registrada; la copia se genera con un registro de acceso y quién la emite. Lo impreso sale del control del sistema |
 | Secretos | Variables de entorno de Vercel; ninguna clave en el repositorio |
 | Cabeceras | CSP estricta, HSTS, `X-Frame-Options: DENY` |
 | WAF genérico de borde | No reemplazado 1:1 tras salir de Cloudflare — riesgo aceptado, ver [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md) |
@@ -765,11 +1170,19 @@ nunca es el único lugar que impide la violación.
 | Cancelación hasta 1 h antes, para todos los roles | Trigger `validar_cancelacion()` ([ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md)) | Base de datos |
 | Advertencia de la restricción al reservar | Texto en el formulario de reserva | UI |
 | Historia clínica sin campos vacíos | `CHECK` en columnas + esquema Zod | BD + servidor |
+| Datos de especialidad válidos y completos | Disparador de validación contra `plantillas_clinicas` (`HC005`, [ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md)) + Zod | BD + servidor |
 | Datos del paciente no editables desde HC | Las columnas no existen en `atenciones` | Estructura |
-| Médico sin acceso a pacientes ajenos | Políticas RLS + `medico_tiene_paciente()` | Base de datos |
-| Acceso médico expira automáticamente (6 meses desde la cita) | Trigger `extender_asignacion_por_cita()` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) | Base de datos |
-| Doctor de baja o emergencia: reasignación | `bloqueos_agenda` + flujo de reasignación masiva ([ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md)) | Aplicación |
+| Profesional sin acceso a pacientes ajenos | Políticas RLS + `medico_tiene_paciente()` (hoy; `profesional_tiene_paciente()`, ADR-0030) | Base de datos |
+| Acceso del profesional expira automáticamente (6 meses desde la cita; vigencia acotada si nace de una derivación, [ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md)) | Trigger `extender_asignacion_por_cita()` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) | Base de datos |
+| Profesional de baja o emergencia: reasignación a otro de la misma especialidad | `bloqueos_agenda` + flujo de reasignación masiva ([ADR-0011](adrs/0011-reasignacion-de-citas-por-baja-medica.md)) | Aplicación |
 | Recordatorio un día antes | Vercel Cron Job + tabla `notificaciones` ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) | Route Handler |
+| Apertura de la historia con filiación; un documento, una historia | `pacientes_documento_unico` + `historias_clinicas.paciente_id` único; filiación obligatoria al abrir (Zod + `CHECK`) | BD + servidor |
+| Paciente sin cita: acceso por derivación y «tomar» | `derivaciones` + `tomar_paciente()` + asignación append-only ([ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md)) | Base de datos |
+| Información de Psicología aparte | RLS por profesión + `psicologo_tiene_paciente()` ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)) | Base de datos |
+| Triaje con valores plausibles; IMC calculado | `CHECK` de rangos + columna generada + Zod | BD + servidor |
+| Receta solo de quien puede recetar; inmutable | `profesiones_que_recetan` + `emitir_receta()` + disparador de inmutabilidad | Base de datos |
+| Receta incompleta no se emite ni se imprime | `CHECK`/disparador + Zod; impresión solo de recetas emitidas | BD + servidor |
+| Copia de la historia en 5 días, con identidad verificada y emisor registrado | `solicitudes_copia_historia` (`vence_en`, identidad verificada, `emitida_por`) + `compilar_copia_historia()` | BD + servidor |
 
 ### Doble reserva
 
@@ -866,18 +1279,93 @@ autor; el texto original permanece. Las addendas son solo-agregar (`proteger_add
 cambian `vigente` (`proteger_antecedente()`, ver [ADR-0015](adrs/0015-modelo-de-antecedentes-del-paciente.md)) y la
 auditoría (`auditoria`, `accesos_historia`) es solo-agregar incluso para el dueño de la base.
 
-### Doctor de baja o emergencia
+### Profesional de baja o emergencia
 
 1. El administrativo crea un `bloqueo_agenda` para el rango afectado.
-2. El sistema lista las citas vigentes del médico dentro del rango.
-3. Para cada una propone médicos de la misma especialidad con slot libre.
+2. El sistema lista las citas vigentes del profesional dentro del rango.
+3. Para cada una propone profesionales de la misma especialidad con slot libre.
 4. La reasignación se ejecuta en una transacción: cancela la cita original e inserta la
    nueva cita con `reprogramada_de` apuntando a la original (la columna vive en la cita nueva,
    igual que en el esquema y en la prueba de aceptación de más abajo).
 5. Se encola una notificación de reprogramación al paciente.
 
-Si no hay médico sustituto disponible, la cita queda marcada para contacto manual. El sistema no
+Si no hay profesional sustituto disponible, la cita queda marcada para contacto manual. El sistema no
 cancela citas en silencio.
+
+Con el PRD del 2026-10-11 el sustituto es otro profesional de la **misma especialidad** (no solo de la misma profesión): el
+sistema no propone a nadie de otra especialidad. El sustituto gana acceso a la historia cuando su cita nueva entra a
+`confirmada` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)); si es psicólogo, también a la información de
+Psicología del paciente, porque la tiene a cargo.
+
+### Apertura de la historia y filiación
+
+**Propuesta** (detalle en `agenda-y-reserva`, H3, ítem 5; reglas del PRD del 2026-10-11 y de [CLAUDE.md](../CLAUDE.md)):
+
+1. Recepción registra al paciente nuevo, con o sin cita, con `registrarPaciente`: documento (DNI, Carné de Extranjería,
+   pasaporte o, si no tiene, un número provisional que asigna el sistema) y la filiación mínima de la NTS 139, validados con
+   Zod en el servidor.
+2. Si el documento ya existe, la restricción única impide una segunda fila y una segunda historia, y la acción muestra al
+   paciente existente.
+   <!-- REVISAR: el administrativo hoy no lee `historias_clinicas`, ni siquiera su número (D6, H10 de `historias-clinicas`). «Mostrar la historia existente» se resuelve mostrando al paciente; si recepción debe ver el número de historia, hay que añadir una lectura acotada de `numero` (dato no clínico). -->
+3. La carpeta `historias_clinicas` nace con el paciente (disparador existente `crear_historia_clinica()`); «abrir la historia»
+   es dejar completa la filiación mínima. Un paciente registrado por el portal con datos parciales la completa recepción
+   cuando llega.
+   <!-- REVISAR: si el registro del portal puede omitir la filiación y recepción debe completarla antes de la llegada lo decide `agenda-y-reserva`; H6b (`registrar_llegada`) toma a un paciente ya registrado y no define columnas de filiación. -->
+4. Con identidad provisional, la historia se abre igual; al confirmarse el documento definitivo se reemplaza sobre el mismo
+   `paciente_id` (acción de recepción, auditada).
+
+### Pacientes sin cita: triaje, derivación y toma del paciente
+
+([ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md), **Propuesta**; hito H6b, change `triaje-y-derivacion`.)
+
+1. Recepción registra la **llegada** (`registrar_llegada`), con o sin cita. Una sola visita en curso por paciente; con cita,
+   esta debe estar confirmada, ser del paciente y del día de Lima.
+2. La enfermera registra el **triaje** de la visita (`registrar_triaje`); un valor imposible se rechaza y el IMC lo calcula la
+   base. Puede haber varios; los anteriores se conservan.
+3. La enfermera **deriva** a una especialidad (`derivar_paciente`) una visita sin cita que ya tiene triaje; si el triaje no
+   existe o ya hay una derivación pendiente, la base lo rechaza. Un profesional que tiene al paciente en atención puede
+   derivarlo a **otra** especialidad. Derivar **no da acceso a nadie**.
+4. Un profesional de la especialidad de destino ve la cola (quién espera y desde cuándo) y **toma** al paciente
+   (`tomar_paciente`): la visita bloquea la fila, la derivación pasa a `tomada`, la visita a `en_atencion` y un disparador
+   inserta la asignación (append-only, motivo `derivacion:<id>`, vigencia acotada). Si dos lo intentan a la vez, prospera uno
+   (SQLSTATE propio de H6b, `HC020`–`HC029`, para el otro y para una derivación vencida o de otra especialidad).
+5. Desde ese momento, y no antes, el profesional ve la historia (según `profesional_tiene_paciente()`), el triaje y los
+   medicamentos del paciente. Al terminar, `terminar_atencion` cierra la visita.
+
+Sin derivación, nadie ve la historia de un paciente sin cita, y la enfermera no obtiene acceso a la historia: solo escribe el
+triaje y deriva. El paciente con cita confirmada ya tiene al profesional a cargo
+([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)): su profesional lo toma sin derivación y sin una asignación
+nueva.
+
+### Recetas
+
+(Hito H6c, change `recetas-medicas`, **Propuesta**; ver «Recetas» en el modelo de datos.)
+
+- Emite una receta solo quien tiene al paciente a cargo y cuya profesión puede recetar; lo impone la base (`emitir_receta()`),
+  no la interfaz. Qué profesiones pueden recetar sigue abierto (P-17): médico sí, psicólogo no.
+- La receta se numera de forma correlativa y sin huecos, se sella por el servidor y se guarda como datos estructurados. Con
+  datos incompletos no se emite ni se imprime. Solo el emisor imprime, con la plantilla de la clínica y espacio para firma y
+  sello manuscritos, y cada impresión queda registrada («Original» y luego «Duplicado»).
+- Una receta emitida **no se edita**: se anula (solo el emisor, con motivo) y se emite otra que la reemplaza —en un solo paso
+  si se desea, de modo que si la nueva falla la original no queda anulada—; la anulada se conserva y se marca, aunque el papel
+  ya entregado queda fuera del control del sistema.
+- Antes de recetar, el profesional ve los medicamentos del paciente (recetas emitidas cuyo tratamiento sigue vigente). No hay
+  alertas automáticas de interacción: el cruce de medicamentos depende de que el profesional revise esa lista (ver P-7).
+
+### Copia de la historia clínica
+
+(Hito H6d, change `copia-de-historia-clinica`, **Propuesta**; ver «Solicitudes de copia de la historia» en el modelo de datos.)
+
+1. Recepción registra la solicitud (`solicitudes_copia_historia`): quién la pide (el paciente o su representante legal) y su
+   documento.
+2. Recepción **verifica la identidad** en persona con el documento original (y, para un representante, su acreditación). Si no
+   se puede verificar, o el representante no acredita serlo, la solicitud se **rechaza** con motivo y queda registrada.
+3. Recepción pide **generar** la copia: `compilar_copia_historia()` registra el acceso (`accesos_historia`, tipo `copia`) y
+   entrega el contenido solo al servidor, que arma el documento; se imprime frente al solicitante, en sobre cerrado. Incluye
+   la información de Psicología.
+4. Recepción **confirma la entrega** (`confirmar_entrega_copia()`), que registra quién emite; la copia se entrega dentro de los
+   5 días de la solicitud (NTS 139, 4.2.14) o, si fue tarde, con el motivo de la demora. Una solicitud abierta pasada de plazo
+   queda a la vista en la lista de trabajo; no se cierra sola.
 
 ## Disponibilidad y cálculo de slots
 
@@ -944,9 +1432,9 @@ app/
       citas/                    mis citas
       citas/nueva/              búsqueda de disponibilidad y reserva
   (personal)/
-    agenda/                     vista de agenda (administrativo, médico)
+    agenda/                     vista de agenda (administrativo, profesional)
     pacientes/                  registro y búsqueda (administrativo)
-    pacientes/[id]/historia/    historia clínica (médico)
+    pacientes/[id]/historia/    historia clínica (profesional)
     turnos/                     turnos de enfermería
     dashboard/                  vista operativa de citas y pacientes
     dashboard/notificaciones/   notificaciones fallidas para revisión manual (ADR-0018)
@@ -957,42 +1445,92 @@ app/
 > dentro de ellas (p. ej. «Mis citas» en `/paciente/citas`); cada change actualiza este árbol al
 > implementarse.
 
+**Rutas que añade el PRD del 2026-10-11** (**Propuesta**; dentro de las áreas planas de H1. `profesional` es el nombre
+propuesto por [ADR-0030](adrs/0030-profesional-de-la-salud.md): hoy el área es `/medico`, y H2c deja una redirección temporal
+de `/medico` a `/profesional`):
+
+```
+app/
+  administrativo/
+    pacientes/                         registro de pacientes y apertura de la historia con la filiación (H3)
+    llegadas/                          registrar la llegada del paciente, con o sin cita; lista del día (H6b)
+    copias-historia/                   solicitudes de copia: identidad, rechazo, generación y entrega (H6d)
+    asignaciones/, accesos-historia/   asignación manual y revisión de accesos (H6)
+  profesional/                         hoy medico/
+    pacientes-en-espera/               llegaron para mí, derivados a mi especialidad («Tomar») y en atención (H6b)
+    pacientes/[pacienteId]/            historia clínica (H6), con el triaje y los medicamentos del paciente
+    pacientes/[pacienteId]/recetas/    emitir, anular e imprimir recetas (H6c)
+    pacientes/[pacienteId]/psicologia/ solo psicólogos a cargo (H6g)
+  enfermera/
+    triaje/                            pacientes por triar, formulario de triaje y derivación (H6b)
+    turnos/                            turno propio y especialidad con la que trabaja (H7)
+```
+
+Las pantallas propias de cada especialidad (odontograma, evaluaciones, plan de sesiones, tests, fotos de evolución) cuelgan de
+`pacientes/[pacienteId]/` y las define el change de cada una (H6e–H6h).
+
 Cada grupo de rutas lleva un `layout.tsx` que verifica el rol en servidor y redirige si no
 corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad real es RLS.
 
 ### Server Actions
+
+Columna «Rol»: `profesional` es el nombre propuesto por [ADR-0030](adrs/0030-profesional-de-la-salud.md); hoy el rol vigente
+es `medico`. Las acciones de H6b a H6d son **Propuesta** de sus changes y envuelven las funciones `SECURITY DEFINER` de
+«Funciones de apoyo»; la generación del documento de la copia es un Route Handler, no una acción.
 
 | Acción | Rol | Valida |
 |---|---|---|
 | `reservarCita` | paciente, administrativo | Slot vigente, sin cruce, dentro de disponibilidad |
 | `cancelarCita` | paciente, administrativo | Ventana de 1 hora (todos los roles, salvo reasignación por baja) |
 | `reprogramarCita` | administrativo | Cancela + crea en una transacción |
-| `registrarPaciente` | administrativo, público | Formato de DNI/CE, documento no duplicado |
-| `registrarAtencion` | médico | Campos obligatorios, paciente a cargo |
-| `firmarAtencion` | médico | Autoría propia; vuelve la nota inmutable |
-| `agregarAddenda` | médico | Atención existente y firmada |
+| `registrarPaciente` | administrativo, público | Formato de DNI/CE/pasaporte, o número provisional que asigna el sistema; filiación mínima (NTS 139) cuando recepción abre la historia; documento no duplicado |
+| `registrarAtencion` | profesional | Campos obligatorios, paciente a cargo y datos de especialidad válidos según la plantilla vigente de su especialidad |
+| `firmarAtencion` | profesional | Autoría propia; vuelve la nota inmutable |
+| `agregarAddenda` | profesional | Atención existente y firmada |
 | `asignarTurno` | administrativo | Sin choque de turno para la enfermera |
 | `reasignarPorBaja` | administrativo | Sustituto de la misma especialidad y libre |
-| `asignarPacienteAMedico` | administrativo | Asignación manual paciente-médico para casos especiales (interconsulta, cobertura, médico de cabecera); `vigente_hasta` opcional ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) |
+| `asignarPacienteAMedico` (`asignarPacienteAProfesional` si se acepta ADR-0030) | administrativo | Asignación manual paciente-profesional para casos especiales (interconsulta, cobertura, médico de cabecera); `vigente_hasta` opcional; no admite los motivos `cita:` ni `derivacion:` ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) |
+| `registrarLlegada`, `cerrarVisita` | administrativo (cerrar: también la enfermera, solo como abandono) | Una visita en curso por paciente; con cita, confirmada, del paciente y de hoy (H6b) |
+| `registrarTriaje` | enfermera | Siete mediciones dentro de rango; IMC calculado por la base; visita aún no tomada; no lee historias (H6b) |
+| `derivarPaciente`, `anularDerivacion` | enfermera, profesional | El destino es una especialidad, nunca un profesional; la enfermera solo visitas sin cita con triaje; el profesional solo a un paciente que tiene en atención y a otra especialidad; no concede acceso (H6b, ADR-0032) |
+| `tomarPaciente`, `terminarAtencion` | profesional | Derivación pendiente y vigente de su especialidad, o su propia cita; una sola toma; inserta la asignación con vigencia acotada (H6b, ADR-0032) |
+| `emitirReceta`, `anularReceta` (con la opción `corregir`) | profesional | Profesión que puede recetar; paciente a cargo; de 1 a 8 medicamentos completos; numerada y sellada; el mismo `id` no emite dos; anular, solo el emisor y con motivo, y la receta no se edita; corregir anula y emite en una sola transacción (H6c) |
+| `registrarImpresionReceta` | profesional emisor | Solo recetas emitidas; registra cada impresión («Original» o «Duplicado») (H6c) |
+| `registrarSolicitudCopia`, `verificarSolicitudCopia`, `rechazarSolicitudCopia`, `confirmarEntregaCopia` | administrativo | Solicitante identificado; identidad verificada con el documento original; representante con acreditación; si no, queda rechazada y registrada; la entrega se confirma tras generar (H6d) |
+| Acciones de planes de sesiones e instrumentos de evaluación | profesional | Las define el change de H6i; el puntaje de un instrumento lo calcula el servidor y lo verifica la base; los de `area = psicologia` solo un psicólogo a cargo |
+| Acciones de cada especialidad | profesional | Odontograma, evaluaciones, notas y planes de sesión, tests y protocolos: las define el change de cada una (H6e–H6h); las de Psicología solo las ejecuta un psicólogo a cargo |
 
 Todas validan con Zod en servidor antes de tocar la base de datos, y todas devuelven un resultado
 tipado `{ ok: true, datos } | { ok: false, mensaje }` — nunca lanzan la excepción de Postgres al
 usuario, para no filtrar estructura interna.
+
+Los **SQLSTATE propios** se reservan por hito para que los changes no choquen: H6 `HC001`–`HC005` (vigentes en su diseño),
+H2c `HC010`–`HC019`, H6b `HC020`–`HC029`, H6c `HC030`–`HC039`, H6d `HC040`–`HC049`, H6e `HC050`–`HC059`, H6f
+`HC060`–`HC069`, H6g `HC070`–`HC079`, H6h `HC080`–`HC089` y H6i `HC090`–`HC099`. Cada acción mapea los suyos a un mensaje en español; nunca se
+muestra el error de Postgres.
 
 ### Dashboard operativo
 
 Vista simple, sin capa analítica (explícitamente fuera de alcance en el PRD):
 
 - Citas de hoy por estado (reservadas, confirmadas, atendidas, canceladas).
-- Agenda del día por médico, con huecos visibles.
+- Agenda del día por profesional, con huecos visibles.
 - Pacientes en espera y minutos transcurridos desde la hora de cita — es la métrica que sostiene el
   objetivo de espera ≤ 20 minutos.
 - Citas sin confirmar para mañana.
+- **Propuesta (con `visitas`, H6b/H7):** quién espera desde que llegó, con y sin cita. H6b entrega los estados (`llegada`,
+  `con_triaje`, `derivada` son «en espera») y las marcas `llegada_en` y `atencion_iniciada_en`; H7 define «en espera» y
+  construye su propia vista sobre `visitas`, sin `triajes` ni `derivaciones` ni ningún dato clínico. Los pacientes sin cita
+  cuentan para la espera, pero no para el 75 % de autogestión.
+  <!-- REVISAR: la definición de «en espera» sigue siendo de H7; esta es la lectura que habilita la visita. -->
+- **Propuesta (H6d, si H7 la adopta):** conteo de solicitudes de copia de la historia vencidas o por vencer; la lista de
+  trabajo completa vive en `copias-historia/`.
 - Notificaciones fallidas con 3+ intentos, para revisión manual
   ([ADR-0018](adrs/0018-visibilidad-de-notificaciones-fallidas.md)).
 
 Se resuelve con vistas de Postgres sobre `citas` (y, para el último punto, sobre `notificaciones`).
 Sin materialización mientras el volumen lo permita.
+Las vistas nuevas leen `visitas` (y, si H7 lo adopta, el vencimiento de las copias); ninguna expone contenido clínico.
 
 ## Notificaciones
 
@@ -1043,11 +1581,17 @@ Plantillas en español (`es-PE`), con fecha y hora renderizadas en `America/Lima
 
 - **Confirmación de reserva** — al reservar, incluye la advertencia de la ventana de cancelación de
   1 hora.
-- **Recordatorio 24 h** — día, hora, médico, especialidad y enlace para cancelar.
+- **Recordatorio 24 h** — día, hora, profesional, especialidad y enlace para cancelar.
 - **Cancelación / reprogramación** — al cambiar el estado.
 
 Ningún correo incluye información clínica. Un correo puede acabar en un buzón compartido; solo lleva
 datos logísticos de la cita.
+
+**Canal único: correo.** WhatsApp y SMS están fuera de alcance por decisión del usuario (PRD, 2026-10-11); el riesgo de
+depender de un solo canal se conserva en P-7. Los pacientes que llegan sin cita no reciben recordatorio, porque no hay cita.
+El triaje, las derivaciones, las recetas y la copia de la historia no generan correos (**Propuesta**): el vencimiento de
+una copia se vigila en el panel, no por correo (el aviso al paciente al emitirse su copia sería una notificación nueva, fuera
+del alcance actual).
 
 ### Entregabilidad
 
@@ -1067,6 +1611,7 @@ y el objetivo de reducir tiempos de espera se degrada silenciosamente.
 | Accesibilidad | WCAG 2.1 AA; objetivos táctiles ≥ 44 px; contraste alto en el portal |
 | Navegadores | Últimas 2 versiones de Chrome, Edge, Safari, Firefox; móvil prioritario en el portal |
 | Idioma | Español (es-PE) en toda la interfaz y en los mensajes de error |
+| Impresión | La receta y la copia de la historia se imprimen desde el navegador, con una hoja de estilos de impresión y sin PDF almacenado de la receta; exige impresora en consultorio y recepción (supuesto del PRD sin confirmar) |
 
 ## Entornos, CI/CD y pruebas
 
@@ -1134,9 +1679,15 @@ sus hitos):
   vencida no da acceso, una vigente sí, una manual sin vencimiento otorga acceso indefinido, cancelar una cita no
   revoca el acceso ya otorgado, y un médico dado de baja lo pierde.
 - **Integración** (`tests/integracion/`): el SQL del webhook de Clerk con los privilegios reales de `sync_identidad`.
+- **Pruebas de las propuestas del PRD del 2026-10-11** (pgTAP, con el caso negativo de **cada** rol y verificación por
+  mutación; números sugeridos para no chocar con los ya usados: H2c 63–65, H6b 66–68, H6c 70–72, H6d 73–74, H6e 75, H6f 76,
+  H6g 77–78, H6h 79, H6i 80–81; la 62 es de plantillas): tablas nuevas con RLS, aislamiento de Psicología por rol **y por profesión**,
+  inmutabilidad y permiso de las recetas, plazo y rechazo de las copias, y puntaje de los instrumentos. Más pruebas de **concurrencia** para «tomar al
+  paciente» (varios profesionales de la especialidad toman a la vez: una sola gana y queda una sola asignación) y para la
+  numeración correlativa de las recetas (`25_recetas`), y la actualización deliberada de la prueba `47` por las columnas nuevas.
 - **E2E (Playwright):** autenticación y redirección por rol, y que Postgres reconoce al usuario por su token de Clerk
-  (H1/H2); el recorrido completo de reserva del paciente y el de registro de historia clínica del médico llegan con
-  H4 y H6.
+  (H1/H2); el recorrido completo de reserva del paciente y el de registro de historia clínica del profesional llegan con
+  H4 y H6; el recorrido del paciente sin cita (llegada, triaje, derivación, toma y receta) llega con H6b y H6c.
 
 ## Migración desde Excel y papel
 
@@ -1146,15 +1697,15 @@ revisión manual).
 
 | Fase | Contenido |
 |---|---|
-| 1. Catálogos | Especialidades, médicos, enfermeras, disponibilidades semanales |
-| 2. Maestro de pacientes | Import del Excel con deduplicación por `(tipo_documento, numero_documento)`; los registros con documento inválido pasan a una bandeja de revisión manual, no se descartan |
+| 1. Catálogos | Especialidades, profesionales de la salud (con su profesión y colegiatura), enfermeras, disponibilidades semanales |
+| 2. Maestro de pacientes | Import del Excel con deduplicación por `(tipo_documento, numero_documento)`; los registros con documento inválido pasan a una bandeja de revisión manual, no se descartan <!-- REVISAR: la NTS 139 (4.2.23) admite pasaporte y número provisional; decidir si algunos registros sin documento válido entran como provisionales en vez de ir a la bandeja (ADR-0019) --> |
 | 3. Citas futuras | Solo citas a futuro. El histórico de citas pasadas queda en el Excel como archivo |
 | 4. Historias clínicas | Digitalización progresiva hacia el objetivo de 60% |
 
 Sobre la fase 4: [ADR-0013](adrs/0013-definicion-de-historia-clinica-digitalizada.md) define
 "historia digitalizada" como híbrido — se estructuran en el sistema los antecedentes
 ([ADR-0015](adrs/0015-modelo-de-antecedentes-del-paciente.md)) y los diagnósticos activos del
-paciente (los datos que el médico consulta en tiempo real durante una atención), y el resto del
+paciente (los datos que el profesional consulta en tiempo real durante una atención), y el resto del
 expediente en papel se adjunta como escaneo (PDF) en Vercel Blob
 ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) como respaldo. Una historia
 cuenta como "digitalizada" para el criterio de éxito del 60% cuando tiene al menos un registro
@@ -1175,12 +1726,29 @@ pierde información. La fecha de corte la fija la clínica.
 - [ ] Un paciente registrado por el administrativo sin cuenta de portal (`perfil_id` nulo) puede
       luego vincularse a una cuenta de portal por su documento, sin duplicar el registro.
 - [ ] El registro público (sin sesión de personal) solo puede producir rol `paciente`; no existe
-      ruta que permita a un registro público obtener rol `administrativo`, `medico` o `enfermera`.
+      ruta que permita a un registro público obtener rol `administrativo`, `medico` (`profesional` si se acepta [ADR-0030](adrs/0030-profesional-de-la-salud.md)) o `enfermera`.
+
+### Apertura de la historia con filiación (recepción)
+
+*(Propuesta; el detalle de campos es de `agenda-y-reserva`, H3.)*
+
+- [ ] Recepción registra a un paciente nuevo, con o sin cita, con DNI, Carné de Extranjería, pasaporte o, si no tiene
+      documento, un número correlativo provisional que genera el sistema (el usuario no lo escribe).
+- [ ] La filiación mínima de la NTS 139 es obligatoria para abrir la historia: sin ella, `registrarPaciente` rechaza con un
+      mensaje en español y no se abre la historia.
+- [ ] Un documento ya registrado no abre una segunda historia: el sistema muestra al paciente existente. Dos registros
+      simultáneos con el mismo documento crean una sola fila en `pacientes` y una sola en `historias_clinicas`.
+- [ ] Al confirmar la identidad de un paciente provisional, el documento definitivo reemplaza al provisional sobre el mismo
+      `paciente_id`: la historia no se duplica ni cambia de dueño, y el cambio queda en `auditoria`.
+- [ ] Los datos de filiación no se editan desde la historia clínica (`atenciones` no tiene esas columnas); solo recepción
+      los corrige, desde `pacientes`.
+- [ ] El administrativo que abre la historia no obtiene lectura de contenido clínico: una consulta directa a `atenciones`
+      no le devuelve ninguna fila.
 
 ### Reserva de cita — portal del paciente
 
-- [ ] El paciente ve, para un médico y fecha, únicamente los slots que no se solapan con citas
-      vigentes (`reservada`/`confirmada`) ni con `bloqueos_agenda` de ese médico.
+- [ ] El paciente ve, para un profesional y fecha, únicamente los slots que no se solapan con citas
+      vigentes (`reservada`/`confirmada`) ni con `bloqueos_agenda` de ese profesional.
 - [ ] Antes de confirmar la reserva, el formulario muestra la advertencia de que la cita solo puede
       cancelarse hasta 1 hora antes.
 - [ ] Al reservar dos veces el mismo slot desde dos sesiones simultáneas (misma condición de
@@ -1197,34 +1765,169 @@ pierde información. La fecha de corte la fija la clínica.
 - [ ] Reprogramar una cita cancela la original y crea la nueva dentro de una única transacción; si
       la creación de la nueva falla, la original no queda cancelada.
 - [ ] Cancelar una cita a menos de 1 hora de su `inicio` falla para **cualquier** rol, incluido el
-      administrativo, salvo cuando existe un `bloqueo_agenda` vigente del médico que cubre esa
+      administrativo, salvo cuando existe un `bloqueo_agenda` vigente del profesional que cubre esa
       cita ([ADR-0012](adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
 - [ ] Con un `bloqueo_agenda` vigente que cubre la cita, cancelarla a cualquier minuto de
       anticipación (incluido 0) tiene éxito — es el camino que usa `reasignarPorBaja`.
 - [ ] Cancelar a 61 minutos de la cita se permite; a 59 minutos se rechaza — el límite es exacto.
 
-### Historia clínica — registro y firma (médico)
+### Profesionales de la salud (alta y permisos)
+
+*(Propuesta; H2c, [ADR-0030](adrs/0030-profesional-de-la-salud.md).)*
+
+- [ ] Un profesional se da de alta con profesión, colegiatura (única junto con la profesión) y especialidad; el alta la hace
+      un administrativo por invitación (nadie se auto-registra como profesional).
+- [ ] La profesión no puede cambiarse con un `UPDATE`, ni siquiera por el administrativo: el intento falla. Corregirla es una
+      migración revisada.
+- [ ] Tras el renombre, la suite pgTAP de acceso a historias pasa completa con el rol `profesional` y la instantánea de
+      políticas no cambia salvo el vocabulario; los usuarios existentes (`rol = 'medico'`) conservan su acceso durante la
+      transición.
+- [ ] Un profesional dado de baja pierde el acceso a las historias, igual que hoy con `medicos.activo`.
+- [ ] La profesión del autor —un dato de la base, no del cliente ni del token— decide la plantilla, el permiso de recetar y el
+      acceso a Psicología.
+
+### Historia clínica — registro y firma (profesional; hoy rol `medico`, ADR-0030)
 
 - [ ] `registrarAtencion` falla si `motivo_consulta`, `anamnesis`, `examen_fisico` o
       `plan_tratamiento` están vacíos o son solo espacios en blanco.
 - [ ] `registrarAtencion` falla si `diagnosticos` es un arreglo vacío.
 - [ ] Cada código en `diagnosticos[].cie10` existe en el catálogo `cie10`
       ([ADR-0014](adrs/0014-catalogo-cie-10.md)); un código inexistente rechaza el guardado.
-- [ ] Un médico solo puede registrar/consultar atenciones de pacientes que tiene a cargo, según
+- [ ] Un profesional solo puede registrar/consultar atenciones de pacientes que tiene a cargo, según
       `medico_tiene_paciente()`; intentarlo sobre un paciente ajeno no devuelve fila alguna (ni
       error que confirme su existencia).
 - [ ] El formulario de historia clínica no expone ningún campo editable con datos que vienen del
       registro del paciente (nombre, documento, fecha de nacimiento, etc.).
 - [ ] Una vez `firmarAtencion` fija `firmada_en`, ningún `UPDATE` ni `DELETE` sobre esa fila de
       `atenciones` tiene éxito; la única vía de corrección es `agregarAddenda`.
-- [ ] Toda lectura de una atención por un médico queda registrada en `accesos_historia` con
+- [ ] Toda lectura de una atención por un profesional queda registrada en `accesos_historia` con
       `actor_id`, `paciente_id` y marca de tiempo.
+- [ ] Una atención con `plantilla_id` solo se guarda si `datos_especialidad` cumple la plantilla: un campo obligatorio vacío,
+      una clave ajena o un valor de otro tipo se rechazan en la base (`HC005`), no solo en el formulario
+      ([ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md)).
+- [ ] La plantilla debe estar vigente al insertar y ser de la especialidad del profesional autor; publicar la versión
+      siguiente de una plantilla no altera las atenciones ya registradas.
+- [ ] Una atención puede registrarse con y sin cita (`cita_id` nulo cuando el paciente llegó sin cita), siempre con el
+      paciente a cargo.
 
-### Reasignación por baja o emergencia médica
+### Triaje y derivación (enfermera)
 
-- [ ] Crear un `bloqueo_agenda` para un médico lista automáticamente todas sus citas vigentes
+*(Propuesta; H6b, [ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md).)*
+
+- [ ] La enfermera registra presión arterial (sistólica y diastólica), frecuencia cardíaca, frecuencia respiratoria,
+      temperatura, saturación de oxígeno, peso y talla de una visita aún no tomada; el IMC lo calcula la base y no se escribe a
+      mano.
+- [ ] Un valor imposible (fuera del rango de plausibilidad) o una constante vital faltante se rechaza y no se guarda nada
+      (todo o nada).
+- [ ] El triaje no se edita: corregirlo es registrar uno nuevo, y vale el más reciente de la visita; los anteriores se
+      conservan.
+- [ ] La enfermera deriva a una **especialidad**; no existe forma de indicar un profesional concreto, y derivar no le da (ni
+      da a nadie) acceso a la historia. No puede derivar sin un triaje previo.
+- [ ] El profesional a cargo ve el triaje de la visita en la pantalla de la atención; el administrativo y el paciente no lo
+      ven.
+- [ ] La enfermera no lee `historias_clinicas`, `atenciones`, `recetas` ni las tablas de Psicología, y tampoco `pacientes`:
+      cero filas por consulta directa. Para triar solo ve nombre, documento, fecha de nacimiento y estado de las visitas de hoy.
+- [ ] Un profesional puede derivar a otra especialidad a un paciente que tiene en atención, pero no a uno ajeno ni a su propia
+      especialidad.
+
+### Paciente sin cita (llegada, triaje, derivación y toma)
+
+*(Propuesta; H6b.)*
+
+- [ ] Recepción registra la llegada de un paciente sin cita sin crear una cita; ese paciente no cuenta para el 75 % de
+      autogestión del portal. Un paciente tiene a lo sumo una visita en curso.
+- [ ] Mientras nadie lo toma, ningún profesional tiene al paciente a cargo: la cola de derivaciones muestra solo quién espera y
+      desde cuándo (sin documento, triaje ni texto libre).
+- [ ] Un profesional de la especialidad de destino toma al paciente: la derivación pasa a `tomada`, la visita a `en_atencion` y
+      se crea una asignación con vigencia acotada y motivo `derivacion:<id>`; desde ese momento, y no antes, lee la historia.
+- [ ] Si dos profesionales de la especialidad toman a la vez, exactamente uno prospera y queda una sola asignación —verificado
+      con una prueba de concurrencia real, no solo secuencial—.
+- [ ] Un profesional de otra especialidad no puede tomarla, y una derivación vencida (pasado el fin del día de Lima, sin
+      tomar) tampoco.
+- [ ] Un paciente con cita confirmada llega con el profesional ya a cargo ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)):
+      su profesional lo toma sin derivación y sin una asignación nueva.
+
+### Receta (profesional)
+
+*(Propuesta; H6c.)*
+
+- [ ] Solo un profesional con el paciente a cargo y cuya profesión figura como autorizada en `profesiones_que_recetan` emite
+      una receta; un psicólogo (u otro sin permiso o sin confirmar) no puede, ni por consulta directa, y no se consume ningún
+      número.
+- [ ] La receta lleva un número correlativo único, sin repetidos ni huecos aun con emisiones simultáneas (una emisión que falla
+      no consume número), y datos estructurados (paciente, profesional, fecha de emisión y validez y, por medicamento,
+      denominación, concentración, forma, vía, dosis, frecuencia y duración); con datos incompletos o vacíos no se emite ni se
+      imprime. Enviar dos veces el mismo formulario emite una sola receta.
+      <!-- REVISAR: contenido mínimo según el DS 014-2011-SA, art. 56 y plazo de validez (solo por Saniape o sin fuente); validar con el asesor. -->
+- [ ] Una receta emitida no se edita ni se borra: solo su emisor la anula (con motivo) y se emite otra que la reemplaza —si la
+      nueva falla, la original no queda anulada—; la anulada se conserva y se marca.
+- [ ] La receta se imprime desde el sistema con la plantilla de la clínica; solo la imprime su emisor, solo si está emitida, y
+      cada impresión queda registrada («Original» la primera, «Duplicado» las siguientes).
+- [ ] Antes de recetar, el profesional ve los medicamentos del paciente (recetas emitidas cuyo tratamiento sigue vigente); el
+      sistema no genera alertas automáticas de interacción, y la lista no contiene información de Psicología.
+- [ ] El administrativo, la enfermera y el paciente no leen `recetas` (cero filas), y ningún rol de usuario lee ni escribe
+      el catálogo `profesiones_que_recetan`.
+
+### Información de Psicología aparte
+
+*(Propuesta; H6g, [ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md).)*
+
+- [ ] Los resultados de tests y las notas de sesión solo los lee un psicólogo que tiene al paciente a cargo (y su autor).
+- [ ] Un médico, odontólogo, fisioterapeuta o podólogo a cargo del mismo paciente recibe cero filas de las tablas de
+      Psicología, por consulta directa y abriendo la dirección de la pantalla (404, sin confirmar su existencia).
+- [ ] Esos profesionales sí ven los medicamentos del paciente, que salen de `recetas`.
+- [ ] Administrativo, enfermera, paciente, `anonymous`, `cron_notificaciones` y `sync_identidad` reciben cero filas.
+- [ ] Cada lectura queda en `accesos_historia`, y la auditoría de escritura no vuelca contenido.
+- [ ] La copia de la historia que recibe el paciente incluye la información de Psicología, tras verificar su identidad.
+      <!-- REVISAR: reglas de salud mental y caso de emergencia; llevar al asesor legal (P-14). -->
+
+### Copia de la historia clínica
+
+*(Propuesta; H6d.)*
+
+- [ ] Cada solicitud registra quién la pide (el paciente o su representante legal), su documento, cómo se verificó su
+      identidad y quién emite la copia. Una persona menor de edad no la pide por sí misma.
+- [ ] Si la identidad no se puede verificar, o el representante no acredita serlo, la solicitud pasa a `rechazada` con motivo y
+      queda registrada (no se borra).
+- [ ] Una solicitud abierta lleva su fecha límite (5 días desde la solicitud); el sistema muestra los días que faltan y las
+      vencidas, y no genera la copia de una solicitud sin identidad verificada.
+- [ ] La copia incluye historia, atenciones y addendas firmadas, antecedentes, triajes, recetas y la información de
+      Psicología, y declara lo que no incluye (borradores sin firmar, adjuntos anulados).
+- [ ] Generar la copia queda en `accesos_historia` en la misma transacción; ninguna pantalla muestra contenido clínico; el
+      administrativo no gana lectura directa de ninguna tabla clínica y los demás roles no pueden ejecutar las funciones de la
+      copia.
+- [ ] Confirmar la entrega registra quién emite; una entrega fuera de plazo exige el motivo de la demora.
+
+### Plan de sesiones (Fisioterapia, Podología y Psicología)
+
+*(Propuesta; H6i.)*
+
+- [ ] Un plan de sesiones de un paciente con un profesional indica el total de sesiones, la frecuencia y la vigencia, y muestra
+      el **contador de sesiones restantes**, que se descuenta solo con las sesiones atendidas.
+- [ ] Cada sesión es una cita de H3 (con su anticruce y su ventana de cancelación de 1 hora) o queda por agendar; el plan no
+      reemplaza a las citas ni guarda saldos en dinero.
+- [ ] Una sesión a la que el paciente no asiste, o que se reprograma, no cierra el plan; cuando el paciente abandona, el plan
+      pasa a `cancelado`, y al agotarse las sesiones, a `completado`.
+- [ ] Un plan de Psicología lo lee y escribe solo un psicólogo a cargo; los de Fisioterapia y Podología los lee todo profesional
+      a cargo y los escribe un profesional de esa profesión.
+
+### Instrumentos de evaluación con puntaje
+
+*(Propuesta; H6i.)*
+
+- [ ] Solo existen instrumentos del catálogo, que se gestiona por migración y marca los de uso libre; ningún rol de usuario
+      escribe el catálogo.
+- [ ] El puntaje de una aplicación lo calcula el servidor y lo verifica la base: una aplicación con un puntaje que no coincide
+      con las respuestas se rechaza. El profesional puede ajustar la interpretación, no el puntaje.
+- [ ] Las aplicaciones de `area = psicologia` solo las lee y escribe un psicólogo a cargo; un médico, odontólogo, fisioterapeuta
+      o podólogo a cargo recibe cero filas.
+      <!-- REVISAR: las licencias de los instrumentos no están verificadas (P-18). -->
+
+### Reasignación por baja o emergencia de un profesional
+
+- [ ] Crear un `bloqueo_agenda` para un profesional lista automáticamente todas sus citas vigentes
       dentro del rango bloqueado.
-- [ ] El sistema propone, para cada cita afectada, solo médicos de la misma especialidad con un
+- [ ] El sistema propone, para cada cita afectada, solo profesionales de la misma especialidad con un
       slot libre equivalente.
 - [ ] Confirmar una reasignación cancela la cita original y crea la nueva en una sola transacción,
       con `reprogramada_de` de la nueva apuntando a la original.
@@ -1235,9 +1938,9 @@ pierde información. La fecha de corte la fija la clínica.
 ### Turnos de enfermería
 
 - [ ] Una enfermera no puede tener dos turnos (`fecha`, `turno`) idénticos duplicados.
-- [ ] Todo turno registrado tiene al menos un médico o una especialidad asociada (no ambos nulos).
-- [ ] La enfermera solo puede consultar su propio turno y el médico/especialidad asociados; no
-      accede a historias clínicas ni a funciones administrativas.
+- [ ] Todo turno registrado tiene al menos un profesional o una especialidad asociada (no ambos nulos).
+- [ ] La enfermera solo puede consultar su propio turno y el profesional/especialidad asociados; no
+      accede a historias clínicas ni a funciones administrativas. Su única escritura clínica es el triaje y la derivación.
 
 ### Notificaciones automáticas
 
@@ -1277,17 +1980,28 @@ pierde información. La fecha de corte la fija la clínica.
       devuelve ninguna fila.
 - [ ] Con RLS activo, una consulta directa a `atenciones` autenticada como `paciente` no devuelve
       ninguna fila.
-- [ ] Con RLS activo, un médico autenticado que consulta `atenciones` de un paciente que no tiene
+- [ ] Con RLS activo, un profesional autenticado que consulta `atenciones` de un paciente que no tiene
       a cargo no recibe ninguna fila.
 - [ ] Un intento de `UPDATE` sobre `perfiles.rol` ejecutado por un rol distinto de administrativo
       falla con el error de `bloquear_cambio_de_rol()`.
-- [ ] Un médico cuya única cita con un paciente fue `atendida` hace más de 6 meses, sin ninguna
+- [ ] Un profesional cuya única cita con un paciente fue `atendida` hace más de 6 meses, sin ninguna
       cita ni asignación manual posterior, no accede a la historia de ese paciente
       ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)).
-- [ ] Confirmar una cita nueva con un médico distinto extiende el acceso a ese médico; no revive
-      el acceso del médico anterior cuya asignación ya venció.
+- [ ] Confirmar una cita nueva con un profesional distinto extiende el acceso a ese profesional; no revive
+      el acceso del profesional anterior cuya asignación ya venció.
 - [ ] Cada tabla nueva del esquema `public` tiene RLS activada y al menos una prueba pgTAP negativa
       que confirma que el rol equivocado no ve el dato (regla de [CLAUDE.md](../CLAUDE.md)).
+- [ ] Con RLS activo, una consulta directa a `atenciones`, `triajes`, `recetas` o a las tablas de Psicología autenticada como
+      `enfermera` no devuelve ninguna fila: la enfermera no lee historias clínicas.
+- [ ] Una derivación `pendiente` no da acceso: el profesional de la especialidad de destino no lee `atenciones` ni
+      `historias_clinicas` del paciente hasta que lo toma ([ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md)).
+- [ ] Un profesional que **no** es psicólogo, aunque tenga al paciente a cargo, no recibe ninguna fila de las tablas de
+      Psicología (ni de las atenciones de autor psicólogo) por consulta directa ni abriendo la dirección de la pantalla; un
+      psicólogo a cargo sí las ve ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)).
+- [ ] El administrativo no obtiene contenido clínico por ninguna tabla; la única excepción es la generación de la copia, por
+      su función acotada y auditada.
+- [ ] El administrativo no puede insertar una asignación cuyo motivo empiece por `cita:` o `derivacion:`.
+- [ ] Un profesional sin permiso de recetar (p. ej. un psicólogo) no emite recetas, ni por consulta directa.
 
 ## Riesgos técnicos abiertos
 
@@ -1311,6 +2025,10 @@ pierde información. La fecha de corte la fija la clínica.
   teléfono de pacientes peruanos) fuera de Perú por defecto — no es dato clínico, pero conviene
   incluirlo en la misma consulta legal si la norma peruana también regula datos personales de
   pacientes más allá de lo estrictamente clínico.
+  **Nota (2026-10-11):** la [investigación del marco legal](investigacion-marco-legal-y-saniape.md) leyó el texto oficial de
+  la NTS 139, el DS 009-2017-SA y la Directiva 373 y es insumo para estas tres preguntas; **no cierra P-1**, que sigue
+  pendiente del asesor. Los puntos nuevos que ese informe levanta (acreditación del sistema y registro ante la ANPD) son
+  P-11 y P-12.
 - **P-5 (depende de P-1, no resoluble en este documento):** si la firma lógica no es suficiente
   ante la norma peruana, puede requerirse integración con un proveedor de firma electrónica
   certificada (en Perú, un PSC acreditado por INDECOPI, o Firma Perú de RENIEC). **Cómo avanzar
@@ -1370,7 +2088,7 @@ pierde información. La fecha de corte la fija la clínica.
   merece la misma revisión explícita que las políticas RLS de `atenciones`.
 - **P-6 (excluido a propósito, no acción requerida ahora):** gestión de consultorios no está en el
   PRD — no construir esto hoy (regla de [CLAUDE.md](../CLAUDE.md), "Alcance — no lo amplíes"). Si en el
-  futuro la clínica confirma que tiene menos consultorios que médicos, la extensión es mecánica y ya
+  futuro la clínica confirma que tiene menos consultorios que profesionales, la extensión es mecánica y ya
   conocida: tabla `consultorios` + columna `consultorio_id` en `citas` + una restricción
   `EXCLUDE USING gist (consultorio_id with =, rango with &&)` análoga a `citas_sin_cruce_medico`
   ([ADR-0005](adrs/0005-modelo-de-datos-y-prevencion-de-doble-reserva.md)). Solo construirla si el
@@ -1383,6 +2101,84 @@ pierde información. La fecha de corte la fija la clínica.
   (interfaz de proveedor en
   [ADR-0017](adrs/0017-disparo-de-notificaciones-transaccionales.md)) para sumar WhatsApp o SMS — eso sí
   sería una decisión de alcance nueva a validar con el cliente, no algo a construir por anticipado.
+  **Actualización (2026-10-11):** el PRD deja WhatsApp y SMS **fuera de alcance** por decisión del usuario, y tampoco incluye
+  alertas automáticas de interacción entre medicamentos. Costos aceptados: con un solo canal, una tasa de apertura baja puede
+  frenar el 75 % de autogestión; sin alertas, el cruce de medicamentos depende de que el profesional revise la lista que el
+  sistema le muestra. **Vía de reactivación:** sumar un canal es la decisión de alcance nueva ya descrita (interfaz de
+  proveedor de ADR-0017); las alertas exigirían además un catálogo de medicamentos con sus interacciones, que hoy no existe en
+  el diseño —el change de recetas ni siquiera incluye un catálogo de medicamentos— y también serían una decisión nueva con el
+  cliente, no algo a construir por anticipado.
+- **P-11 (bloqueante para producción con datos reales, no resoluble en este documento):** acreditación del sistema ante el
+  MINSA. El DS 009-2017-SA obliga a todo establecimiento público, privado o mixto con un sistema de información de historias
+  clínicas electrónicas a **acreditarlo** ante el MINSA o la Autoridad Regional de Salud (art. 13). Sus requisitos básicos
+  (art. 22) incluyen estar inscrito en el RENIPRESS, interoperar con los servicios de RENIEC, cumplir la seguridad del art. 30,
+  registrar la base de datos ante la ANPD, incorporar **firma digital** (Ley 27269), **separar los datos de filiación de la
+  información clínica**, registrar solo como consecuencia de la atención y un terminal por consultorio. La Directiva
+  373-MINSA/OGTI-2025 (RM 164-2025) alcanza también a las IPRESS privadas con SIHCE; la RM 188-2026-MINSA amplía hasta 12
+  meses los plazos de los numerales 5.10 y 8.1, **no** el 5.11 (quien empiece a usar historias electrónicas después debe
+  usar un SIHCE que ya haya aprobado la acreditación en otras IPRESS). Verificado en el texto oficial (nivel A de la
+  [investigación](investigacion-marco-legal-y-saniape.md), secciones 4.2 y 4.3), salvo los anexos de la Directiva, que no se
+  leyeron completos; **no** se verificó qué sanción o efecto tiene operar sin acreditación. El diseño actual no la contempla:
+  firma lógica (P-5), interoperabilidad con RENIEC y criterios técnicos de la Directiva (ISO/IEC 27001, HL7 FHIR, red privada
+  virtual) quedan fuera del alcance. **Cómo avanzar:** llevar al asesor legal si la clínica debe acreditar este sistema o
+  puede operar una historia «informatizada» (sin firma digital), con qué plazo y con qué efecto; mientras tanto, el modo
+  demostración (datos sintéticos) sigue siendo el único permitido. La acreditación es una puerta de salida a producción, junto
+  con P-1 y P-5.
+- **P-12 (bloqueante para producción con datos reales, no resoluble en este documento):** registro del banco de datos ante la
+  ANPD y autorización del paciente para tratar sus datos de salud. El DS 009-2017-SA (art. 22.e) exige registrar la base de
+  datos ante la ANPD (Ley 29733), y la Directiva 373 pide verificar la Resolución Directoral de la ANPD que acredita ese
+  registro y la **autorización previa** del paciente (modelo en su Anexo 07, que cita la RM 688-2020/MINSA, no leída). Según
+  un resumen de terceros (nivel B; texto no leído), el reglamento vigente, DS 016-2024-JUS, añade notificación de incidentes a
+  la ANPD en 48 horas, oficial de datos personales con datos sensibles, criterios para transferencias internacionales y
+  documento de seguridad. Los documentos del proyecto no nombraban la Ley 29733, y la base (Neon, `aws-us-east-2`, Ohio) y la
+  identidad (Clerk) están fuera del Perú, lo que enlaza con P-1. Las tablas nuevas suman datos de terceros (representantes que
+  piden una copia). **Cómo avanzar:** incluirlo en la consulta legal de P-1; preparar el registro y la cláusula de
+  autorización antes de cualquier dato real.
+- **P-13 (alto, decisión del usuario antes de H2c):** renombrar «médico» a «profesional» en producción
+  ([ADR-0030](adrs/0030-profesional-de-la-salud.md), Propuesta). Toca el esquema de H2 ya aplicado —tabla, claves foráneas,
+  valor del enum de rol, la función central de acceso a historias, las políticas y su suite pgTAP— y el metadato de Clerk de
+  cada usuario; un error deja sin acceso a los profesionales o abre un acceso indebido. Clerk, la aplicación y la base cambian
+  por separado, y el token de un profesional con sesión abierta sigue diciendo `medico`. El change `profesionales-de-la-salud`
+  lo mitiga con una sola migración atómica con autocomprobación, una instantánea normalizada de políticas antes y después, una
+  tolerancia transitoria del valor `medico` en `rol_actual()` y un script de Clerk, y retira esa tolerancia en una migración
+  posterior. Hoy solo hay datos de demostración, que es el momento más barato. **Cómo avanzar:** que el usuario acepte o
+  rechace la ADR **antes** de mergear H3 (que usa `'medico'`); si la acepta, revisión con `code-review` y verificación por
+  mutación. Alternativa de menor costo: conservar `medicos` y añadirle `profesion`.
+- **P-14 (alto, depende del asesor legal):** aislamiento de la información de Psicología
+  ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md), Propuesta). Es una excepción dentro del acceso a
+  historias, el riesgo principal del proyecto. Puntos abiertos: (1) cada tabla, vista, función o exportación nueva puede filtrar
+  Psicología si olvida la regla —de ahí la prueba negativa **por rol y por profesión** y la prueba de cobertura de la copia—;
+  (2) la atención genérica del psicólogo en `atenciones` es legible por todo profesional a cargo salvo que su política la
+  oculte (ver «Información de Psicología»); (3) la copia que se entrega al paciente incluye Psicología y la genera recepción
+  (P-16); (4) las reglas de salud mental y el caso de emergencia son una pregunta para el asesor, no verificada; (5) que un
+  paciente fue derivado a Psicología es visible para enfermería y recepción. **Cómo avanzar:** aceptar la ADR, decidir el punto
+  (2) en `especialidad-psicologia` y llevar (4) y (5) a la consulta legal.
+- **P-15 (medio, decisión pendiente del cliente):** imágenes como adjuntos. El diseño de H6 admite solo PDF
+  (`application/pdf`, tamaño acotado, comprobación de los primeros bytes; D7 de `historias-clinicas` y
+  [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)), pero Odontología necesita radiografías y Podología fotos de
+  evolución. Admitir imágenes cambia tipos MIME, validación por formato, tamaño y cuota de Blob; la regla de acceso no cambia
+  (fila RLS legible antes de entregar el archivo). **Cómo avanzar:** decidir formatos y tamaño con el cliente y ampliar D7 y
+  ADR-0024 antes de H6e y H6h; hasta entonces esos hitos no cierran su parte de adjuntos.
+- **P-16 (medio, decisión del usuario y del asesor):** la copia de la historia y el rol de recepción. El PRD y
+  [CLAUDE.md](../CLAUDE.md) hacen que recepción entregue la copia, pero el administrativo no lee contenido clínico, y la copia
+  incluye Psicología. El change `copia-de-historia-clinica` y la [ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) (Propuesta) recomiendan una función acotada y auditada que entrega el contenido
+  solo al servidor y un documento impreso en recepción frente al solicitante; su límite es que quien tiene el papel puede
+  leerlo, y exige que el usuario lo acepte (la alternativa es que la genere un profesional a cargo, que no cubre Psicología ni
+  pacientes sin asignación vigente). Tampoco está verificado si los «5 días» de la NTS 139 son hábiles o calendario (se cuentan
+  calendario), quién puede solicitar la copia (herederos, autoridades) ni qué la hace «autenticada». **Cómo avanzar:** decidir
+  con el usuario y llevar al asesor el plazo, los solicitantes y la autenticación; confirmar que hay impresora en recepción.
+- **P-17 (medio, decisión del cliente y del asesor):** qué profesiones pueden recetar y contenido de las plantillas
+  normativas. Médico sí y psicólogo no (confirmado por el usuario); odontólogo, fisioterapeuta y podólogo están por confirmar y
+  mientras tanto no pueden recetar (el catálogo los deja en «no» y sin confirmar). El contenido mínimo de la receta
+  (DS 014-2011-SA, art. 56) solo se conoce por una guía comercial, y la norma del odontograma (NTS 188) no se verificó. Mitigación: `profesiones_que_recetan` es un catálogo
+  gestionado por migración, así que cambiar la respuesta es una migración de datos y no un rediseño. **Cómo avanzar:**
+  confirmar con el cliente y validar con el asesor antes de H6c y H6e.
+- **P-18 (medio, verificación pendiente):** licencias de los instrumentos de evaluación. El PRD pide tests con puntaje
+  automático «de uso libre» para Psicología (y un test funcional en Fisioterapia), pero el proyecto no verificó la licencia de
+  ningún instrumento concreto: muchas escalas clínicas tienen derechos de autor o condiciones de uso. El catálogo
+  (`instrumentos_evaluacion`, H6i) lleva la marca `uso_libre` y se gestiona por migración, pero la marca solo es tan fiable como
+  la verificación que la respalde. **Cómo avanzar:** antes de cargar un instrumento, comprobar su licencia y dejar la fuente
+  en la migración; un instrumento sin licencia verificada no se carga.
 
 ## Plan de implementación sugerido
 
@@ -1390,12 +2186,40 @@ pierde información. La fecha de corte la fija la clínica.
 |---|---|---|
 | H1 | Esqueleto: Next.js sobre Vercel, Neon, Clerk, roles, CI | — |
 | H2 | Esquema completo + RLS + suite pgTAP | H1 |
+| H2c | Profesionales de la salud: renombre de `medico` a `profesional` sin alias, `profesion` y `colegiatura`, migración atómica de la base, de los usuarios de Clerk y de la suite pgTAP (**Propuesta**, ADR-0030) | H2, ADR-0030 aceptada |
 | H3 | Agenda: disponibilidades, slots, reserva con anticruce (panel administrativo) | H2 |
 | H4 | Portal del paciente: registro, búsqueda, reserva, cancelación | H3 |
 | H5 | Notificaciones por email + cron | H3 |
 | H6 | Historias clínicas: registro, firma, addendas, auditoría de accesos | H2, P-1 |
+| H6b | Triaje y derivación: visitas, triajes, derivaciones y «tomar al paciente»; la enfermera registra el triaje y deriva (**Propuesta**, ADR-0032) | H2c, H3, H6, ADR-0032 y ADR-0033 aceptadas |
+| H6c | Recetas médicas: `profesiones_que_recetan`, `recetas`, `receta_items`, plantilla de impresión y medicamentos del paciente | H6, H2c, ADR-0035 aceptada |
+| H6d | Copia de la historia clínica: solicitud, identidad verificada, generación y entrega en 5 días | H6, H3, ADR-0034 aceptada (cada tabla clínica nueva añade su sección al compilado; incluye Psicología al llegar H6g) |
+| H6i | Mecanismos comunes de las especialidades: planes de sesiones con contador (apoyados en las citas de H3) e instrumentos de evaluación con puntaje (**Propuesta**; se construye antes que H6f, H6g y H6h; Odontología no lo usa) | H6, H2c, H3 |
+| H6e | Odontología: odontograma (adulto e infantil, piezas y caras), hallazgos y tratamientos por pieza, radiografías como adjuntos | H6, H2c, P-15 |
+| H6f | Fisioterapia: evaluación inicial, nota por sesión, plan de sesiones con contador, reevaluación y alta | H6, H2c, H6i |
+| H6g | Psicología: evaluación estructurada, tests con puntaje automático, notas de sesión reservadas, sesiones recurrentes (**Propuesta**, ADR-0031) | H6, H2c, H6b, H6c, H6i, ADR-0031 aceptada |
+| H6h | Podología: evaluación de pie, uñas, piel y pisada, plan de controles, protocolos por sesiones, fotos de evolución | H6, H2c, H6i, P-15 |
 | H7 | Turnos de enfermería y dashboard operativo | H3 |
 | H8 | Migración de datos, capacitación, manual de usuario | H4, H6 |
 
 H6 depende de una decisión legal, no solo técnica. Puede construirse en paralelo, pero no debe
 entrar en producción con datos reales hasta cerrar P-1 (los datos sintéticos de demostración sí se permiten).
+
+Los hitos añadidos por el PRD del 2026-10-11 no cambian H1 a H8:
+
+- **Las cinco especialidades se entregan juntas.** Medicina general es la plantilla de H6 ([ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md));
+  H6i (planes de sesiones e instrumentos de evaluación, que varias necesitan) se construye antes; H6e a H6h pueden
+  construirse en paralelo, pero la puesta en uso es una sola, y los 4 a 5 meses de los criterios de éxito
+  cuentan desde ese momento (riesgo de alcance del PRD).
+- **H2c va antes de H3.** H3 escribe `'medico'` en sus acciones (`exigirPersonal`); renombrarlo después obliga a reescribirlo
+  ([ADR-0030](adrs/0030-profesional-de-la-salud.md), consecuencias). Si la ADR se rechaza, H2c se reduce a añadir `profesion` a
+  `medicos`.
+- **H6b a H6i heredan el bloqueo de P-1** y suman P-11 (acreditación del sistema) y P-12 (ANPD) antes de usar datos reales; los
+  datos sintéticos de demostración siguen permitidos. H2c, H6b, H6c, H6d, H6g y H6i tocan el acceso a historias clínicas o RLS:
+  revisión explícita con `code-review` y verificación por mutación de sus pruebas negativas.
+- **Dependencias entre los nuevos:** H6c necesita la atención de H6 y la profesión de H2c; H6d se construye idealmente al final
+  del grupo H6, con el compilado completo (si no, cada change añade su sección y una prueba de cobertura lo exige); H6g
+  consume la lista de medicamentos de H6c, porque los medicamentos que ven los demás profesionales salen de las recetas. H6b,
+  H6c y H6d cuentan cada uno con su ADR propuesta ([ADR-0033](adrs/0033-visita-del-paciente-llegada-y-estados.md),
+  [ADR-0035](adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) y
+  [ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md)), que el usuario debe aceptar antes de construir.

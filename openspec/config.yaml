@@ -12,10 +12,17 @@ context: |
   solo email). Detalle en TECH-DESIGN.md y ADR 0020-0028.
 
   Roles e invariante central (no reabrir sin pedido del cliente):
-    - Administrativo: agenda/reprograma/cancela citas de cualquier paciente.
-    - Médico: ve sus turnos y citas; registra/consulta historias clínicas SOLO de sus pacientes
-      a cargo (aislamiento por RLS en base de datos, no solo en capa de aplicación).
-    - Enfermera: consulta su turno y con qué médico/servicio trabaja. Nada más.
+    - Administrativo (recepción): registra al paciente nuevo (con o sin cita) y abre su historia con la
+      filiación de la NTS 139; agenda/reprograma/cancela citas de cualquier paciente; entrega la copia de la
+      historia verificando la identidad de quien la pide.
+    - Profesional de la salud (PRD 2026-10-11; reemplaza a «Médico»; médico, odontólogo, fisioterapeuta,
+      psicólogo, podólogo; ADR-0030 propuesta: hasta aceptarla el esquema y el código vigentes usan `medico`):
+      ve sus turnos y citas; registra/consulta historias clínicas SOLO de sus pacientes a cargo (aislamiento por
+      RLS en base de datos, no solo en capa de aplicación); la historia es compartida entre especialidades
+      SALVO la información de Psicología (ADR-0031 propuesta); deriva a otra especialidad; receta solo si su
+      profesión puede recetar.
+    - Enfermera: registra el triaje y deriva a una especialidad; consulta su turno y con qué especialidad
+      trabaja. SIN acceso a historias clínicas.
     - Paciente: reserva/cancela SU propia cita vía portal de autoservicio. Sin acceso a historias
       clínicas ni funciones administrativas.
 
@@ -26,18 +33,32 @@ context: |
       administrativo (ADR-0012). Advertir de esta ventana al momento de reservar.
     - Historia clínica: nunca con campos vacíos o datos inválidos; los datos que vienen del
       registro del paciente son de solo lectura desde la historia clínica.
-    - Doctor de baja o emergencia: reasignación de sus citas a otro médico (flujo explícito).
+    - Profesional de baja o emergencia: reasignación de sus citas a otro de la misma especialidad (flujo explícito).
     - Notificación automática al paciente un día antes de la cita (email vía Resend/cron).
-    - Identificación de paciente: valida DNI y Carné de Extranjería, no solo DNI.
+    - Identificación de paciente: valida DNI y Carné de Extranjería, no solo DNI; la NTS 139 admite además
+      pasaporte (extranjero en tránsito) y número correlativo provisional (sin documento).
+    - Apertura de la historia: una historia única por paciente, con el formato de filiación mínimo de la NTS 139.
+    - Pacientes sin cita: la enfermera hace el triaje y deriva a una especialidad; derivar no da acceso por sí
+      solo, un profesional de la especialidad «toma» al paciente (ADR-0032 propuesta).
+    - Triaje: presión arterial, frecuencia cardíaca, frecuencia respiratoria, temperatura, saturación de
+      oxígeno, peso y talla (IMC calculado).
+    - Recetas: solo común impresa, numerada, con datos estructurados; inmutable (se anula y se emite otra). Sin
+      receta electrónica ni especial, sin alertas automáticas de interacción.
+    - Copia de la historia (NTS 139): máximo 5 días, identidad del solicitante verificada, quién emite registrado;
+      incluye la información de Psicología.
 
   Decisión abierta que SÍ bloquea (no inventar respuesta, preguntar): marco legal peruano de
   historia clínica electrónica (NTS del MINSA) — retención, firma electrónica vs. firma lógica,
-  y si los datos clínicos pueden alojarse fuera de Perú. Bloquea producción del módulo de
+  y si los datos clínicos pueden alojarse fuera de Perú; además la acreditación del sistema ante el MINSA
+  (DS 009-2017-SA, Directiva 373-MINSA/OGTI-2025), el registro del banco de datos ante la ANPD y las reglas de
+  salud mental (ver docs/investigacion-marco-legal-y-saniape.md). Bloquea producción del módulo de
   historias clínicas. Lista completa de riesgos abiertos en "Riesgos técnicos abiertos" de
   TECH-DESIGN.md.
 
-  Fuera de alcance de esta versión — no proponerlo: pagos/facturación en línea, telemedicina,
-  integración con laboratorios o farmacias, inventario, multi-sede, reportes/analítica de BI.
+  Fuera de alcance de esta versión — no proponerlo: pagos/facturación en línea (incluidos presupuestos y cuotas),
+  telemedicina, integración con laboratorios o farmacias, inventario, multi-sede, reportes/analítica de BI,
+  receta electrónica y especial, alertas automáticas de interacción de medicamentos, WhatsApp y SMS, dictado por
+  voz e IA, la especialidad de Estética y Capilar y el acceso del paciente a su historia desde el portal.
 
   Convenciones: UI, documentación y mensajes de error en español. Fechas siempre timestamptz en
   BD, renderizadas en America/Lima. Migraciones en migrations/*.sql (node-pg-migrate), solo hacia
@@ -51,6 +72,11 @@ context: |
     reserva (panel administrativo) → H4 portal del paciente → H5 notificaciones → H6 historias
     clínicas (bloqueado por la decisión legal) → H7 turnos de enfermería y dashboard → H8
     migración de datos y capacitación.
+  Hitos añadidos por el PRD del 2026-10-11 (el orden fino lo fija docs/BACKLOG.md): H2c
+    profesionales-de-la-salud (antes de H3), H6b triaje-y-derivacion, H6c recetas-medicas, H6d
+    copia-de-historia-clinica, H6e especialidad-odontologia, H6f especialidad-fisioterapia, H6g
+    especialidad-psicologia y H6h especialidad-podologia (las cinco especialidades se entregan juntas;
+    Medicina general es la plantilla de H6, ADR-0029).
 
 rules:
   proposal:

@@ -117,6 +117,9 @@ El sistema SHALL mostrar a cada enfermera, en su área, sus turnos de hoy y de l
 (`dd/MM/yyyy` y día de la semana en español), la franja y el médico (nombre y especialidad) o el servicio con el que
 trabaja. La pantalla SHALL limitarse a eso: no SHALL mostrar pacientes, citas, historias clínicas, turnos de otras
 enfermeras ni enlaces a funciones administrativas.
+El triaje y la derivación que la enfermera realiza con los pacientes son pantallas y funciones del change `triaje-y-derivacion`
+(H6b), no de esta pantalla: no amplían lo que «Mi turno» muestra ni le dan a la enfermera acceso a historias clínicas, citas o
+pacientes por consulta directa de tablas.
 
 #### Scenario: Turno de hoy con un médico
 - **WHEN** una enfermera con turno de la mañana de hoy con un médico de Cardiología abre su área

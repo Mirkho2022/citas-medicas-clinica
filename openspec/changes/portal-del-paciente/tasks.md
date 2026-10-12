@@ -21,7 +21,7 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       capa fina de H4 (o pedir el cambio a H3) sin duplicar lógica de agenda. Si H2b o H3 no están aplicados, detenerse.
 - [ ] 1.2 Redactar con la skill `architecture` el ADR de **verificación al vincular una ficha existente** (correo verificado de la
       cuenta + fecha de nacimiento; alternativas y riesgo residual de `design.md` D3) con el siguiente número libre de
-      `docs/adrs/` (el change `notificaciones-email` ya propone el 0029) y presentarlo al usuario. Verificar que el archivo
+      `docs/adrs/` (el 0029 ya lo ocupa «datos clínicos por especialidad»; hasta el 0036 están en uso) y presentarlo al usuario. Verificar que el archivo
       existe con estado «Aceptado» o «Propuesto», que enlaza a ADR-0003, 0022 y 0023, y que **la migración 2.2 no se aplica
       mientras no esté aceptado** (si el usuario decide otra cosa, cambian 2.2, 2.3 y la spec `registro-del-paciente`, no el resto).
 - [ ] 1.3 Crear `docs/pasos-manuales-h4.md` con los pasos de consola que no se pueden versionar y pedirle al usuario que los ejecute
@@ -206,7 +206,7 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 - [ ] 8.4 Dejar medible la autogestión (D10): prueba `tests/integracion/autogestion.test.ts` que reserva y cancela como paciente y
       comprueba `origen = 'portal'`, `creada_por` y `cancelada_por` = perfil del paciente (y que una cancelación del administrativo se
       distingue), y documentar en `docs/pruebas-sql.md` las dos consultas de la métrica (reservas por `origen`, cancelaciones por rol de
-      `cancelada_por`) sin construir ninguna pantalla. Verificar con `npm run test:integracion` y ejecutando las consultas sobre los
+      `cancelada_por`) sin construir ninguna pantalla; anotar que el denominador cuenta solo citas (no visitas sin cita) y que las citas de sesiones de H6i esperan la decisión Q10. Verificar con `npm run test:integracion` y ejecutando las consultas sobre los
       datos de demostración.
 
 ## 9. Usabilidad y accesibilidad
