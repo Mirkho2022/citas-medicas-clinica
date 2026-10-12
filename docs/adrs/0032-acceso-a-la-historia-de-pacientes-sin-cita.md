@@ -17,12 +17,15 @@ también puede derivarlo a otra especialidad. La enfermera no lee historias clí
 ## Decisión propuesta
 
 - Una entidad **`derivaciones`**: paciente, especialidad de destino, origen (enfermera o profesional), quién la creó, estado
-  (`pendiente`, `tomada`, `cerrada`, `vencida`) y vigencia.
+  (`pendiente`, `tomada`, `cerrada`, `vencida` y `anulada`, esta última para corregir un error antes de que alguien tome al
+  paciente) y vigencia. Cuelga de una **visita** ([ADR-0033](0033-visita-del-paciente-llegada-y-estados.md)).
 - **Crear una derivación no da acceso a nadie.** Un profesional de la especialidad de destino **toma** al paciente, y esa acción
   inserta la asignación (append-only, con motivo `derivacion:<id>` y vigencia acotada), como ya hace el disparador de citas.
 - La enfermera solo puede derivar a una **especialidad**, nunca a un profesional concreto, y no obtiene lectura de contenido
   clínico por derivar.
-- La vigencia de una asignación por derivación **no se fija aquí** (pregunta abierta; se propone un valor corto).
+- La vigencia de una asignación por derivación **no está decidida**: el change `triaje-y-derivacion` propone **7 días** de Lima
+  desde la toma, en una sola función que se cambia con una migración (D8, con seis opciones comparadas); la derivación
+  pendiente vence al final del día. Es una pregunta abierta para el usuario y el asesor legal.
 
 ## Alternativas consideradas
 

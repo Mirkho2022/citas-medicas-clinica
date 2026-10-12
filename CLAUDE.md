@@ -45,8 +45,11 @@ sin el `authToken` de la sesión de Clerk adjunto.
   [investigacion-marco-legal-y-saniape.md](docs/investigacion-marco-legal-y-saniape.md). Tampoco se deciden sin el asesor.
 - **ADR propuestas por la actualización del PRD** (no están aceptadas: no las des por hechas):
   [ADR-0030](docs/adrs/0030-profesional-de-la-salud.md) (profesional de la salud),
-  [ADR-0031](docs/adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) (Psicología aparte) y
-  [ADR-0032](docs/adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) (pacientes sin cita).
+  [ADR-0031](docs/adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) (Psicología aparte),
+  [ADR-0032](docs/adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) (pacientes sin cita),
+  [ADR-0033](docs/adrs/0033-visita-del-paciente-llegada-y-estados.md) (visita del paciente),
+  [ADR-0034](docs/adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) (emisión de la copia) y
+  [ADR-0035](docs/adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) (recetas).
 
 Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y quedaron
 formalizadas como ADR — no las reabras sin que el cliente lo pida:
