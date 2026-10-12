@@ -22,8 +22,9 @@ un control no exija llenar una evaluación completa.
 
 ## What Changes
 
-**Este change toca acceso a historias clínicas y RLS (el riesgo principal del proyecto): crea tablas clínicas nuevas, dos
-disparadores sobre `atenciones` que deciden quién puede usar la plantilla y cuándo puede firmarse, y una lectura comparativa de
+**Este change toca acceso a historias clínicas y RLS (el riesgo principal del proyecto): crea tablas clínicas nuevas, un
+disparador sobre `atenciones` que decide cuándo puede firmarse la evaluación (quién usa la plantilla lo decide `exige_profesion`, D15 de
+`historias-clinicas`), y una lectura comparativa de
 contenido clínico. Requiere revisión aparte con el agente `code-review` (hay una tarea de revisión al final de cada grupo que lo
 toca y una final sobre todo el diff: `tasks.md`) y verificación por mutación de sus pruebas negativas.**
 
@@ -33,12 +34,13 @@ toca y una final sobre todo el diff: `tasks.md`) y verificación por mutación d
   los demás campos**, regla que impone un disparador propio porque el validador genérico no tiene campos condicionales. Los
   campos son una **propuesta que los podólogos deben validar** (`REVISAR`). La evaluación entra en la huella `v1` de la atención,
   queda inmutable al firmar y se corrige con una addenda.
-- **Solo un podólogo la escribe; todo profesional a cargo la lee.** El disparador `atenciones_podologia_10_coherencia` rechaza
-  (`HC080`) que el autor de una atención con la plantilla de Podología no sea un podólogo (la profesión sale de
-  `profesionales.profesion`, nunca del cliente). La lectura es la de `atenciones` (todo profesional a cargo, auditada);
+- **Solo un podólogo la escribe; todo profesional a cargo la lee.** La plantilla de Podología v1 lleva `exige_profesion = 'podologo'` y la
+  regla común de `historias-clinicas` (D15, dentro de su validador, `HC005`) rechaza que el autor de una atención con esa plantilla no sea
+  un podólogo (la profesión sale de `profesionales.profesion`, nunca del cliente); este change no crea un disparador propio para ello. La lectura es la de `atenciones` (todo profesional a cargo, auditada);
   enfermera, administrativo y paciente no la leen.
 - **Plan de controles y protocolos por sesiones.** Usan los **planes de sesiones** de H6i (con su contador de sesiones
-  restantes) sin redefinirlos. Podología aporta el catálogo **`protocolos_podologia`**, gestionado por migración, de lectura para
+  restantes) sin redefinirlos: la clave del protocolo va en `protocolo_clave`, su nombre en `descripcion`, y el total (1 a 60) y la
+  frecuencia (1 a 90 días) respetan los límites de H6i. Podología aporta el catálogo **`protocolos_podologia`**, gestionado por migración, de lectura para
   los profesionales y sin escritura para nadie, con **cuatro protocolos y ninguno más**: hongos (6 sesiones cada 15 días),
   verruga plantar (4 sesiones semanales), ortonixia (3 controles) y pie diabético (controles mensuales). Salen de la web de una
   referencia comercial y **no están validados**: van marcados `REVISAR` y `por_validar`, con una puerta de revisión que impide que
@@ -75,8 +77,8 @@ toca y una final sobre todo el diff: `tasks.md`) y verificación por mutación d
 
 ### Modified Capabilities
 
-<!-- Ninguna en `openspec/specs/` (solo existe `autenticacion-roles`). Este change añade dos disparadores sobre `atenciones`, que
-pertenece a `historias-clinicas` (aún no archivado): no hay delta posible; se coordina en la tarea 0.7 y se declara en design.md,
+<!-- Ninguna en `openspec/specs/` (solo existe `autenticacion-roles`). Este change añade un disparador sobre `atenciones`, que
+pertenece a `historias-clinicas` (aún no archivado), y fija el dato `exige_profesion` de su plantilla: no hay delta posible; se coordina en la tarea 0.7 y se declara en design.md,
 D3 y D6. No se añade ningún valor a `tipo_acceso` de `accesos_historia`. -->
 
 ## Impact
@@ -84,13 +86,13 @@ D3 y D6. No se añade ningún valor a `tipo_acceso` de `accesos_historia`. -->
 - **Hito:** **H6h** (el orden fino lo fija `docs/BACKLOG.md`). **Depende de** H6 `historias-clinicas` (atenciones, plantillas
   clínicas, asignaciones, `accesos_historia`, `adjuntos_historia`, guarda de modo de datos y módulo único de acceso clínico), de
   H2c `profesionales-de-la-salud` (`profesion_actual()`, `profesionales.profesion`, rol `profesional`), de **H6i**
-  `mecanismos-clinicos-comunes` (planes de sesiones; este change lo usa por su interfaz, `design.md` D4) y, **solo para la vista de
+  `mecanismos-clinicos-comunes` (planes de sesiones; escrito y validado el 2026-10-12; este change lo usa por su interfaz, contrastada en `design.md` D4) y, **solo para la vista de
   imágenes lado a lado, de la decisión P-15**. Se apoya en H6b (`registrar_auditoria_sin_contenido()`), en H6d (compilado de la
   copia: cada tabla clínica nueva se clasifica) y sigue los patrones de H6e. Para las pantallas depende además de H2b
   (`sistema-de-diseno-ui`). No depende de H6c: **no emite ni modifica recetas**.
 - **RLS y acceso a historias clínicas (revisión aparte):** tablas nuevas `protocolos_podologia` (catálogo; nadie escribe, lo leen
   los profesionales) y `fotos_evolucion` (lee todo profesional a cargo; escribe solo un podólogo con el paciente a cargo, sobre una
-  atención propia sin firmar); dos disparadores en `atenciones` (`HC080`, `HC082`, `HC084`); una función de la sección de la copia.
+  atención propia sin firmar); un disparador en `atenciones` (`HC082`, `HC084`); una función de la sección de la copia.
   Casos negativos por rol (administrativo, profesional a cargo, otro profesional, enfermera, paciente, sin rol, `anonymous`,
   `cron_notificaciones`, `sync_identidad`) **y por profesión** (médico, odontólogo, fisioterapeuta, psicólogo): pruebas pgTAP
   **79** (sugerida, en dos archivos).
@@ -111,7 +113,7 @@ D3 y D6. No se añade ningún valor a `tipo_acceso` de `accesos_historia`. -->
   selector de protocolo, insignia «Por validar»); `tests/pgtap/79_podologia_rls.test.sql` y `79_podologia_reglas.test.sql`,
   `tests/concurrencia/` (sugerido 31), `tests/podologia/`, `e2e/podologia*.spec.ts`.
 - **Base de datos:** tablas nuevas `protocolos_podologia` y `fotos_evolucion` (RLS y prueba pgTAP negativa cada una); filas nuevas
-  en `plantillas_clinicas` (y en `especialidades`, si falta Podología); dos funciones y dos disparadores sobre `atenciones`, los
+  en `plantillas_clinicas` (y en `especialidades`, si falta Podología); dos funciones y un disparador sobre `atenciones`, los
   disparadores propios de `fotos_evolucion` y `copia_seccion_podologia()`; SQLSTATE `HC080` a `HC084` (`HC085` a `HC089`
   reservados). **No se crea ninguna tabla para la evaluación ni para los planes, ni se amplía `accesos_historia`.**
 - **Dependencias nuevas:** ninguna. **Infraestructura:** ninguna variable de entorno ni rol de Postgres nuevos.

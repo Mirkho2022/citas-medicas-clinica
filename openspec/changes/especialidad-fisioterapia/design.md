@@ -34,8 +34,8 @@ repositorio (migraciones de H2) y en los changes vecinos, que **aún no están a
   (H3), no cuando se escribe una nota. **H6f aporta los protocolos y los instrumentos por migración** y no redefine nada de H6i.
 - **Hermano H6e `especialidad-odontologia` (ya escrito):** fijó el patrón que este change sigue para no abrir tres dialectos:
   tablas hijas propias de la atención, **sello propio de la sección con huella** al firmar (la huella `v1` no cubre tablas hijas),
-  catálogo gestionado por migración, plantilla v1 con pocos campos, disparadores `atenciones_<especialidad>_10_coherencia` y
-  `_20_sellar`, disparadores de las tablas hijas con prefijo numérico para fijar su orden, y una función
+  catálogo gestionado por migración, plantilla v1 con pocos campos, el disparador `atenciones_<especialidad>_20_sellar` (la regla profesión–plantilla ya no es de cada especialidad:
+  la impone `exige_profesion`, D15 de `historias-clinicas`), disparadores de las tablas hijas con prefijo numérico para fijar su orden, y una función
   `copia_seccion_<especialidad>()` con `EXECUTE` revocado a todo rol de usuario.
 - **Lo que no está verificado y se declara:** las licencias de los cuatro tests funcionales (P-18); las versiones validadas en
   español; el contenido clínico de los catálogos (zonas, movimientos, grupos musculares, pruebas especiales, planes); y que los
@@ -67,10 +67,10 @@ repositorio (migraciones de H2) y en los changes vecinos, que **aún no están a
 
 | Con | Se usa | Se aporta | Por confirmar (`REVISAR`) |
 |---|---|---|---|
-| H6i, planes | `crear_plan_de_sesiones(p_id, p_paciente, p_atencion, p_protocolo_clave, …)`, `cerrar_plan_de_sesiones()`, la vista `planes_de_sesiones_con_contador` (`restantes`), `sesiones_del_plan` (estados `por_agendar`, `agendada`, `asistida`), el componente `ContadorDeSesiones`; el plan lleva `atencion_id` (misma persona y mismo profesional, `HC094`) y `area` | El **catálogo de planes de Fisioterapia** (`protocolo_clave`), un disparador que lo valida (H6i, D1, regla 3) y la regla de que un plan de Fisioterapia nace de una evaluación firmada de un episodio abierto (D11) | Nombres y estados al aplicar; si H6i prefiere guardar el catálogo de protocolos |
-| H6i, instrumentos | `instrumentos_evaluacion` (`area = fisioterapia`, `uso_libre`, `licencia_referencia`, `licencia_verificada_el`), `registrar_aplicacion_instrumento(…, p_atencion, …)`, `puntajes` por escala | Una migración de datos **por instrumento**, solo con licencia verificada (D6); la asociación zona → instrumento y escala | Que cada definición quepa en las operaciones `suma` y `porcentaje` de H6i (D11 de H6i) |
-| H6, atenciones | Plantillas, `datos_especialidad`, firma y huella `v1`, `accesos_historia`, módulo único, guarda de datos reales | Plantilla `Fisioterapia v1`, dos disparadores sobre `atenciones` (D8) y la sección de la evaluación dentro de `FormularioAtencion` | Nombres y orden de los disparadores de `atenciones` de H6; contrato del repositorio para «guardar y firmar en un paso» |
-| H2c | `profesion_actual()`, `profesional_tiene_paciente()`, `fisioterapeuta` | La regla profesión–plantilla de Fisioterapia (D8); no impide un fisioterapeuta en otra especialidad | Compatibilidad profesión–especialidad en `profesionales` (de H2c y H3) |
+| H6i, planes | `crear_plan_de_sesiones(p_id, p_paciente, p_atencion, p_protocolo_clave, p_descripcion, p_total, p_frecuencia_dias, p_vigente_hasta)` y `cerrar_plan_de_sesiones(p_plan, p_estado, p_motivo)`, ambas solo a través de `lib/historias/planes.ts` (`crearPlan`, `cerrarPlan`), la vista `planes_de_sesiones_con_contador` (`asistidas`, `restantes`), `sesiones_del_plan` (estados `por_agendar`, `agendada`, `asistida`), el componente `ContadorDeSesiones`; el plan lleva `atencion_id` (del mismo paciente y del mismo profesional que lo crea, `HC094`) y `area`; solo un fisioterapeuta, psicólogo o podólogo lo crea (`HC090`); `total_sesiones` de 1 a 60 y `frecuencia_dias` de 1 a 90 | El **catálogo de planes de Fisioterapia** (`protocolo_clave`), un disparador que lo valida (H6i, D1, regla 3) y la regla de que un plan de Fisioterapia nace de una evaluación firmada de un episodio abierto (D11) | Contrastado con el H6i escrito y validado (2026-10-12): coinciden nombres, estados, límites y códigos `HC090`–`HC098`; queda la discrepancia sobre `HC094` en D11. Releer los nombres reales al aplicar |
+| H6i, instrumentos | `instrumentos_evaluacion` (`area = fisioterapia`, `uso_libre`, `licencia_referencia`, `licencia_verificada_el`), `registrar_aplicacion_instrumento(p_id, p_paciente, p_instrumento, p_atencion, p_respuestas, p_calculo_servidor, p_interpretacion_profesional)` solo a través de `lib/historias/instrumentos.ts` (`aplicarInstrumento`), `aplicaciones_instrumento` (`instrumento_id`, `atencion_id`, `estado`, `puntajes` por escala) | Una migración de datos **por instrumento**, solo con licencia verificada (D6); la asociación zona → instrumento y escala | Que cada definición quepa en las operaciones `suma` y `porcentaje` de H6i (D11 de H6i) |
+| H6, atenciones | Plantillas, `datos_especialidad`, firma y huella `v1`, `accesos_historia`, módulo único, guarda de datos reales | Plantilla `Fisioterapia v1` con `exige_profesion = 'fisioterapeuta'`, un disparador de sello sobre `atenciones` (D8) y la sección de la evaluación dentro de `FormularioAtencion` | Nombres y orden de los disparadores de `atenciones` de H6; que D15 de `historias-clinicas` aplique `exige_profesion` en el validador (`HC005`); contrato del repositorio para «guardar y firmar en un paso» |
+| H2c | `profesion_actual()`, `profesional_tiene_paciente()`, `fisioterapeuta` | El dato `exige_profesion = 'fisioterapeuta'` de la plantilla (D8; la regla común es D15 de `historias-clinicas`); no impide un fisioterapeuta en otra especialidad | Compatibilidad profesión–especialidad en `profesionales` (de H2c y H3) |
 | H6b | `registrar_auditoria_sin_contenido()` | — | Que cubre `DELETE` y funciona con claves llamadas `id` |
 | H6d | El compilado y su prueba de cobertura | `copia_seccion_fisioterapia()` y la clasificación de las seis tablas (D14) | Cómo delega el compilado en las funciones `copia_seccion_*` |
 | H6e, H6h | El patrón de tablas hijas selladas | — | Una ADR común que formalice el patrón (la propone el orquestador; este change no crea una) |
@@ -165,7 +165,7 @@ Una sola tabla, no cuatro: los vocabularios comparten forma y política, y cada 
 | `lateral` | `true`: se registra por lado (`derecho` o `izquierdo`, dos filas si es bilateral); `false`: el lado es `no_aplica` |
 | `grados_min`, `grados_max` | Solo `movimiento`: el rango de plausibilidad de los grados (puede ser negativo para una extensión por debajo de cero) |
 | `instrumento_clave`, `instrumento_escala`, `instrumento_mejor_si` | Solo `region`: el test funcional de la zona (D6), la escala cuyo puntaje se compara y si un puntaje mayor o menor es mejor |
-| `sesiones_sugeridas`, `frecuencia_sugerida_dias` | Solo `plan`: el catálogo de planes de Fisioterapia (D11) |
+| `sesiones_sugeridas`, `frecuencia_sugerida_dias` | Solo `plan`: el catálogo de planes de Fisioterapia (D11); `CHECK` de 1 a 60 y de 1 a 90, los límites de `total_sesiones` y `frecuencia_dias` de H6i (D3 de H6i) |
 | `orden`, `vigente` | Orden de presentación; `vigente = false` retira una entrada sin borrarla |
 
 - **Significado inmutable.** Un disparador rechaza, **incluso al dueño**, cambiar `tipo`, `clave`, `lateral`, `grados_*`,
@@ -244,10 +244,11 @@ El test funcional es un instrumento de `instrumentos_evaluacion` con `area = fis
   y ese instrumento está vigente**; si no, no se exige. Puede omitirse con la declaración de D5 (`test_funcional` en
   `tipos_no_evaluados`) y su motivo. Cuando se aplica, el puntaje de la fila no lo teclea nadie: la fila exige una aplicación
   (`aplicacion_id`) y la base comprueba (`HC066`) que la aplicación es de ese paciente, de esa evaluación (`aplicaciones_instrumento.
-  atencion_id`), vigente (no anulada), del instrumento de la zona, de `area = fisioterapia`, que no la usa otra fila y que `valor`
-  es exactamente el puntaje de la escala del catálogo. La reevaluación repite **el mismo instrumento**.
+  atencion_id`), vigente (`estado = 'vigente'`, no anulada), del instrumento de la zona (`instrumento_id` → `instrumentos_evaluacion.clave`), de `area = fisioterapia`, que no la usa otra fila y que `valor`
+  es exactamente el puntaje de la escala del catálogo (`puntajes ->> instrumento_escala`). La reevaluación repite **el mismo instrumento**.
 - **Cómo se aplica.** El formulario del instrumento y el cálculo son de H6i (`FormularioInstrumento`); la acción registra la
-  aplicación con `p_atencion` = la evaluación y luego inserta la fila de medición.
+  aplicación con `aplicarInstrumento` de H6i (`lib/historias/instrumentos.ts`: el servidor calcula el puntaje y la base lo verifica, `HC097`) con
+  `p_atencion` = la evaluación y luego inserta la fila de medición.
 - **Versiones.** Si un instrumento publica una versión nueva, los puntajes de versiones distintas pueden no ser comparables; la
   comparación usa la `clave` y no lo distingue. Queda como pregunta abierta (no se cambia el puntaje guardado).
 - **Una aplicación anulada después de firmar.** La fila de medición conserva su copia sellada; la vista de comparación marca
@@ -271,29 +272,35 @@ esa medición.
 - **Estado.** Un objetivo está `logrado` cuando el último valor firmado del mismo indicador en el episodio alcanza la meta
   (vista `objetivos_estado_fisioterapia`, D10). No se guarda: se deriva.
 
-### D8. Completitud, sello y huella al firmar (dos disparadores sobre `atenciones`)
+### D8. Completitud, sello y huella al firmar (un disparador sobre `atenciones`)
 
-Dos disparadores `SECURITY DEFINER` (`search_path` vacío) sobre `atenciones`, con el patrón de H6e, **que no modifican la fila** (solo
-leen la atención y escriben en las tablas de este change):
+Un disparador `SECURITY DEFINER` (`search_path` vacío) sobre `atenciones`, con el patrón de H6e, **que no modifica la fila** (solo
+lee la atención y escribe en las tablas de este change).
 
-1. **`atenciones_fisioterapia_10_coherencia`** (`BEFORE INSERT OR UPDATE OF plantilla_id`): si la plantilla es la de Fisioterapia
-   (identificada con `especialidad_fisioterapia_id()`, una sola función que localiza la especialidad `Fisioterapia`, que la prueba
-   afirma única), la **profesión del autor** (`profesionales.profesion` del `profesional_id` de la atención) debe ser
-   `fisioterapeuta` (`HC060`). El validador de H6 exige que la plantilla sea de la especialidad del autor, pero `especialidad_id` es
-   libre en `profesionales`; así, aunque un médico quedara mal registrado en Fisioterapia, no podría usar la plantilla ni su sección.
-2. **`atenciones_fisioterapia_20_sellar`** (`BEFORE UPDATE OF firmada_en`, `WHEN old.firmada_en is null and new.firmada_en is not
-   null`): corre en el instante de la firma, y si la atención usa la plantilla de Fisioterapia:
-   - exige la **cabecera** y que su tipo concuerde con `tipo_registro` (`HC062`);
-   - comprueba la **completitud** según el acto (tabla siguiente);
-   - revalida las mediciones (rango, lado, aplicación del test) y que cada objetivo siga apuntando a una medición de esta evaluación;
-   - calcula `huella_evaluacion_fisioterapia(atencion)` y la guarda con `sellado_en` en la cabecera;
-   - **abre** el episodio (evaluación inicial) o **lo cierra** (alta) (D9).
+**Quién puede usar la plantilla (regla común, D15 de `historias-clinicas`).** Este change **no crea un disparador propio** para
+«solo un fisioterapeuta usa la plantilla de Fisioterapia». La regla la impone `historias-clinicas` (D15) para todas las
+especialidades con la columna `plantillas_clinicas.exige_profesion` (tipo `profesion_salud`; nula = cualquiera) dentro del
+disparador de validación de `atenciones` que ya existe (`HC005`). Aquí solo se fija el dato: la plantilla `Fisioterapia v1` se
+inserta con `exige_profesion = 'fisioterapeuta'` (D2) y una prueba pgTAP lo afirma. Así, aunque `especialidad_id` es libre en
+`profesionales` y un médico quedara mal registrado en Fisioterapia, no podría guardar una atención con la plantilla ni, por tanto,
+abrir su sección. La escritura en las tablas de este change conserva su propia barrera de profesión (D13, `HC060`), que es otra
+regla: quién escribe en esas tablas, no quién usa la plantilla.
+
+**`atenciones_fisioterapia_20_sellar`** (`BEFORE UPDATE OF firmada_en`, `WHEN old.firmada_en is null and new.firmada_en is not
+null`): corre en el instante de la firma, y si la atención usa la plantilla de Fisioterapia (identificada con
+`especialidad_fisioterapia_id()`, una sola función que localiza la especialidad `Fisioterapia`, que la prueba afirma única):
+
+- exige la **cabecera** y que su tipo concuerde con `tipo_registro` (`HC062`);
+- comprueba la **completitud** según el acto (tabla siguiente);
+- revalida las mediciones (rango, lado, aplicación del test) y que cada objetivo siga apuntando a una medición de esta evaluación;
+- calcula `huella_evaluacion_fisioterapia(atencion)` y la guarda con `sellado_en` en la cabecera;
+- **abre** el episodio (evaluación inicial) o **lo cierra** (alta) (D9).
 
 | Acto | Completitud exigida al firmar | Si falta |
 |---|---|---|
 | `evaluacion_inicial` | Al menos una medición de `dolor`; para `goniometria`, `fuerza` y `prueba_especial`, al menos una fila **o** declarado en `tipos_no_evaluados`; test funcional si la zona lo exige (D6) o su omisión declarada; **al menos un objetivo**; sin `motivo_alta` | `HC062` |
 | `reevaluacion` | Episodio abierto y de la misma zona; al menos una medición de `dolor`; **repite todas las mediciones de la evaluación inicial** salvo los tipos declarados no evaluados; el mismo instrumento; sin `motivo_alta` | `HC062` / `HC063` / `HC064` |
-| `alta` | Episodio abierto y de la misma zona; `motivo_alta` obligatorio (y `motivo_alta_detalle` si es `otro`); **repite las mediciones iniciales salvo con `abandono`**, donde el paciente no está y no se exigen; ningún plan de sesiones `activo` del episodio (el profesional lo cierra antes con `cerrar_plan_de_sesiones()`); sin objetivos nuevos | `HC062` / `HC064` |
+| `alta` | Episodio abierto y de la misma zona; `motivo_alta` obligatorio (y `motivo_alta_detalle` si es `otro`); **repite las mediciones iniciales salvo con `abandono`**, donde el paciente no está y no se exigen; ningún plan de sesiones `activo` del episodio (el profesional lo cierra antes con `cerrar_plan_de_sesiones(p_plan, p_estado, p_motivo)`); sin objetivos nuevos | `HC062` / `HC064` |
 
 **Huella.** `'v1:'` + SHA-256 del `jsonb` canónico de `{atencion_id, paciente_id, tipos_no_evaluados, motivo_tipos_no_evaluados,
 mediciones, objetivos}` con las listas ordenadas de forma determinista por `(tipo, clave, lado)` y los códigos del catálogo (estables) en
@@ -323,7 +330,7 @@ ayudante `SECURITY DEFINER` con el mismo bloqueo (el mismo plan de reserva de H6
 `paciente_id`. Las tablas hijas llevan prefijos numéricos: `fisioterapia_10_completar` (identidad y `paciente_id`), `_20_proteger`
 (profesión, autoría y atención sin firmar), `_30_validar` (reglas de D5, D7), `_40_modo` (guarda de datos reales) y, en las notas,
 `_50_sellar`; la auditoría de escritura es `fisioterapia_90_auditoria` (`AFTER`). Una prueba lee `pg_trigger` y afirma el orden y
-que los dos disparadores de `atenciones` existen con esos nombres.
+que el disparador `atenciones_fisioterapia_20_sellar` existe con ese nombre.
 
 ### D9. Ciclo de vida del episodio
 
@@ -382,20 +389,31 @@ El plan es de H6i. Este change aporta cuatro cosas:
 1. **Catálogo de planes de Fisioterapia:** entradas `plan` de `catalogo_fisioterapia` (`clave` = `protocolo_clave` del plan,
    `etiqueta`, `region` opcional, `sesiones_sugeridas`, `frecuencia_sugerida_dias`). Son planes de **duración**, no de contenido
    terapéutico: no decimos qué ejercicios se hacen. Los **valores numéricos los fija la clínica** (tarea 0.4): este documento no los
-   inventa. La pantalla precarga el total y la frecuencia sugeridos y el fisioterapeuta los ajusta dentro de los límites de H6i (1 a 60
-   sesiones).
+   inventa. La pantalla precarga el total y la frecuencia sugeridos y el fisioterapeuta los ajusta dentro de los límites de H6i (`total_sesiones` de 1 a 60 y
+   `frecuencia_dias` de 1 a 90, D3 de H6i).
 2. **Un plan de Fisioterapia pertenece a un episodio.** El vínculo es la columna `atencion_id` del plan (H6i): el plan de un episodio es
-   el que apunta a una de sus evaluaciones firmadas. Un disparador `planes_fisioterapia_10_episodio` sobre `planes_de_sesiones` (solo
-   `area = fisioterapia`, `BEFORE INSERT`, `SECURITY DEFINER`) exige: `protocolo_clave` del catálogo y vigente, `atencion_id` no nulo,
+   el que apunta a una de sus evaluaciones firmadas. `crear_plan_de_sesiones()` exige antes que esa atención sea del **mismo paciente y del
+   mismo profesional que crea el plan** (`HC094`): el fisioterapeuta enlaza una evaluación firmada **por él**, y la pantalla solo ofrece esas.
+   Un colega que cubre y no firmó ninguna evaluación del episodio firma antes una reevaluación propia (ver la discrepancia al final de D11). Un disparador `planes_fisioterapia_10_episodio` sobre `planes_de_sesiones` (solo
+   `area = fisioterapia`, `BEFORE INSERT`, `SECURITY DEFINER`; lee `new.area`, `new.atencion_id` y `new.protocolo_clave`, que
+   `crear_plan_de_sesiones()` fija en el mismo `INSERT`, y es el patrón que H6i permite en su D1, regla 3) exige: `protocolo_clave` del catálogo y vigente, `atencion_id` no nulo,
    de una evaluación **firmada** (inicial o reevaluación) cuyo episodio esté **abierto** (`HC067`). Se prefiere esto a una columna
    `plan_id` en el episodio porque el plan ya trae `atencion_id` y porque un episodio puede tener varios planes en sucesión.
    *Alternativa descartada:* una columna mutable `plan_id` en `episodios_fisioterapia`: segunda fuente de verdad que se desincroniza.
 3. **El contador no se recalcula.** La pantalla del episodio monta `ContadorDeSesiones` con `planes_de_sesiones_con_contador.restantes`
-   de H6i: «Sesión 4 de 10 · quedan 6». Que una sesión no asistida, reprogramada, cancelada o abandonada se trate de una u otra forma es
-   de H6i, no se repite. Al agotarse, el plan pasa solo a `completado` y la pantalla ofrece la reevaluación (sugerencia de interfaz,
+   de H6i (con `asistidas`): «4 de 10 sesiones asistidas · quedan 6». Que una sesión no asistida, reprogramada, cancelada o abandonada se trate de una u otra forma es
+   de H6i, no se repite. Las sesiones nacen `por_agendar`: recepción las agenda una por una o confirma la serie que propone la base
+   (`proponer_serie_sesiones()`, D9 de H6i); el fisioterapeuta no crea citas. Al agotarse, el plan pasa solo a `completado` y la pantalla ofrece la reevaluación (sugerencia de interfaz,
    no una regla de la base).
 4. **Orden de cierre.** Para dar el alta no puede quedar un plan `activo` del episodio (D8): el flujo cierra el plan con
-   `cerrar_plan_de_sesiones()` (`alta_anticipada` o `abandono`) y firma el alta en la misma transacción.
+   `cerrarPlan` de H6i, que llama a `cerrar_plan_de_sesiones(p_plan, p_estado, p_motivo)` (`completado` con `alta_anticipada`, o `cancelado` con
+   `abandono`, `indicacion_clinica`, `error_de_registro` o `reemplazado`), y firma el alta en la misma transacción.
+
+**Discrepancia a resolver en H6i (`HC094`).** H6i exige que la `atencion_id` del plan sea del mismo profesional que lo crea (D3 de H6i).
+Este change se ajusta a eso (arriba), pero deja una consecuencia: el fisioterapeuta de cobertura que no firmó ninguna evaluación del
+episodio no puede crear el plan. Si la clínica quiere que cualquier fisioterapeuta con el paciente a cargo pueda crearlo desde la evaluación
+de un colega, H6i debe relajar `HC094` a «del mismo paciente y de un profesional con acceso a él» (cambio en D3 y D17 de H6i y en sus
+pruebas); mientras no cambie, rige lo anterior.
 
 <!-- REVISAR: «solo se crea un plan después de firmar la evaluación» y «todo plan de Fisioterapia lleva un protocolo del catálogo» son propuestas mías; el PRD solo dice «plan de sesiones con contador de las restantes». La alternativa es admitir planes con descripción libre y sin episodio (pregunta abierta). -->
 
@@ -473,7 +491,8 @@ disparador), `sesion_plan_id` (→ `sesiones_del_plan`; la nota **referencia** l
   (H6, D2): `exigir_modo_clinico()` → `insert` del acceso → lectura; si el registro falla (asignación vencida, perfil desactivado) se
   revierte todo y no se devuelve nada. El tipo es `historia` (vista general del episodio, comparación, notas) o `atencion` (detalle de
   una evaluación), **sin tipo nuevo**: así este change no compite con los demás por la restricción de `tipo_acceso` (el choque que
-  anotaron H6c y H6i). Las lecturas del módulo exigen un argumento `TransaccionConAcceso` que solo crea `lib/historias/`, de modo que no
+  anotaron H6c y H6i). Las lecturas del plan, del contador y de los instrumentos aplicados las hace el módulo de H6i (`lib/historias/planes.ts` e
+  `instrumentos.ts`) y se registran con los tipos `plan_sesiones` e `instrumento` de H6i (D15 de H6i), no con los de este change. Las lecturas del módulo exigen un argumento `TransaccionConAcceso` que solo crea `lib/historias/`, de modo que no
   se puede leer sin pasar por el registro. La lectura del catálogo no se audita. <!-- REVISAR: ¿se quiere un tipo de acceso propio para distinguir Fisioterapia en la revisión de accesos del administrativo? Es una pregunta abierta; añadirlo es una migración y un cambio en la pantalla de H6. -->
 - **Datos reales.** El disparador `_40_modo` (`exigir_paciente_admisible()`, `HC002`) protege las cinco tablas; las operaciones del módulo
   empiezan con `exigir_modo_clinico()` (`HC004`). Mientras P-1 siga abierta no entra ningún dato real.
@@ -497,7 +516,7 @@ tarea 7.1 lo verifica. Como H6e, este change **no modifica** H6d.
 
 ### D15. Aplicación: módulos, acciones, rutas y pantallas
 
-- **Módulo.** `lib/fisioterapia/repositorio.ts` (con ejecutor inyectable; todo el SQL contra las seis tablas y las vistas),
+- **Módulo.** `lib/fisioterapia/repositorio.ts` (con ejecutor inyectable; todo el SQL contra las seis tablas y las vistas; **ninguno** contra las tablas de H6i, que solo toca `lib/historias/planes.ts` e `instrumentos.ts`),
   `lib/fisioterapia/errores.ts`, `lib/historias/fisioterapia.ts` (lecturas con su registro de acceso, D14) y `lib/schemas/fisioterapia.ts`
   (Zod 3, `.strict()`; el cliente envía la **clave** del catálogo y nunca el `id`; el servidor relee el catálogo bajo RLS y valida
   contra él). Una prueba `tests/fisioterapia/acceso-unico.test.ts` falla si otro archivo de `app/`, `lib/` o `components/` contiene SQL
@@ -505,9 +524,9 @@ tarea 7.1 lo verifica. Como H6e, este change **no modifica** H6d.
 - **Acciones** (`{ ok: true, datos } | { ok: false, mensaje, errores? }`, todas con Zod en el servidor y `exigirPersonal` de H3):
   `guardarEvaluacionFisioterapia(atención, sección)` **reemplaza** la sección del borrador en una transacción (modo → borrar sus
   objetivos y mediciones → cabecera → insertar cada grupo con una sola sentencia `insert … select from jsonb_to_recordset`),
-  `registrarNotaSesion`, `corregirNotaSesion` y `crearPlanFisioterapia` (llama a `crear_plan_de_sesiones()` de H6i con el protocolo del
-  catálogo). **Firmar sigue siendo `firmarAtencion` de H6**: el sello lo hace la base. «Guardar y firmar en un paso» compone la
-  transacción de H6 con la de esta sección (tarea 0.5); para el **alta**, la transacción cierra antes el plan `activo`.
+  `registrarNotaSesion`, `corregirNotaSesion` y `crearPlanFisioterapia` (llama a `crearPlan` de H6i, `lib/historias/planes.ts`, que ejecuta `crear_plan_de_sesiones()`, con el `protocolo_clave` del
+  catálogo y una evaluación firmada por el propio fisioterapeuta). **Firmar sigue siendo `firmarAtencion` de H6**: el sello lo hace la base. «Guardar y firmar en un paso» compone la
+  transacción de H6 con la de esta sección (tarea 0.5); para el **alta**, la transacción cierra antes el plan `activo` con `cerrarPlan` de H6i.
 - **Rutas** (cada una repite `auth.protect()`, `exigirRol("profesional")` y MFA con la guardia de H6; `Cache-Control: private,
   no-store`; páginas dinámicas; título fijo («Fisioterapia»); direcciones solo con `uuid`; lo de un tercero devuelve 404, no 403):
 
@@ -535,7 +554,7 @@ tarea 7.1 lo verifica. Como H6e, este change **no modifica** H6d.
 
 | SQLSTATE | Significado | Mensaje al usuario (usted) |
 |---|---|---|
-| `HC060` | Quien escribe, o usa la plantilla, no es fisioterapeuta | «Solo un fisioterapeuta puede registrar evaluaciones y notas de Fisioterapia.» |
+| `HC060` | Quien escribe en las tablas de Fisioterapia no es fisioterapeuta | «Solo un fisioterapeuta puede registrar evaluaciones y notas de Fisioterapia.» |
 | `HC061` | La evaluación no admite cambios (firmada, de otro autor o sin plantilla de Fisioterapia) | «Esta evaluación ya no admite cambios. Para corregirla, agregue una addenda y registre el cambio en una evaluación nueva.» |
 | `HC062` | Evaluación incompleta o incoherente al firmar | «Complete la evaluación antes de firmarla: revise las mediciones, los objetivos y el motivo del alta.» |
 | `HC063` | Episodio no válido para la operación | «No hay un episodio abierto de esa zona para este paciente, o ya existe uno.» |
@@ -558,11 +577,11 @@ Nuevas, después de las de H2c, H6, H6b, H6i y (para la última) H6d. Nunca se e
 
 1. `catalogo-fisioterapia`: tipos, tabla, RLS, protección del significado.
 2. `catalogo-fisioterapia-datos`: regiones, movimientos, grupos, pruebas y planes (propuesta `REVISAR`), idempotente. Se escribe tras 0.4.
-3. `plantilla-fisioterapia`: especialidad «Fisioterapia» si falta, `especialidad_fisioterapia_id()` y la plantilla v1 (idempotente).
+3. `plantilla-fisioterapia`: especialidad «Fisioterapia» si falta, `especialidad_fisioterapia_id()` y la plantilla v1 con `exige_profesion = 'fisioterapeuta'` (idempotente).
 4. `evaluacion-fisioterapia-tablas`: episodios, cabecera, mediciones y objetivos; índices, RLS, `GRANT` por columna, políticas y
    disparadores `_10` a `_40` y de auditoría.
-5. `evaluacion-fisioterapia-sello-y-coherencia`: `huella_evaluacion_fisioterapia()`, `verificar_evaluacion_fisioterapia()` y los dos
-   disparadores sobre `atenciones` (apertura y cierre del episodio incluidos).
+5. `evaluacion-fisioterapia-sello-y-coherencia`: `huella_evaluacion_fisioterapia()`, `verificar_evaluacion_fisioterapia()` y el
+   disparador de sello sobre `atenciones` (apertura y cierre del episodio incluidos).
 6. `comparacion-fisioterapia`: las dos vistas.
 7. `notas-sesion-fisioterapia`: la tabla, sus disparadores y el disparador `planes_fisioterapia_10_episodio` sobre `planes_de_sesiones`.
 8. `instrumento-<clave>` (hasta cuatro, **condicionales** a la licencia verificada) y `zonas-con-instrumento` (asocia cada zona a un
@@ -587,7 +606,7 @@ insertar filas en una atención ya firmada.
   completitud de cada acto (`HC062`), repetición (`HC064`), test funcional (`HC066`: aplicación ajena, anulada, de otro instrumento o con
   puntaje distinto), objetivos (meta que no mejora, indicador no medido), apertura y cierre del episodio (`HC063`), plan y sesión (`HC067`),
   nota (una vigente por sesión, corrección, solo-agregar `HC068`), huella reproducible y alteración detectada, comparación (valores,
-  sentido, solo firmadas, un paciente a cargo ve y otro no), orden de los disparadores (`pg_trigger`), que la plantilla y el catálogo
+  sentido, solo firmadas, un paciente a cargo ve y otro no), orden de los disparadores (`pg_trigger`), que la plantilla v1 lleve `exige_profesion = 'fisioterapeuta'` y que la plantilla y el catálogo
   coincidan, que la auditoría y la copia no contengan un texto centinela y la prueba de cobertura de H6d.
 - **Concurrencia** (`tests/concurrencia/`, número sugerido 31; sesiones `pg` reales como `authenticated`): dos firmas de evaluación
   inicial de la misma zona (gana una, la otra `HC063`, un solo episodio); edición de una medición contra la firma (`HC061` o la huella ya la
@@ -607,8 +626,8 @@ insertar filas en una atención ya firmada.
   datos reales mientras P-1 siga abierta.
 - [Las licencias de los cuatro tests funcionales no están verificadas] → No se carga ningún ítem hasta verificarlas (0.3, 6.1); sin
   licencia, esa zona queda sin test y la evaluación sigue siendo válida; el mecanismo de H6i exige la referencia de licencia.
-- [Dos disparadores sobre `atenciones`, la tabla más sensible] → Solo leen la atención y escriben en tablas propias, solo reaccionan a la
-  plantilla de Fisioterapia, no modifican la fila, llevan prueba de orden y se verifican por mutación y `code-review`.
+- [Un disparador sobre `atenciones`, la tabla más sensible] → Solo leen la atención y escriben en tablas propias, solo reacciona a la
+  plantilla de Fisioterapia, no modifica la fila, llevan prueba de orden y se verifican por mutación y `code-review`.
 - [La huella de la atención no cubre las tablas hijas] → Sello propio y declaración sellada en `datos_especialidad` (D8); se pregunta a H6
   si prefiere cubrirlas (alternativa C).
 - [Los disparadores dependen del orden alfabético y de nombres de H6 aún sin aplicar] → Prefijos numéricos, prueba sobre `pg_trigger`, y
@@ -623,7 +642,7 @@ insertar filas en una atención ya firmada.
 - [Una aplicación anulada después de firmar] → La copia sellada de la fila se conserva y la vista lo marca (D6).
 - [Cambia el nombre «Fisioterapia» de la especialidad] → Centralizado en `especialidad_fisioterapia_id()`; la plantilla lo crea si falta;
   la prueba afirma que existe exactamente una.
-- [Nombres y estados de H6i, aún sin aplicar] → La tarea 0.2 los contrasta con el change terminado antes de escribir SQL.
+- [Nombres y estados de H6i, aún sin aplicar] → Contrastados con el H6i escrito y validado (2026-10-12); la tarea 0.2 los relee con el change aplicado antes de escribir SQL.
 - [Los requisitos de este change solapan los de H6 (`plantillas-clinicas-por-especialidad`, `firma-y-addendas`)] → Este change los
   refina; al archivar, la guía de `config.yaml` exige comprobar que no se contradigan.
 - [Los datos de Fisioterapia son datos de salud y no pueden usarse con pacientes reales] → Guarda de H6 en las cinco tablas; el change

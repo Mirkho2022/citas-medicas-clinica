@@ -73,8 +73,9 @@ firmarse sin esos campos.
 
 ### Requirement: Solo un podólogo escribe la evaluación podológica
 Registrar o modificar una atención con la plantilla de Podología SHALL estar permitido únicamente a un profesional cuya
-profesión, leída de la base de datos, sea podólogo. Un médico, un odontólogo, un fisioterapeuta o un psicólogo, aunque tenga al
-paciente a cargo, SHALL NOT poder usar la plantilla, y la profesión SHALL NOT depender de ningún dato que envíe el cliente. Un
+profesión, leída de la base de datos, sea podólogo. La plantilla SHALL llevar `exige_profesion = 'podologo'` y la regla común de la historia clínica (D15 de
+`historias-clinicas`) SHALL imponerla en la base de datos, sin disparador propio de este change. Un médico, un odontólogo, un
+fisioterapeuta o un psicólogo, aunque tenga al paciente a cargo, SHALL NOT poder usar la plantilla, y la profesión SHALL NOT depender de ningún dato que envíe el cliente. Un
 podólogo SHALL poder registrar una atención genérica sin plantilla. Ni el administrativo, ni la enfermera, ni el paciente, ni una
 sesión sin rol, `anonymous`, el rol del cron o el rol de sincronización SHALL poder registrar atenciones.
 
@@ -84,7 +85,7 @@ sesión sin rol, `anonymous`, el rol del cron o el rol de sincronización SHALL 
 
 #### Scenario: Otra profesión con la plantilla (negativo)
 - **WHEN** un médico, un odontólogo, un fisioterapeuta o un psicólogo que tiene al paciente a cargo intenta guardar una atención con la plantilla de Podología
-- **THEN** se rechaza con el mensaje de que solo un podólogo puede registrarla y no se guarda nada
+- **THEN** se rechaza por la regla común de la historia clínica y no se guarda nada
 
 #### Scenario: Profesional de otra profesión registrado en Podología (negativo)
 - **WHEN** un profesional que no es podólogo, pero cuya especialidad registrada es Podología, intenta usar la plantilla

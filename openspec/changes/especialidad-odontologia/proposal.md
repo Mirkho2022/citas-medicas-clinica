@@ -23,7 +23,7 @@ de su change». Este change es el hito **H6e**.
 ## What Changes
 
 **Este change toca RLS y el acceso a historias clínicas (el riesgo principal del proyecto): crea cuatro tablas clínicas con
-política propia, funciones y disparadores `SECURITY DEFINER`, y dos disparadores sobre `atenciones`. Exige revisión aparte con el
+política propia, funciones y disparadores `SECURITY DEFINER`, y un disparador de sello sobre `atenciones`. Exige revisión aparte con el
 agente `code-review` al final de cada grupo que lo toca y sobre todo el diff, y verificación por mutación de las pruebas
 negativas (`tasks.md`, grupos 1 a 6 y 11).**
 
@@ -41,8 +41,9 @@ negativas (`tasks.md`, grupos 1 a 6 y 11).**
 - **Catálogos de hallazgos y de tratamientos por migración** (D5): lo que no viene del PRD es **propuesta marcada `REVISAR`**
   para los odontólogos de la clínica; la norma del odontograma (NTS 188) **no se verificó** y este change no cita su contenido.
 - **Plantilla de Odontología** (D8, ADR-0029): tres campos para el resto de la atención, uno de ellos la declaración «registra
-  odontograma, tratamientos o radiografías» que la base comprueba al firmar; un disparador impide que otra profesión use esa
-  plantilla.
+  odontograma, tratamientos o radiografías» que la base comprueba al firmar; la plantilla v1 lleva
+  `exige_profesion = 'odontologo'`, y la regla común que impide que otra profesión la use la impone `historias-clinicas` (D15), no
+  este change.
 - **Radiografías como adjuntos de imagen** (D7): se modela un «adjunto» abstracto —hoy el PDF de `adjuntos_historia`— y la
   radiografía lo vincula. **No se diseña el almacenamiento** y la admisión de imágenes (P-15) sigue siendo decisión abierta del
   usuario.
@@ -74,9 +75,9 @@ negativas (`tasks.md`, grupos 1 a 6 y 11).**
 
 ### Modified Capabilities
 
-<!-- Ninguna en `openspec/specs/`: solo existe `autenticacion-roles`, que no cambia. Este change añade dos disparadores sobre
-`atenciones` (coherencia profesión–plantilla y sellado de la sección odontológica) que no contradicen los requisitos de
-`firma-y-addendas` ni de `plantillas-clinicas-por-especialidad` de H6; al archivar ambos hay que comprobar el solapamiento
+<!-- Ninguna en `openspec/specs/`: solo existe `autenticacion-roles`, que no cambia. Este change añade un disparador sobre
+`atenciones` (sellado de la sección odontológica) que no contradice los requisitos de
+`firma-y-addendas` ni de `plantillas-clinicas-por-especialidad` de H6 (cuya columna `exige_profesion` solo se usa aquí como dato); al archivar ambos hay que comprobar el solapamiento
 (ver design.md, Riesgos). -->
 
 ## Impact
@@ -89,7 +90,7 @@ negativas (`tasks.md`, grupos 1 a 6 y 11).**
   (`sistema-de-diseno-ui`). **No usa H6i** (`mecanismos-clinicos-comunes`): Odontología no tiene planes de sesiones ni
   instrumentos con puntaje; la dependencia que TECH-DESIGN anota para H6e sobra y conviene retirarla del plan.
 - **RLS y acceso a historias clínicas (revisión aparte):** cuatro tablas clínicas nuevas con política, `GRANT` por columna y
-  disparadores; un catálogo de solo lectura; dos disparadores sobre `atenciones`; funciones de lectura derivada y la sección de la
+  disparadores; un catálogo de solo lectura; un disparador de sello sobre `atenciones`; funciones de lectura derivada y la sección de la
   copia. Casos negativos por rol y por profesión (administrativo, odontólogo a cargo, otro odontólogo sin el paciente, médico /
   fisioterapeuta / psicólogo / podólogo a cargo, enfermera, paciente, sin rol, `anonymous`, `cron_notificaciones`,
   `sync_identidad`): prueba pgTAP 75 (sugerida).

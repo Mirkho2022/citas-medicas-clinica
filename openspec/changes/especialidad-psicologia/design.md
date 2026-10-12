@@ -264,13 +264,15 @@ clínica y se enlaza con la pregunta de emergencia (D10). -->
   Es solo presentación: las columnas, las reglas de «sin campos vacíos» y los límites de H6 D3 no cambian. <!-- REVISAR: rótulos con un psicólogo. -->
 - **Diagnósticos CIE-10:** obligatorios, de uno a diez, con `tipo` (presuntivo, definitivo, repetitivo), validados por el
   disparador de H6; el catálogo completo ya trae el capítulo F (ADR-0014).
-- **Qué se agrega a la base** (migración `psicologia-plantilla`): (1) columna **`plantillas_clinicas.exige_profesion`**
-  (`profesion_salud`, nula por defecto) y un disparador `BEFORE INSERT OR UPDATE OF plantilla_id` en `atenciones`
-  (`SECURITY DEFINER`, `search_path` vacío) que rechaza con **`HC070`** que una plantilla con `exige_profesion` la use un autor de
-  otra profesión: así un profesional registrado por error en la especialidad «Psicología» no puede redactar una evaluación
-  **compartida**; (2) el mismo disparador rechaza con **`HC074`** una atención de un psicólogo que no use la plantilla vigente de
-  Psicología (la estructura no se salta con una atención genérica). Si otro change (H6e a H6h) ya añadió una columna equivalente,
-  se reutiliza (tarea 0.4).
+- **Qué se agrega a la base** (migración `psicologia-plantilla`): (1) **no se crea** la columna `plantillas_clinicas.exige_profesion` ni
+  el disparador que la aplica: son de `historias-clinicas` (D15), que impone «solo un profesional de la profesión X usa la plantilla de
+  X» para todas las especialidades dentro de su disparador de validación de `atenciones` (`HC005`). Este change **solo fija el dato**:
+  la plantilla v1 se inserta con `exige_profesion = 'psicologo'`, de modo que un profesional registrado por error en la especialidad
+  «Psicología» no pueda redactar una evaluación **compartida**; (2) un disparador **propio** `atenciones_psicologia_10_plantilla`
+  (`BEFORE INSERT OR UPDATE OF plantilla_id`, `SECURITY DEFINER`, `search_path` vacío) que rechaza con **`HC074`** una atención de un
+  psicólogo que no use la plantilla vigente de Psicología (la estructura no se salta con una atención genérica). Es la regla **inversa**
+  y es de Psicología: no repite la regla común. Si la columna de H6 aún no existe al aplicar este change, la migración espera a H6
+  (tarea 0.4).
 - **Interfaz:** `FormularioAtencion` de H6 con los campos de la plantilla, rótulos de Psicología y el panel
   `MedicamentosDelPaciente` de H6c arriba (la vista de medicamentos; sin alertas de interacción). El formulario conserva lo
   escrito ante un error; un solo botón primario («Firmar evaluación»).
@@ -458,7 +460,7 @@ sistema: exige una ADR, `code-review` y pruebas propias. **Mientras no haya resp
 |---|---|---|---|---|
 | **Psicólogo a cargo** | Sí | Sí | Sí | Sí |
 | Psicólogo sin asignación vigente, vencida o dado de baja | No | No | No | No |
-| **Médico a cargo** | **No** | No (`HC070`) | Sí | Sí |
+| **Médico a cargo** | **No** | No (`HC070` en las notas; `HC005` de H6 con la plantilla) | Sí | Sí |
 | **Odontólogo, fisioterapeuta o podólogo a cargo** | **No** | No | Sí | Sí |
 | Cualquier profesional sin el paciente a cargo | No | No | No | No |
 | **Administrativo** | No | No | No | No (solo la copia, D13) |
@@ -529,7 +531,7 @@ La copia **incluye** Psicología (decisión del usuario). La única función por
 
 | Origen | Mensaje al usuario |
 |---|---|
-| `HC070` (notas y plantilla) / `HC090` (tests y planes, de H6i) | «Solo un psicólogo puede registrar esta información.» |
+| `HC070` (notas) / `HC090` (tests y planes, de H6i) | «Solo un psicólogo puede registrar esta información.» (el rechazo de otra profesión con la plantilla es `HC005` de H6, D15 de `historias-clinicas`, con el mensaje de H6) |
 | `HC071` | «La cita o la sesión indicada no corresponde a este paciente y a este psicólogo.» |
 | `HC072` | «Esta nota ya está firmada. Para corregirla, registre una nota rectificatoria.» |
 | `HC073` | «La nota que quiere rectificar no se puede rectificar.» |
@@ -545,7 +547,7 @@ La copia **incluye** Psicología (decisión del usuario). La única función por
 
 - **pgTAP (sugeridas):** **77** `psicologia_aislamiento_rls` (matriz de D11 sobre **todas** las tablas reservadas, por rol y por
   profesión, con el caso «no sobre-bloqueo», la cascada de `addendas`, la reserva de antecedentes y adjuntos, y la restrictiva de
-  `accesos_historia`) y **78** `psicologia_notas_y_canales` (estructura y reglas de `notas_sesion_psicologia`, plantilla,
+  `accesos_historia`) y **78** `psicologia_notas_y_canales` (estructura y reglas de `notas_sesion_psicologia`, plantilla (con `exige_profesion = 'psicologo'`),
   `HC070`–`HC074`, y los canales de D9: centinela en `auditoria`/`accesos_historia`/solicitud de copia, `pg_stats`, funciones,
   vistas, derivación del psicólogo, vista de medicamentos, receta, clasificación de tablas, errores uniformes). Cada una incluye
   el caso negativo de **cada** rol y de **cada profesión** (administrativo, enfermera, paciente, sin rol, `anonymous`,
@@ -604,7 +606,7 @@ La copia **incluye** Psicología (decisión del usuario). La única función por
    documentadas antes de código.
 2. Migraciones nuevas, **posteriores** a las de H2c, H6, H6b, H6c y H6i, en este orden y cada una con su prueba: `psicologia-funciones-de-reserva` →
    `psicologia-politicas-compartidas` (restrictivas sobre `atenciones`, `addendas`, `antecedentes` y `adjuntos_historia`; **van juntas con la anterior en
-   el mismo despliegue**) → `psicologia-plantilla` (columna `exige_profesion`, disparador `HC070`/`HC074`, especialidad, plantilla v1) →
+   el mismo despliegue**) → `psicologia-plantilla` (disparador `HC074`, especialidad, plantilla v1 con `exige_profesion = 'psicologo'`; la columna y su regla son de H6) →
    `notas-sesion-psicologia` → `psicologia-mecanismos-comunes` (restrictivas por autoría sobre `planes_de_sesiones` y `aplicaciones_instrumento` de H6i; los instrumentos se cargan aparte, uno por uno, tras verificar su licencia) →
    `accesos-historia-psicologia` (tipo `psicologia`, `registro_id`, restrictiva de inserción) → `compilado-copia-psicologia` (si H6d ya está
    aplicado). Nunca se edita una migración aplicada.

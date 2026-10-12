@@ -141,8 +141,9 @@ autor nunca puede ser psicólogo) y tablas operativas. Una tabla nueva sin clasi
 
 ### Requirement: La información de Psicología solo la escribe un psicólogo con el paciente a cargo
 El sistema SHALL permitir registrar información de Psicología únicamente a un psicólogo que tenga al paciente a cargo, con
-autoría propia tomada de la sesión. Un profesional de otra profesión que intente registrarla SHALL ser rechazado por la base (`SQLSTATE HC070` en las notas y
-en la plantilla de evaluación; `HC090` de los mecanismos comunes en los tests y los planes).
+autoría propia tomada de la sesión. Un profesional de otra profesión que intente registrarla SHALL ser rechazado por la base (`SQLSTATE HC070` en las notas;
+`HC005` de la historia clínica, por la regla común D15 de `historias-clinicas`, en la plantilla de evaluación; `HC090` de los mecanismos
+comunes en los tests y los planes).
 
 #### Scenario: Psicólogo a cargo registra
 - **WHEN** un psicólogo con el paciente a cargo registra una evaluación, una nota, una aplicación de test o un plan

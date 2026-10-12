@@ -78,7 +78,8 @@ que envíe el cliente. Estas reglas SHALL imponerse con dos barreras independien
 ### Requirement: Plantilla de Odontología
 El sistema SHALL incluir una plantilla de Odontología versionada y gestionada por migración, con la declaración obligatoria
 «registra odontograma, tratamientos o radiografías», observaciones odontológicas y fecha de próxima cita, ambas opcionales, y SHALL
-rechazar que un profesional que no sea odontólogo use esa plantilla. Una atención de un odontólogo sin plantilla SHALL poder
+fijar `exige_profesion = 'odontologo'` en su definición, de modo que la regla común de la historia clínica (D15 de `historias-clinicas`)
+rechace que un profesional que no sea odontólogo use esa plantilla; este requisito no crea un disparador propio para ello. Una atención de un odontólogo sin plantilla SHALL poder
 registrarse con los campos genéricos y sin sección odontológica. El contenido de la plantilla SHALL quedar marcado como propuesta
 pendiente de revisión.
 

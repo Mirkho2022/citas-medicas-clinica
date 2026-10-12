@@ -5,8 +5,9 @@
 
 Convenciones de todo el change (leer antes de empezar):
 
-- **Este change toca RLS y el acceso a historias clínicas, el riesgo principal del proyecto:** crea tablas clínicas nuevas, dos
-  disparadores sobre `atenciones` que deciden quién usa la plantilla y cuándo se puede firmar, y una lectura comparativa de
+- **Este change toca RLS y el acceso a historias clínicas, el riesgo principal del proyecto:** crea tablas clínicas nuevas, un
+  disparador sobre `atenciones` que decide cuándo se puede firmar (quién usa la plantilla lo decide `exige_profesion`, D15 de
+  `historias-clinicas`), y una lectura comparativa de
   contenido clínico. Cada grupo que cambia políticas, funciones `SECURITY DEFINER`, disparadores o lecturas clínicas termina con
   una tarea de **revisión con el agente `code-review`** y no se da por cerrado hasta corregir o justificar por escrito sus
   hallazgos.
@@ -39,11 +40,14 @@ Convenciones de todo el change (leer antes de empezar):
       `profesional_tiene_paciente()`, `atenciones.profesional_id`, tipos de `accesos_historia.tipo_acceso`, columnas de
       `adjuntos_historia`, identidades por profesión del ejecutor de pgTAP: cuáles existen y cuáles falta añadir, por ejemplo
       `podologo_b`). Verificar que la línea base está en verde y que `design.md` usa los nombres reales (si no, ajustarlo).
-- [ ] 0.2 Confirmar con el change `mecanismos-clinicos-comunes` (H6i), cuando exista en disco, los cinco supuestos de `design.md` D4
-      (el plan de un podólogo es del área Podología con su visibilidad; texto de descripción o protocolo; total y frecuencia al
-      crear; operación de crear plan invocable; H6i clasifica sus tablas en la copia) y a quién le toca cablear el selector de
-      protocolo en su formulario. Verificar que las respuestas constan en `design.md` D4; si alguno falla, ajustar solo esa sección
-      y las tareas 5.5 y 6.1.
+- [ ] 0.2 Releer, con el change `mecanismos-clinicos-comunes` (H6i) **tal como quedó aplicado o archivado**, el contrato de `design.md` D4
+      (ya contrastado con su `design.md` escrito y validado del 2026-10-12): el plan de un podólogo es del área `podologia` con su
+      visibilidad (D2 de H6i); `protocolo_clave` (formato) y `descripcion`; total de 1 a 60, frecuencia de 1 a 90 y `vigente_hasta` al
+      crear; `crear_plan_de_sesiones(p_id, p_paciente, p_atencion, p_protocolo_clave, p_descripcion, p_total, p_frecuencia_dias,
+      p_vigente_hasta)` invocable solo por `lib/historias/planes.ts` (`HC090`, `HC094`); H6i clasifica sus tablas en la copia y registra
+      sus lecturas con `plan_sesiones`; y a quién le toca cablear el selector de protocolo en su formulario (H6i deja a la
+      especialidad montar su propia pantalla, D1 de H6i). Verificar que las respuestas constan en `design.md` D4; si alguno difiere,
+      ajustar solo esa sección y las tareas 5.5 y 6.1.
 - [ ] 0.3 Preparar una **hoja de validación** para los podólogos de la clínica con los 34 campos de la plantilla (`design.md` D2),
       sus opciones, la numeración de los dedos, las zonas y etapas de las fotos y los cuatro protocolos con sus cifras y su fuente, y
       recoger sus correcciones y quién las validó. Si no hay acceso a ellos, dejar todo como supuesto sin validar y avisar al
@@ -63,27 +67,28 @@ Convenciones de todo el change (leer antes de empezar):
       borrador (para `fotos_registradas`); (c) `registrar_auditoria_sin_contenido()` cubre `DELETE`; (d) `especialidades.nombre` es
       único y existe o no la fila «Podología»; (e) `adjuntos_historia` tiene `subido_por`, `vigente` y la lectura bajo RLS descrita en
       D5; (f) el bloqueo `for share` de la atención espera a la firma concurrente (el mecanismo que usa H6e); (g) el orden
-      alfabético de los disparadores de `atenciones` deja `atenciones_podologia_10_coherencia` y `_20_sellar` después de
+      alfabético de los disparadores de `atenciones` deja `atenciones_podologia_20_sellar` después de
       `atenciones_inmutables` y antes del sello y la huella de H6. Verificar anotando cada resultado en el PR; si (f) o (g) no se
       sostienen, se ajusta D3 o D6 antes de seguir.
 - [ ] 0.7 Coordinar con los changes vecinos y anotar el resultado en `design.md`: con H6, un parámetro opcional de presentación para
       agrupar los campos de la plantilla por prefijo en `FormularioAtencion` (D2) y la ampliación del test de acceso único; con
       H6d, que la prueba de cobertura (su tarea 3.4) busque también en las funciones `copia_seccion_*` y que el reemplazo del
       compilado parta de la definición vigente; con H6e, los nombres compartidos (`TransaccionConAcceso`, `copia_seccion_*`,
-      identidades de pgTAP); con H6c, que el podólogo sigue en «no, sin confirmar»; y con el orquestador, la **regla común de
-      compatibilidad profesión–especialidad** (D6 y «Open Questions»). Verificar que las notas existen y que ningún otro change
+      identidades de pgTAP); con H6c, que el podólogo sigue en «no, sin confirmar»; y con el orquestador, lo que queda de la
+      compatibilidad profesión–especialidad tras `exige_profesion` (D3 y «Open Questions»). Verificar que las notas existen y que ningún otro change
       tomó `HC080` a `HC089` ni la prueba 79.
 
 ## 1. Plantilla de Podología y disparadores de la atención
 
 - [ ] 1.1 Migración `plantilla-podologia` (parte 1): crear la especialidad «Podología» si falta (idempotente), la función
       `especialidad_podologia_id()` (`SECURITY DEFINER`, `search_path` vacío) y la plantilla **Podología v1** en
-      `plantillas_clinicas` con las 34 claves de `design.md` D2 (con los valores validados en 0.3), vigente, `momento` y
-      `fotos_registradas` obligatorios, el resto opcional. Verificar con `npm run migrate -- up` en un branch de desarrollo y con
+      `plantillas_clinicas` con las 34 claves de `design.md` D2 (con los valores validados en 0.3), vigente, `exige_profesion = 'podologo'` (columna que añade
+      D15 de `historias-clinicas`; este change solo fija el dato), `momento` y `fotos_registradas` obligatorios, el resto opcional. Verificar con `npm run migrate -- up` en un branch de desarrollo y con
       una consulta que cuente 34 claves, dos obligatorias y la serie `(especialidad, versión 1)`.
-- [ ] 1.2 Misma migración (parte 2): disparador `atenciones_podologia_10_coherencia` (`BEFORE INSERT OR UPDATE OF plantilla_id`,
-      `SECURITY DEFINER`): si la plantilla es la de Podología, la profesión del autor (`profesionales.profesion` del
-      `profesional_id`) debe ser `podologo`, si no `HC080`; no exige lo inverso. Verificar con las pruebas de 1.4.
+- [ ] 1.2 Misma migración (parte 2): **sin disparador de profesión–plantilla** en `atenciones`: lo impone el validador de H6 con
+      `exige_profesion` (D15 de `historias-clinicas`, `HC005`), ya fijado en 1.1. Esta tarea solo comprueba que la plantilla v1 vigente
+      lo trae y que el no podólogo es rechazado; no se crea `atenciones_podologia_10_coherencia` ni se usa `HC080` en `atenciones`. No se
+      exige lo inverso (un podólogo puede registrar una atención sin plantilla). Verificar con las pruebas de 1.4.
 - [ ] 1.3 Misma migración (parte 3): disparador `atenciones_podologia_20_sellar` (`BEFORE UPDATE OF firmada_en`, `WHEN old.firmada_en
       is null and new.firmada_en is not null`): con la plantilla de Podología y `momento = evaluacion_inicial` exige todas las
       claves salvo `momento`, `fotos_registradas` y las que terminan en `_observaciones` (`HC084`); la lista sale de la plantilla de
@@ -91,8 +96,8 @@ Convenciones de todo el change (leer antes de empezar):
 - [ ] 1.4 Prueba pgTAP `tests/pgtap/79_podologia_reglas.test.sql`, parte «plantilla»: la plantilla existe, vigente, con 34 claves y
       los tipos esperados; control con solo `momento` y `fotos_registradas` se firma; evaluación inicial completa se firma, con una
       clave ausente falla con `HC084` y como borrador se guarda; las observaciones no se exigen; clave ajena descartada, opción
-      inexistente y tipo equivocado rechazados; `HC080` con un médico, un odontólogo, un fisioterapeuta y un psicólogo a cargo y
-      con un profesional de otra profesión registrado en Podología; el podólogo sin plantilla pasa; plantilla de otra especialidad
+      inexistente y tipo equivocado rechazados; la plantilla v1 vigente tiene `exige_profesion = 'podologo'` (se afirma sobre el dato real) y `HC005` de H6 con un médico, un
+      odontólogo, un fisioterapeuta y un psicólogo a cargo y con un profesional de otra profesión registrado en Podología; el podólogo sin plantilla pasa; plantilla de otra especialidad
       rechazada; administrativo, enfermera, paciente, sin rol, `anonymous`, `cron_notificaciones` y `sync_identidad` no escriben
       atenciones; los profesionales a cargo de cualquier profesión leen la evaluación firmada y quien no tiene el paciente a cargo,
       con asignación vencida o con perfil inactivo, no; la modificación de una atención firmada se rechaza y su huella cubre los
@@ -108,8 +113,8 @@ Convenciones de todo el change (leer antes de empezar):
 
 ## 2. Catálogo de protocolos por sesiones
 
-- [ ] 2.1 Migración `protocolos-podologia`: tabla `protocolos_podologia` (`clave` única, `nombre`, `modalidad`, `total_sesiones` y
-      `frecuencia_dias` nulos y `≥ 1`, `estado_validacion`, `validado_por`, `validado_en`, `fuente` obligatoria, `vigente`), `CHECK`
+- [ ] 2.1 Migración `protocolos-podologia`: tabla `protocolos_podologia` (`clave` única con formato `^[a-z][a-z0-9_]{1,59}$`, `nombre`, `modalidad`, `total_sesiones` nulo y de 1 a 60,
+      `frecuencia_dias` nula y de 1 a 90 (los límites de H6i), `estado_validacion`, `validado_por`, `validado_en`, `fuente` obligatoria, `vigente`), `CHECK`
       de que `validado` exige quién y cuándo, RLS activada, `GRANT select` a `authenticated` y una política de lectura para
       `rol_actual() = 'profesional'`, **sin** `GRANT` de escritura para ningún rol de usuario, y las **cuatro semillas** de `design.md`
       D4 (hongos 6 y 15; verruga plantar 4 y 7; ortonixia 3 y nula; pie diabético nulo y 30), todas `por_validar`, con la URL y la fecha
@@ -120,7 +125,8 @@ Convenciones de todo el change (leer antes de empezar):
       `update` y `delete` para `authenticated`, `anonymous`, `cron_notificaciones` y `sync_identidad`, y un intento real de escritura
       del podólogo rechazado; `columns_are` exacto. Verificar que pasa y que `99_rls_en_todas_las_tablas` sigue en verde.
 - [ ] 2.3 En `79_podologia_reglas`, parte «catálogo»: las cuatro semillas exactas (claves, cifras y nulos) y ninguna otra; todas
-      `por_validar`; `validado` sin `validado_por` o sin `validado_en` rechazado; la **puerta de revisión** (`modo_datos_clinicos() <>
+      `por_validar`; `validado` sin `validado_por` o sin `validado_en` rechazado; `total_sesiones` fuera de 1 a 60, `frecuencia_dias` fuera de 1 a 90 y `clave`
+      con formato inválido rechazados; la **puerta de revisión** (`modo_datos_clinicos() <>
       'real'` o ningún protocolo `por_validar`) pasa hoy y se comprueba que falla cuando se simula el modo real dentro de la
       transacción de prueba. Verificar que pasan.
 - [ ] 2.4 Documentar: TECH-DESIGN (catálogo de protocolos y su puerta de revisión; el protocolo no es una constante de código) y
@@ -200,7 +206,7 @@ Convenciones de todo el change (leer antes de empezar):
       dos versiones de la plantilla, siete atenciones, borrador excluido, series separadas, y que no calcula ningún puntaje ni
       etiqueta de mejoría. Verificar que pasan.
 - [ ] 5.3 `lib/podologia/errores.ts` con el mapeo de `design.md` D11 (`HC080`–`HC084`, `23505`, `23514`, `42501`, `HC002`, `HC004`,
-      `HC005`, otros) y `tests/podologia/errores.test.ts`. Verificar que cada fila de la tabla tiene su prueba y que ningún mensaje
+      `HC005`, los de H6i `HC090`–`HC098`, otros) y `tests/podologia/errores.test.ts`. Verificar que cada fila de la tabla tiene su prueba y que ningún mensaje
       contiene texto de la base ni datos del paciente.
 - [ ] 5.4 `lib/podologia/repositorio.ts` con ejecutor inyectable (todo el SQL contra `fotos_evolucion`; las funciones de lectura exigen
       un `TransaccionConAcceso`), `lib/historias/podologia.ts` (lecturas con `exigir_modo_clinico()` primero, un registro de acceso por
@@ -209,9 +215,9 @@ Convenciones de todo el change (leer antes de empezar):
       el modo va primero, el acceso antes de leer, un fallo no devuelve contenido. Verificar que pasan y que el acceso único falla al
       añadir temporalmente una consulta en otro archivo (revertida).
 - [ ] 5.5 `lib/podologia/protocolos.ts`: lectura del catálogo bajo RLS, prellenado del plan (total y frecuencia del protocolo, valores
-      nulos marcados como «a indicar») y la apertura del plan invocando la operación de H6i (0.2) con el nombre y la clave del
-      protocolo; con `tests/podologia/protocolos.test.ts` y un ejecutor simulado: los cuatro protocolos prellenan lo que traen, los
-      nulos bloquean la apertura, un plan sin protocolo abre, el catálogo no se escribe. Verificar que pasan.
+      nulos marcados como «a indicar») y la apertura del plan invocando `crearPlan` de `lib/historias/planes.ts` de H6i (0.2) con la clave del protocolo en
+      `protocolo_clave` y su nombre en `descripcion`; con `tests/podologia/protocolos.test.ts` y un ejecutor simulado: los cuatro protocolos prellenan lo que traen, los
+      nulos bloquean la apertura, un plan sin protocolo abre, un total fuera de 1 a 60 o una frecuencia fuera de 1 a 90 no llegan a la base, el catálogo no se escribe. Verificar que pasan.
 - [ ] 5.6 Server Actions (`guardarFotosPodologicas`, `abrirPlanDeProtocolo`, `abrirPlanDeControles`) con la guardia de H6 (`auth.protect()`,
       rol, MFA, profesión leída de la base), Zod en el servidor, `ResultadoAccion` y el mapeo de 5.3; `guardarFotosPodologicas` reemplaza
       el conjunto del borrador y recalcula `fotos_registradas` en la misma transacción. Pruebas `node:test` con ejecutor simulado: una
@@ -260,7 +266,7 @@ Convenciones de todo el change (leer antes de empezar):
       E2E completa. Verificar que todo pasa y que el PR trae el cuadro de cada requisito de las cuatro especificaciones con la prueba
       que lo cubre.
 - [ ] 7.2 Verificación por mutación: en un branch de desarrollo, debilitar a propósito, una por una, y comprobar que al menos una
-      prueba negativa falla (revertir cada vez): quitar `HC080` de `atenciones_podologia_10_coherencia`; quitar `HC084` o `HC082` de
+      prueba negativa falla (revertir cada vez): poner `exige_profesion` en `NULL` en la plantilla v1; quitar `HC084` o `HC082` de
       `_20_sellar`; dar `GRANT insert` sobre `protocolos_podologia`; abrir su política de lectura al administrativo; añadir un quinto
       protocolo o cambiar una cifra de una semilla; quitar la puerta de revisión; quitar `profesion_actual() = 'podologo'` de la
       política de `INSERT` de `fotos_evolucion`; quitar `HC080` de `_20_proteger`; quitar `profesional_tiene_paciente` de su

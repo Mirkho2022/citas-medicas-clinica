@@ -9,7 +9,7 @@ clínica breve, sellada al registrarse, que no se edita y que solo se corrige co
 
 ### Requirement: El plan de sesiones pertenece a un episodio y usa el catálogo de planes de Fisioterapia
 El sistema SHALL permitir al fisioterapeuta crear un plan de sesiones para un episodio abierto, a partir de una evaluación firmada
-del episodio (inicial o reevaluación) y de un protocolo del catálogo de planes de Fisioterapia, usando el mecanismo común de planes de
+por él mismo del episodio (inicial o reevaluación) y de un protocolo del catálogo de planes de Fisioterapia, usando el mecanismo común de planes de
 sesiones. El plan SHALL quedar ligado a esa evaluación y por ella al episodio. El catálogo de planes SHALL aportar un nombre y valores
 sugeridos de sesiones y frecuencia, que el fisioterapeuta puede ajustar dentro de los límites del mecanismo común, y SHALL describir la
 duración del tratamiento y no su contenido terapéutico. Un plan de Fisioterapia sin protocolo del catálogo, sin evaluación firmada o de
@@ -30,6 +30,10 @@ un episodio cerrado SHALL ser rechazado. Un episodio SHALL poder tener varios pl
 #### Scenario: Evaluación sin firmar (negativo)
 - **WHEN** se intenta crear un plan ligado a una evaluación que sigue en borrador
 - **THEN** se rechaza
+
+#### Scenario: Evaluación firmada por otro fisioterapeuta (negativo)
+- **WHEN** un fisioterapeuta intenta crear un plan ligado a una evaluación firmada por otro fisioterapeuta
+- **THEN** se rechaza porque el mecanismo común exige que la atención sea del mismo paciente y del mismo profesional que crea el plan
 
 #### Scenario: Episodio cerrado (negativo)
 - **WHEN** se intenta crear un plan ligado a una evaluación de un episodio cerrado

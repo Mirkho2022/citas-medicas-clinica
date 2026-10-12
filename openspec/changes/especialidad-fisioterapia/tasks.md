@@ -5,8 +5,8 @@
 Convenciones de todo el change (leer antes de empezar):
 
 - **Este change toca RLS y el acceso a historias clínicas, el riesgo principal del proyecto:** crea seis tablas clínicas con política
-  propia, dos vistas, funciones y disparadores `SECURITY DEFINER` y dos disparadores sobre `atenciones` (`atenciones_fisioterapia_10_coherencia`
-  y `_20_sellar`) más uno sobre `planes_de_sesiones`. Cada grupo que cambia políticas, funciones `SECURITY DEFINER`, disparadores o rutas
+  propia, dos vistas, funciones y disparadores `SECURITY DEFINER` y un disparador de sello sobre `atenciones` (`atenciones_fisioterapia_20_sellar`)
+  más uno sobre `planes_de_sesiones`. Cada grupo que cambia políticas, funciones `SECURITY DEFINER`, disparadores o rutas
   que sirven contenido clínico termina con una tarea de **revisión con el agente `code-review`** y no se da por cerrado hasta corregir o
   justificar por escrito sus hallazgos.
 - **Datos reales: prohibidos.** Mientras la decisión legal P-1 siga abierta no se carga ningún dato clínico real. Los datos sintéticos de
@@ -39,10 +39,10 @@ Convenciones de todo el change (leer antes de empezar):
       (planes de sesiones, instrumentos y aplicaciones) y, para el grupo 7, H6d `copia-de-historia-clinica`; aplicar las migraciones en un
       branch de desarrollo de Neon y correr `npm run test:pgtap`. Verificar que la línea base está en verde y anotar el número de pruebas en el
       PR; si falta H6d, anotar que el grupo 7 queda en espera.
-- [ ] 0.2 Contrastar `design.md` D1 con el change H6i **tal como quedó aplicado o archivado**: nombres de `planes_de_sesiones` (`atencion_id`,
-      `protocolo_clave`, `area`, `estado`), `sesiones_del_plan` (estados), `planes_de_sesiones_con_contador` (`restantes`),
-      `crear_plan_de_sesiones()` y `cerrar_plan_de_sesiones()` (motivos de cierre), `instrumentos_evaluacion` (`clave`, `version`, `vigente`,
-      escalas), `aplicaciones_instrumento` (`atencion_id`, `puntajes`, `estado`) y `registrar_aplicacion_instrumento()`. Ajustar la tabla de
+- [ ] 0.2 Releer `design.md` D1 y D11 (ya contrastados con el H6i escrito y validado del 2026-10-12) contra el change H6i **tal como quedó aplicado o archivado**: nombres de `planes_de_sesiones` (`atencion_id`,
+      `protocolo_clave`, `area`, `estado`), `sesiones_del_plan` (estados), `planes_de_sesiones_con_contador` (`asistidas`, `restantes`),
+      `crear_plan_de_sesiones()` (`HC090`, `HC094`) y `cerrar_plan_de_sesiones(p_plan, p_estado, p_motivo)` (motivos de cierre), `instrumentos_evaluacion` (`clave`, `version`, `vigente`,
+      escalas), `aplicaciones_instrumento` (`instrumento_id`, `atencion_id`, `puntajes`, `estado`) y `registrar_aplicacion_instrumento()`. Ajustar la tabla de
       D1 con `openspec-update-change` si algo difiere. Verificar que cada nombre usado en este change existe con ese nombre y tipo, y que
       ningún otro change tomó `HC060` a `HC069` ni el número 76.
 - [ ] 0.3 **Licencias** (P-18): para cada uno de Oswestry (lumbar), NDI (cuello), QuickDASH (miembro superior) y Lysholm (rodilla), obtener la
@@ -68,7 +68,7 @@ Convenciones de todo el change (leer antes de empezar):
       `authenticated`, que `select … for share` sobre `atenciones` espera una firma en curso y luego no devuelve la fila firmada (D8); si no,
       usar un ayudante `SECURITY DEFINER` sin parámetro de rol; (b) que el validador de H6 acepta una plantilla con solo los tipos `opcion` y
       `texto` de D2; (c) los nombres y el orden de los disparadores de `atenciones` de H6 (`atenciones_inmutables`, validación de datos de
-      especialidad, sello y huella) y de H6e frente a `atenciones_fisioterapia_10_coherencia` y `_20_sellar`; (d) que
+      especialidad, sello y huella) y de H6e frente a `atenciones_fisioterapia_20_sellar` y frente al validador de H6 que impone `exige_profesion` (D15 de `historias-clinicas`); (d) que
       `registrar_auditoria_sin_contenido()` cubre `DELETE` y funciona con tablas cuya clave se llama `id`; (e) la firma de
       `exigir_paciente_admisible()` (lee `new.paciente_id`); (f) que un disparador `BEFORE INSERT` sobre `planes_de_sesiones` de otro change
       puede añadirse sin tocar su función `crear_plan_de_sesiones()`. Verificar que cada punto tiene su resultado escrito y que una diferencia
@@ -92,7 +92,8 @@ Convenciones de todo el change (leer antes de empezar):
       declaración (búsqueda en el archivo).
 - [ ] 1.3 Migración `plantilla-fisioterapia`: inserta, si falta, la especialidad «Fisioterapia»; la función `especialidad_fisioterapia_id()`
       (`STABLE`, `SECURITY DEFINER`, `search_path` vacío); y la plantilla `Fisioterapia v1` de D2 en `plantillas_clinicas` (idempotente), con
-      las opciones de `zona` tomadas de las regiones del catálogo. Verificar que aplicarla dos veces no duplica y que existe exactamente una
+      `exige_profesion = 'fisioterapeuta'` (columna que añade D15 de `historias-clinicas`; este change solo fija el dato y no crea disparador
+      propio) y las opciones de `zona` tomadas de las regiones del catálogo. Verificar que aplicarla dos veces no duplica y que existe exactamente una
       especialidad «Fisioterapia».
 - [ ] 1.4 Prueba pgTAP **negativa** `tests/pgtap/76_fisioterapia_rls.test.sql`, parte «catálogo»: RLS activada; todo profesional lee el
       catálogo; administrativo, enfermera, paciente y sin rol no leen (cero filas); `has_table_privilege` falso de `select` para `anonymous`,
@@ -101,9 +102,10 @@ Convenciones de todo el change (leer antes de empezar):
       de nulo a un valor una vez. Añadir al ejecutor `scripts/ejecutar-pgtap.ts` las identidades `fisioterapeuta_a`, `fisioterapeuta_b`
       (colega a cargo, no autor) y `fisioterapeuta_c` (sin el paciente a cargo), y —si H6e no las creó— `odontologo_a`, `psicologo_a`,
       `podologo_a` y `medico_a`. Verificar que pasa y que `99_rls_en_todas_las_tablas` sigue en verde.
-- [ ] 1.5 En `tests/pgtap/76_fisioterapia_reglas.test.sql`, parte «plantilla»: la plantilla existe y es de la especialidad Fisioterapia; sus
+- [ ] 1.5 En `tests/pgtap/76_fisioterapia_reglas.test.sql`, parte «plantilla»: la plantilla existe, es de la especialidad Fisioterapia y la versión vigente tiene
+      `exige_profesion = 'fisioterapeuta'` (se afirma sobre el dato real); sus
       opciones de `zona` coinciden con las claves `region` vigentes del catálogo (falla si divergen); un médico, odontólogo, psicólogo o
-      podólogo no puede usar la plantilla (`HC060`) y un fisioterapeuta registrado en otra especialidad tampoco (`HC005` de H6); `tipo_registro`
+      podólogo no puede usar la plantilla y un fisioterapeuta registrado en otra especialidad tampoco (ambos rechazos son `HC005` de H6, D15 de `historias-clinicas`); `tipo_registro`
       y `zona` obligatorios; el fisioterapeuta puede registrar una atención sin plantilla. Verificar que pasa.
 - [ ] 1.6 Documentar: TECH-DESIGN («Modelo de datos»: catálogo y plantilla; matriz de acceso) y `docs/pruebas-sql.md` (prueba 76, parte
       catálogo y plantilla). Verificar que los enlaces relativos resuelven y que los textos no contradicen a `CLAUDE.md`.
@@ -159,11 +161,11 @@ Convenciones de todo el change (leer antes de empezar):
 ## 3. Sello, coherencia y apertura y cierre del episodio
 
 - [ ] 3.1 Migración `evaluacion-fisioterapia-sello-y-coherencia`: `huella_evaluacion_fisioterapia(uuid)` y
-      `verificar_evaluacion_fisioterapia(uuid)`; el disparador `atenciones_fisioterapia_10_coherencia` (`BEFORE INSERT OR UPDATE OF
-      plantilla_id`, `SECURITY DEFINER`: profesión del autor, `HC060`) y `atenciones_fisioterapia_20_sellar` (`BEFORE UPDATE OF firmada_en`,
+      `verificar_evaluacion_fisioterapia(uuid)`; el disparador `atenciones_fisioterapia_20_sellar` (`BEFORE UPDATE OF firmada_en`,
       `WHEN old.firmada_en is null and new.firmada_en is not null`, `SECURITY DEFINER`: cabecera y tipo de registro, completitud por acto de
       D8, repetición de las mediciones iniciales, test funcional, plan activo en el alta, motivo de alta, huella y `sellado_en`, apertura del
-      episodio en la inicial y cierre en el alta) con `HC060`, `HC062`, `HC063`, `HC064`; ninguno modifica la fila de `atenciones`. Verificar
+      episodio en la inicial y cierre en el alta) con `HC062`, `HC063`, `HC064`; no modifica la fila de `atenciones` y no hay disparador de
+      profesión–plantilla (lo impone `exige_profesion`, grupo 1). Verificar
       que se aplica, con `has_function_privilege` por rol y con la lista de disparadores de `atenciones` en `pg_trigger`.
 - [ ] 3.2 Pruebas pgTAP en `76_fisioterapia_reglas`, parte «sello y actos»: evaluación inicial completa se firma, abre el episodio y sella; cada
       carencia (sin dolor, tipo sin filas ni omisión, sin objetivo, sin cabecera, test funcional faltante, con `motivo_alta`) rechaza la firma
@@ -173,7 +175,7 @@ Convenciones de todo el change (leer antes de empezar):
       como dueño con la misma exigencia. Verificar que pasa.
 - [ ] 3.3 Pruebas de la huella y de los disparadores: la huella es reproducible, no incluye `firmada_en`, y una alteración o desaparición de
       filas (con la protección desactivada solo dentro de la transacción de prueba) hace que `verificar_evaluacion_fisioterapia()` falle; el
-      orden de los disparadores por `pg_trigger` y que los dos de `atenciones` existen con esos nombres; la prueba del bloqueo de 0.6(a) como
+      orden de los disparadores por `pg_trigger` y que el de `atenciones` existe con ese nombre; la prueba del bloqueo de 0.6(a) como
       prueba permanente de dos sesiones. Verificar que pasan.
 - [ ] 3.4 Prueba de concurrencia `tests/concurrencia/31_fisioterapia_firma.test.ts` (sesiones `pg` reales como `authenticated`; número
       sugerido): dos firmas de una evaluación inicial de la misma zona (gana una, la otra recibe `HC063` y queda **un** episodio); edición de
@@ -181,7 +183,7 @@ Convenciones de todo el change (leer antes de empezar):
       y actualizar `docs/pruebas-sql.md`.
 - [ ] 3.5 Documentar: TECH-DESIGN («Seguridad»: sello propio de la sección y sus límites; ciclo del episodio) y `docs/pruebas-sql.md` (prueba
       76, partes de sello). Verificar los enlaces.
-- [ ] 3.6 Revisión con el agente `code-review` de los dos disparadores sobre `atenciones` (que no modifican la fila, reacciones solo a la
+- [ ] 3.6 Revisión con el agente `code-review` del disparador sobre `atenciones` (que no modifica la fila, reacciona solo a la
       plantilla de Fisioterapia, bloqueo, `SECURITY DEFINER`, completitud) y de la huella. Verificar que los hallazgos quedan resueltos o
       justificados.
 
@@ -210,7 +212,7 @@ Convenciones de todo el change (leer antes de empezar):
       plan del episodio, del mismo paciente, de `area = fisioterapia`, `agendada` o `asistida`; corrección solo del autor y una vez: `HC067`),
       `_40_modo`, `_50_sellar` (`huella_nota_sesion_fisioterapia()` con la hora del servidor) y `_90_auditoria`; y el disparador
       `planes_fisioterapia_10_episodio` sobre `planes_de_sesiones` (solo `area = fisioterapia`: protocolo del catálogo vigente, `atencion_id`
-      de una evaluación firmada de un episodio abierto, `HC067`). Verificar con `npm run migrate -- up`, con `relrowsecurity` y con que
+      de una evaluación firmada de un episodio abierto, `HC067`; que la atención sea del mismo paciente y del mismo profesional que crea el plan lo exige antes H6i, `HC094`). Verificar con `npm run migrate -- up`, con `relrowsecurity` y con que
       `crear_plan_de_sesiones()` de H6i sigue funcionando para las demás áreas.
 - [ ] 5.2 Prueba pgTAP **negativa** de `notas_sesion_fisioterapia` en `76_fisioterapia_rls`: lectura por todo profesional a cargo;
       inserción solo del fisioterapeuta a cargo (de cobertura incluido); negativos de **médico, odontólogo, psicólogo y podólogo a cargo
@@ -222,7 +224,7 @@ Convenciones de todo el change (leer antes de empezar):
       sesión asistida y agendada aceptadas, `por_agendar`, de otro plan, de otro paciente y de otra área rechazadas; segunda nota vigente de la
       misma sesión rechazada; corrección con y sin motivo, de una nota ajena, segunda corrección de la misma nota y corrección de la
       corrección; episodio cerrado; la nota no cambia la sesión ni la cita; la huella es reproducible; plan: con protocolo del catálogo,
-      protocolo ajeno o retirado, sin evaluación, con evaluación en borrador, con episodio cerrado, de otra profesión, y planes en sucesión; el
+      protocolo ajeno o retirado, sin evaluación, con evaluación en borrador, con episodio cerrado, de otra profesión (`HC090` de H6i), con una evaluación firmada por otro fisioterapeuta (`HC094` de H6i) y planes en sucesión; el
       plan de otra área sigue sin pasar por este disparador. Verificar que pasa.
 - [ ] 5.4 Prueba de concurrencia en `tests/concurrencia/31_fisioterapia_notas.test.ts`: dos notas de la misma sesión a la vez (una gana, la
       otra `HC067`) y dos correcciones de la misma nota; 20 rondas. Verificar que pasa y actualizar `docs/pruebas-sql.md`.
@@ -272,7 +274,7 @@ Convenciones de todo el change (leer antes de empezar):
       catálogo, nunca `id`; texto con contenido que rechaza invisibles y `U+0000`, NFC) con `tests/fisioterapia/esquemas.test.ts` (`node:test`):
       cada límite, fuera de rango, lado incoherente, clave ajena, vacíos y autor u hora enviados. Verificar que pasan y que fallan al relajar
       un rango a propósito.
-- [ ] 8.2 `lib/fisioterapia/errores.ts` con el mapeo de D16 (`HC060`–`HC068`, `23505`, `23514`, `42501`, `HC002`, `HC004`, los de H6i) y
+- [ ] 8.2 `lib/fisioterapia/errores.ts` con el mapeo de D16 (`HC060`–`HC068`, `23505`, `23514`, `42501`, `HC002`, `HC004`, los de H6i `HC090`–`HC098`) y
       `tests/fisioterapia/errores.test.ts`. Verificar que cada fila de la tabla tiene su prueba y que ningún mensaje contiene texto de la base
       ni datos del paciente.
 - [ ] 8.3 `lib/fisioterapia/repositorio.ts` (ejecutor inyectable; todo el SQL de las tablas y vistas) y `lib/historias/fisioterapia.ts` (lecturas
@@ -280,16 +282,16 @@ Convenciones de todo el change (leer antes de empezar):
       `test:fisioterapia` a `package.json` y un paso a `ci.yml`. Pruebas con ejecutor simulado: el modo va primero, el acceso se registra antes de
       leer, un fallo del registro no devuelve contenido, ningún parámetro identifica al actor. Verificar que pasan y que el paso aparece en el PR.
 - [ ] 8.4 `tests/fisioterapia/acceso-unico.test.ts`: falla si algún archivo de `app/`, `lib/` o `components/` fuera de `lib/fisioterapia/` y
-      `lib/historias/` contiene SQL contra las seis tablas o las dos vistas; ampliar la prueba de acceso único de H6. Verificar que pasa y que
+      `lib/historias/` contiene SQL contra las seis tablas o las dos vistas, o contra las tablas de H6i (planes, sesiones, instrumentos y aplicaciones: esas solo en `lib/historias/planes.ts` e `instrumentos.ts`); ampliar la prueba de acceso único de H6. Verificar que pasa y que
       falla al añadir temporalmente una consulta en otro archivo (revertida).
 - [ ] 8.5 Server Actions (`app/profesional/pacientes/[pacienteId]/fisioterapia/acciones.ts`): `guardarEvaluacionFisioterapia` (reemplaza la
       sección del borrador en una transacción: modo → borrar objetivos y mediciones → cabecera → insertar cada grupo con una sentencia
-      `insert … select from jsonb_to_recordset`), `registrarNotaSesion`, `corregirNotaSesion` y `crearPlanFisioterapia`; cada una con
+      `insert … select from jsonb_to_recordset`), `registrarNotaSesion`, `corregirNotaSesion` y `crearPlanFisioterapia` (llama a `crearPlan` de `lib/historias/planes.ts`, H6i, con una evaluación firmada por el propio fisioterapeuta); cada una con
       `exigirPersonal` (H3), Zod en el servidor, `ResultadoAccion` y el mapeo de 8.2; el servidor relee el catálogo bajo RLS y valida contra él.
       Pruebas `node:test` con ejecutor simulado: una entrada inválida no llega a la base, un cuerpo con autor, hora o profesión se rechaza, ningún
       error crudo escapa, un rol equivocado recibe `NO_AUTORIZADO`. Verificar que pasan.
 - [ ] 8.6 Integración con H6: componer «guardar y firmar en un paso» (transacción de H6 + sección, `firmarAtencion` sin cambios) y, para el
-      **alta**, cerrar antes el plan activo con `cerrar_plan_de_sesiones()` en la misma transacción; para un plan nuevo, crearlo tras la
+      **alta**, cerrar antes el plan activo con `cerrarPlan` de H6i (`cerrar_plan_de_sesiones(p_plan, p_estado, p_motivo)`) en la misma transacción; para un plan nuevo, crearlo tras la
       firma de la evaluación. Pruebas con ejecutor simulado del orden de sentencias. Verificar que, si la firma falla, el plan sigue activo, y
       que, si H6 no entrega aún el contrato de 0.5, queda un seguimiento escrito sin romper este change.
 - [ ] 8.7 Documentar: tabla de Server Actions de TECH-DESIGN y el mapa de errores (nota en ADR-0008). Verificar los enlaces.
@@ -336,7 +338,7 @@ Convenciones de todo el change (leer antes de empezar):
       cuadro de cada requisito de las cuatro especificaciones con la prueba que lo cubre.
 - [ ] 10.2 Verificación por mutación: en un branch de desarrollo, debilitar a propósito, una por una, y comprobar que al menos una prueba
       negativa falla (revertir cada vez): quitar `profesion_actual() = 'fisioterapeuta'` de la política de cada tabla de escritura; quitar la
-      comprobación de profesión de `_20_proteger` y de `atenciones_fisioterapia_10_coherencia`; abrir la política `SELECT` al administrativo, a
+      comprobación de profesión de `_20_proteger` y poner `exige_profesion` en `NULL` en la plantilla v1 (debe fallar la prueba de 1.5); abrir la política `SELECT` al administrativo, a
       la enfermera y al paciente; dar `GRANT insert` sobre `episodios_fisioterapia`; quitar el índice de episodio abierto; quitar el índice de
       una nota vigente por sesión y el de `corrige_a_id`; permitir `UPDATE` de una nota; quitar `select … for share`; quitar la exigencia de
       dolor, de objetivo, de la repetición de las mediciones y de plan cerrado en el alta; quitar la clave foránea compuesta de objetivos; quitar

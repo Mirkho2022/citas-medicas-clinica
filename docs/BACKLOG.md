@@ -7,6 +7,10 @@ Generado el 2026-10-08 con la skill `generar-backlog` a partir de [PRD.md](PRD.m
 contiene código ni decisiones nuevas: despieza lo que los tres documentos ya establecen. Lo que no está resuelto en
 ellos queda en «Preguntas abiertas».
 
+**Actualizado el 2026-10-11** con el PRD de esa fecha (especialidades, triaje, recetas y copia de la historia): 9 ítems
+nuevos (36 a 44), todos en estado Propuesto; el ítem 5 amplía su alcance y el resto conserva su numeración. Las ADR
+0030 a 0036 que los sostienen están sin aceptar. Los changes nuevos están en `openspec/changes/`.
+
 Leyenda de la columna «Hito · change»: `H3 · agenda-y-reserva` significa hito H3 del plan de TECH-DESIGN y change de
 OpenSpec que lo contiene. Cada fila es una capability o spec dentro de ese change; si un change resulta demasiado
 grande para un solo ciclo, se parte por filas de este backlog (el tamaño se discute en «Notas por ítem»).
@@ -19,8 +23,8 @@ grande para un solo ciclo, se parte por filas de este backlog (el tamaño se dis
 | 2 | Esquema completo, RLS, pgTAP y datos de demostración | H2 · `esquema-rls-pgtap` (HECHO, PR #5; quedan los pasos manuales 8.4 y 10.7) | Tablas del modelo con RLS y GRANT explícito, disparadores, suite pgTAP y de concurrencia, sembrado sintético | 1 | — |
 | 3 | Sistema de diseño UI | H2b · `sistema-de-diseno-ui` (PROPUESTO) | Tema Tailwind v4 desde DESIGN.md, componentes base, layouts del portal y la consola, Clerk en español, pruebas axe | 1 | `docs/DESIGN.md` (aprobado) |
 | 4 | Fundamentos de las acciones de servidor | H3 · `agenda-y-reserva` | Tipo `Resultado`, mapeo central de SQLSTATE a mensajes en español, envoltorio del cliente autenticado, utilidades de fecha `America/Lima` | 2 | — |
-| 5 | Registro y búsqueda de pacientes (administrativo) | H3 · `agenda-y-reserva` | `registrarPaciente` con validación DNI/CE, documento único, búsqueda y edición de contacto en `pacientes/` | 2, 4 | — |
-| 6 | Gestión de especialidades y personal clínico | H3 · `agenda-y-reserva` | Altas de médico y enfermera por invitación ligadas a `medicos`/`enfermeras`, especialidades, baja con revocación de sesión | 2, 4 | — |
+| 5 | Registro y búsqueda de pacientes (administrativo) | H3 · `agenda-y-reserva` | `registrarPaciente` con validación DNI/CE (y pasaporte o número provisional), documento único, búsqueda y edición de contacto en `pacientes/`; **desde el PRD de 2026-10-11, también la filiación mínima de la NTS 139, la acción explícita «Crear historia clínica» y el registro de pacientes sin cita** | 2, 4 | — |
+| 6 | Gestión de especialidades y personal clínico | H3 · `agenda-y-reserva` | Altas de médico y enfermera por invitación ligadas a `medicos`/`enfermeras`, especialidades, baja con revocación de sesión; **el alta del profesional pedirá profesión y colegiatura si se acepta la ADR-0030** | 2, 4 | — |
 | 7 | Disponibilidad semanal del médico | H3 · `agenda-y-reserva` | Alta, edición y baja de plantillas de `disponibilidades` (día, rango, duración de slot, vigencia) | 2, 4 | — |
 | 8 | Consulta de disponibilidad (slots) | H3 · `agenda-y-reserva` | Función `slots_disponibles` en migración, selector de horario, p95 < 500 ms | 7 | — |
 | 9 | Agendar cita con anticruce (administrativo) | H3 · `agenda-y-reserva` | `reservarCita` sobre el `EXCLUDE`, mensaje exacto `Registro de cita ya agendado`, advertencia de 1 h, prueba de concurrencia | 5, 8 | — |
@@ -50,6 +54,15 @@ grande para un solo ciclo, se parte por filas de este backlog (el tamaño se dis
 | 33 | Digitalización progresiva de historias clínicas | H8 (sin change) | Fase 4: carga de antecedentes y diagnósticos activos, adjuntos y consulta del indicador de 60 % | 25, 26, 28 | **Dominio clínico y legal:** P-1 para datos reales |
 | 34 | Respaldo diario cifrado y prueba de recuperación | H8 (sin change) | Export diario cifrado fuera de Neon, prueba de restauración en un branch, RPO y RTO documentados | 2 | — |
 | 35 | Manual de usuario y capacitación | H8 (sin change) | Manual por rol, material de capacitación, plan de doble registro y corte (entregable sin código) | 16, 17, 23, 26, 27, 29, 30 | Fecha de corte que fija la clínica |
+| 36 | Profesionales de la salud | H2c · `profesionales-de-la-salud` (PROPUESTO) | Rol `profesional` y tabla `profesionales` con profesión y colegiatura, renombre atómico de `medico`, profesión inmutable, claim `medico` tolerado un tiempo | 2 | Aceptar [ADR-0030](adrs/0030-profesional-de-la-salud.md); decidirla **antes** de mergear la rama de H3 que usa `medico` |
+| 37 | Visitas, triaje y derivación | H6b · `triaje-y-derivacion` (PROPUESTO) | Llegada con o sin cita, triaje de siete mediciones por enfermería, derivación a una especialidad y «tomar al paciente»; la enfermera sin lectura de historias | 5, 23, 36 | [ADR-0032](adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) y [ADR-0033](adrs/0033-visita-del-paciente-llegada-y-estados.md); **vigencia** de la asignación por derivación (propuesta: 7 días); rangos de plausibilidad con el personal clínico |
+| 38 | Mecanismos clínicos comunes | H6i · `mecanismos-clinicos-comunes` (PROPUESTO) | Planes de sesiones con contador sobre las citas e instrumentos de evaluación con puntaje; función única `psicologo_tiene_paciente()` | 9, 23, 36 | [ADR-0036](adrs/0036-mecanismos-clinicos-comunes.md); licencia de cada instrumento, uno por uno; decisión sobre el 75 % y las sesiones |
+| 39 | Recetas médicas | H6c · `recetas-medicas` (PROPUESTO) | Receta común impresa con plantilla, numeración sin huecos, inmutable, y vista de medicamentos del paciente | 23, 27, 36 | [ADR-0035](adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md); **qué profesiones pueden recetar**, contenido mínimo (DS 014-2011-SA, art. 56) por validar con el asesor, datos del establecimiento e impresora |
+| 40 | Odontología | H6e · `especialidad-odontologia` (PROPUESTO) | Odontograma por pieza y cara (adulta e infantil), hallazgos y tratamientos por pieza, radiografías como adjuntos | 26, 27, 28, 36 | NTS 188 (sin verificar); catálogo de hallazgos con los odontólogos; **imágenes (P-15)** |
+| 41 | Fisioterapia | H6f · `especialidad-fisioterapia` (PROPUESTO) | Evaluación inicial, nota por sesión, plan de sesiones con contador, reevaluación y alta | 26, 27, 36, 38 | Licencias de los tests funcionales; validar con los fisioterapeutas |
+| 42 | Psicología | H6g · `especialidad-psicologia` (PROPUESTO) | Evaluación estructurada, tests con puntaje, notas de sesión reservadas, sesiones recurrentes; aislamiento de [ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) | 26, 27, 36, 38, 39 | **Reglas de salud mental con el asesor legal**; preguntas U1 a U14 del change |
+| 43 | Podología | H6h · `especialidad-podologia` (PROPUESTO) | Evaluación de pie, uñas, piel y pisada, plan de controles, protocolos por sesiones, fotos de evolución | 26, 27, 36, 38 | Validar protocolos con los podólogos; **imágenes (P-15)** y consentimiento para fotografiar |
+| 44 | Copia de la historia clínica | H6d · `copia-de-historia-clinica` (PROPUESTO) | Solicitud con identidad verificada y copia en 5 días emitida por una función acotada y entregada por recepción, con auditoría | 5, 23, 36, 42 | [ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md); plazo hábil o calendario; impresora en recepción; **construirla al final de H6**: cada tabla clínica nueva aporta su sección |
 
 ## Cómo usar este backlog
 
@@ -87,6 +100,15 @@ Las olas son una guía, no una barrera: un ítem arranca en cuanto cumple su col
 
 **Carriles independientes:** H6 (ítems 22 a 28) puede avanzar entero en paralelo con H3 a H5, porque su única
 dependencia del plan es H2. Solo no debe entrar en producción con datos reales (P-1).
+
+**Orden de los ítems 36 a 44 (PRD del 2026-10-11).** El 36 conviene hacerlo **antes** que los ítems 4 a 7 y 23 a 28, porque
+renombra `medico` en el esquema, en las políticas y en el código; si H3 ya se construyó, el 36 va primero y reconcilia sus
+archivos. El 37 va tras el 5 y el 23 (necesita pacientes y el acceso del profesional); el 38 tras el 9 (se apoya en las citas); el
+39 tras el 23 y el 27; los 40, 41 y 43 tras el 27 (y el 41 y el 43 tras el 38); el 42 tras el 38 y el 39 (consume sus mecanismos y
+la vista de medicamentos). El **44 se construye al final de H6**: el compilado de la copia exige que cada tabla clínica nueva
+aporte su sección, y una prueba falla si alguna queda sin clasificar. Las cinco especialidades se entregan **juntas**, pero se
+construyen en este orden. Las migraciones que amplían `accesos_historia.tipo_acceso` (ítems 23, 38, 39, 42 y 44) deben leer la
+restricción vigente y recrearla con la unión de valores.
 
 **Riesgo de conflicto de archivos al paralelizar:**
 
@@ -237,6 +259,32 @@ Marcas: `[RLS]` toca políticas o permisos; `[HC]` toca acceso a historias clín
 - **35. Manual y capacitación.** Fuente: PRD, «Supuestos» (migración del 100 % del personal previa capacitación y con
   manual). Entregable de documentación, no de código; se trata como spec solo para que quede planificado y trazable.
 
+### Actualización del PRD (2026-10-11): ítems 36 a 44 y cambios en los existentes
+
+- **5 y 6.** `[HC]` El ítem 5 pasa a definir la filiación mínima de la NTS 139 y la apertura explícita de la historia (hoy un
+  disparador de H2 la crea sola). El ítem 6 añade profesión y colegiatura al alta de profesionales si se acepta la ADR-0030.
+- **23 a 28.** La historia es compartida entre especialidades para todo profesional a cargo, salvo Psicología
+  ([ADR-0031](adrs/0031-aislamiento-de-la-informacion-de-psicologia.md)). `historias-clinicas` incorpora además el punto de
+  extensión por especialidad ([ADR-0029](adrs/0029-datos-clinicos-por-especialidad.md), aceptada) y la regla común
+  `exige_profesion`.
+- **29 y 30.** La enfermera suma el triaje y la derivación (ítem 37) y sigue sin acceso a historias; «en espera» deja de ser una
+  pregunta abierta: el ítem 37 entrega los estados de `visitas` y el dashboard solo los lee.
+- **36.** `[RLS]` `[HC]` Toca producción y el núcleo de acceso. Se decide la ADR-0030 antes de construir.
+- **37.** `[RLS]` `[HC]` `[TABLA]` `[P-1]` Tres tablas nuevas (`visitas`, `triajes`, `derivaciones`).
+- **38.** `[RLS]` `[TABLA]` `[P-1]` Cuatro tablas nuevas. No carga ningún instrumento hasta verificar su licencia.
+- **39.** `[RLS]` `[HC]` `[TABLA]` `[P-1]` Cuatro tablas nuevas; escritura solo por funciones.
+- **40, 41, 42 y 43.** `[RLS]` `[HC]` `[TABLA]` `[P-1]` Tablas propias por especialidad, catálogos gestionados por migración. El
+  42 implementa el aislamiento de Psicología y merece la revisión más estricta del conjunto.
+- **44.** `[RLS]` `[HC]` `[TABLA]` `[P-1]` Una función acotada entrega el contenido solo al servidor; recepción imprime y entrega sin
+  verlo. El límite de esa garantía es una decisión del usuario ([ADR-0034](adrs/0034-emision-de-la-copia-de-la-historia-clinica.md)).
+- **Numeración sugerida repetida.** Los prefijos de las pruebas pgTAP y de concurrencia que proponen los changes son
+  **sugeridos** y se repiten entre ellos (62 en H6 y H7; 70 a 72 en H4 y H6c; 80 y 81 en H5 y H6i; 20, 21, 25, 26, 30 y 31 en
+  concurrencia). Dos archivos con el mismo prefijo conviven (el sufijo los distingue), pero al aplicar cada change se toma el
+  siguiente número libre de `tests/pgtap/` y se corrige su `tasks.md`.
+- **Componentes de interfaz nuevos** (Odontograma, formulario de triaje, receta imprimible, medicamentos del paciente,
+  contador de sesiones, formulario de instrumento) no están en [DESIGN.md](DESIGN.md): cada change los lista y se añaden al
+  documento al aplicarlo.
+
 ## Preguntas abiertas
 
 Dudas que los documentos no resuelven. Donde se propone un punto de partida, es solo para que la spec correspondiente
@@ -244,7 +292,7 @@ tenga algo que discutir, no una decisión.
 
 | # | Pregunta | Ítems | Punto de partida sugerido |
 |---|---|---|---|
-| Q1 | ¿Quién pasa una cita de `reservada` a `confirmada`, y a `atendida` o `no_asistio`, y cómo? ¿Qué significa «paciente en espera»? No hay acción de servidor ni estado definidos, y de `confirmada` depende el acceso del médico (ADR-0016). | 11, 12, 23, 30 | El administrativo confirma y marca asistencia; el médico marca `atendida`; «en espera» es una cita `confirmada` cuya hora ya pasó y no está atendida. Validar con el cliente. **Resuelta (2026-10-08, decisión del cliente):** recepción confirma y marca `no_asistio`; el médico marca `atendida` con una función acotada; lo implementa `agenda-y-reserva` (D13). «En espera» queda como `confirmada` con hora vencida; falta decidir si se registra la llegada real (H7, Q1). |
+| Q1 | ¿Quién pasa una cita de `reservada` a `confirmada`, y a `atendida` o `no_asistio`, y cómo? ¿Qué significa «paciente en espera»? No hay acción de servidor ni estado definidos, y de `confirmada` depende el acceso del médico (ADR-0016). | 11, 12, 23, 30 | El administrativo confirma y marca asistencia; el médico marca `atendida`; «en espera» es una cita `confirmada` cuya hora ya pasó y no está atendida. Validar con el cliente. **Resuelta (2026-10-08, decisión del cliente):** recepción confirma y marca `no_asistio`; el médico marca `atendida` con una función acotada; lo implementa `agenda-y-reserva` (D13). «En espera» queda como `confirmada` con hora vencida; falta decidir si se registra la llegada real (H7, Q1). **Cerrada en parte (2026-10-11):** `triaje-y-derivacion` entrega los estados de `visitas` y el reloj `llegada_en` → `atencion_iniciada_en` ([ADR-0033](adrs/0033-visita-del-paciente-llegada-y-estados.md), propuesta). |
 | Q2 | ¿Cómo escribe `notificaciones` una acción ejecutada por un paciente o administrativo, si solo el cron tiene política de escritura? | 19 | Función acotada con `security definer`, o política de inserción restringida. Decidir en la spec con prueba negativa. **Propuesta en `notificaciones-email`:** función `registrar_aviso_transaccional` (`SECURITY DEFINER`); se formaliza en un ADR nuevo. |
 | Q3 | La vinculación por documento del paciente puede permitir que alguien se registre con un DNI ajeno y vea sus citas. ¿Qué verifica la titularidad? Además, `slots_disponibles` debe mostrar ocupación real al paciente sin exponer citas ajenas. | 8, 15 | Comparar al menos correo y fecha de nacimiento con el registro previo; función de slots con `security definer` y solo `inicio` y `fin`. **Propuesta en `portal-del-paciente` y `agenda-y-reserva`:** vinculación por correo verificado + fecha de nacimiento (ADR nuevo) y `slots_disponibles` `SECURITY DEFINER` que devuelve solo `(inicio, fin)`. |
 | Q4 | La reasignación por baja necesita una marca de «contacto manual» que el esquema no tiene, y «horario equivalente» no está definido (¿mismo día y hora, tolerancia?). | 13 | Columna o tabla nueva con su prueba negativa; si cambia el modelo, ADR aparte. Tolerancia a fijar con la clínica. |
@@ -254,6 +302,18 @@ tenga algo que discutir, no una decisión.
 | Q8 | Dueño y plazo de la bandeja de revisión manual de pacientes con documento inválido (pendiente del cliente en ADR-0019). | 31 | Preguntar antes de empezar H8. |
 | Q9 | Al importar citas futuras, ¿se envía correo de confirmación a cada paciente? | 32 | No enviar confirmaciones masivas; sí programar `recordatorio_24h`. Validar con el cliente. |
 | Q10 | Con un único cron diario ya ocupado por las notificaciones (ADR-0028), ¿con qué mecanismo corre el export diario cifrado? | 34 | Un flujo programado de GitHub Actions; si implica un proveedor nuevo, ADR aparte. |
+| Q11 | ¿Se acepta renombrar `medico` a `profesional` (ADR-0030) antes de mergear H3? Si no, el change 36 se reduce a añadir la profesión. | 4 a 7, 23 a 28, 36 | Decidirla antes de mergear la rama de H3 que usa `'medico'`. |
+| Q12 | ¿Qué vigencia tiene la asignación por derivación? | 37 | El change propone 7 días de Lima desde la toma, en una sola función (seis opciones comparadas en su D8). También al asesor legal. |
+| Q13 | ¿Qué profesiones pueden recetar? Hoy médico sí y psicólogo no; odontólogo, fisioterapeuta y podólogo están en «no, sin confirmar». | 39 | Confirmar con la clínica y el asesor antes del despliegue; el catálogo se cambia con una migración. |
+| Q14 | ¿Se admiten imágenes como adjuntos (radiografías, fotos de evolución)? El diseño de adjuntos de H6 es solo PDF (P-15). | 28, 40, 43 | Decisión del usuario; los changes modelan un adjunto abstracto y no cierran su parte de imágenes. |
+| Q15 | Las citas de sesiones que agenda recepción cuentan en el denominador del 75 %. ¿Se excluyen del indicador o el paciente reserva sus sesiones en el portal? | 16, 38 | Decisión del usuario; lo segundo sería un change de H4. |
+| Q16 | La copia de la historia: ¿se acepta que el PDF y el papel pasen por el navegador y la impresora de recepción? ¿Los 5 días son hábiles o de calendario? | 44 | El change propone documento cerrado y días de calendario; el asesor decide el plazo. |
+| Q17 | Salud mental: ¿hay reglas más estrictas para los datos de Psicología, y qué se hace en una emergencia? | 42, 44 | Al asesor legal; el change no construye ninguna vía de excepción. |
+| Q18 | ¿Qué norma rige el odontograma (NTS 188, no verificada) y qué licencia tiene cada instrumento de evaluación? | 38, 40, 41, 42 | Obtener los textos oficiales y verificar cada licencia antes de cargar catálogos. |
+| Q19 | ¿Se retira el disparador de H2 que crea la historia al registrar al paciente (apertura explícita «Crear historia clínica») o se conserva? Retirarlo es la única migración no aditiva de H3 y obliga a que la llegada del triaje exija historia abierta. Mencionan hoy el disparador `crear_historia_clinica()`: `portal-del-paciente` (proposal y design), `historias-clinicas` y `recetas-medicas`, y la prueba pgTAP `41`. | 5, 23, 37 | Apertura explícita (propuesta de `agenda-y-reserva`, D14), aplicada en la misma ventana que el botón. |
+| Q20 | `pacientes.email` es obligatorio; un paciente sin cita o con documento provisional puede no tener correo. ¿Se vuelve opcional? Afecta al portal y a las notificaciones. | 5, 15, 19 | Opcional, con las consecuencias para H4 y H5 anotadas; por defecto sigue obligatorio. |
+| Q21 | `mecanismos-clinicos-comunes` exige (`HC094`) que la atención de un plan sea del mismo profesional que lo crea: un fisioterapeuta de cobertura que no firmó la evaluación no puede crear el plan. ¿Se relaja a «del mismo paciente y de un profesional con acceso»? | 38, 41 | Decidir con la clínica; es un cambio acotado en H6i. |
+| Q22 | `especialidad-psicologia` conserva una regla propia (`HC074`: un psicólogo debe usar la plantilla vigente de Psicología) además de la común `exige_profesion`. ¿Se generaliza a las cuatro especialidades? | 40 a 43 | Mantenerla propia salvo que se quiera la misma exigencia en las demás; generalizarla cambia D15 de `historias-clinicas`. |
 
 ## Puertas de salida a producción
 
@@ -269,7 +329,15 @@ No son ítems de código; son condiciones que el backlog no puede cerrar y que s
 - **Resend:** dominio propio con SPF, DKIM y DMARC (ítem 18).
 - **Neon:** registrar la JWKS de Clerk de producción por API y fijar `LOGIN` y contraseña de `cron_notificaciones` y
   `sync_identidad` por entorno.
-- **Riesgos aceptados que no se construyen:** WAF genérico (ADR-0026), segundo canal de notificación (P-7) y gestión de
+- **Acreditación del sistema ante el MINSA** (DS 009-2017-SA y Directiva 373-MINSA/OGTI-2025, plazos ampliados por la
+  RM 188-2026-MINSA) y **registro del banco de datos ante la ANPD**: sin ellos, los ítems 23 a 28 y 36 a 44 no operan con
+  datos reales. Hallazgos en [investigacion-marco-legal-y-saniape.md](investigacion-marco-legal-y-saniape.md).
+- **Validación clínica** de plantillas, catálogos y protocolos con el personal de cada especialidad, **licencias** de los
+  instrumentos de evaluación y reglas de salud mental con el asesor (ítems 38 a 43).
+- **Equipamiento:** computadora, impresora e internet estable en cada consultorio y en el puesto de triaje (supuesto del PRD,
+  confirmado solo para las computadoras).
+- **Riesgos aceptados que no se construyen:** WAF genérico (ADR-0026), segundo canal de notificación (P-7: WhatsApp y SMS),
+  alertas automáticas de interacción de medicamentos y gestión de
   consultorios (P-6).
 
 ## Desajustes entre documentos detectados (no corregidos aquí)
@@ -280,7 +348,7 @@ No son ítems de código; son condiciones que el backlog no puede cerrar y que s
 - ADR-0017 sigue hablando de «cron horario de reintentos»; ADR-0028 lo cambió a diario (ADR-0008 sí lo anota).
 - ADR-0018 afirma que el cron «no pasa por RLS» y usa `auth.session() ->> 'rol'`; TECH-DESIGN y las migraciones de H2
   lo hacen pasar por RLS con `rol_actual()`.
-- ADR-0011 (y el paso 4 de «Doctor de baja» en TECH-DESIGN) dicen que la cita original se cancela «con
+- ADR-0011 (y el paso 4 de «Profesional de baja o emergencia», antes «Doctor de baja», en TECH-DESIGN) dicen que la cita original se cancela «con
   `reprogramada_de` apuntando a la nueva»; el esquema y los criterios de aceptación de TECH-DESIGN lo guardan en la cita
   nueva, apuntando a la original (columna `citas.reprogramada_de`).
 - ADR-0017: la guarda del cron no excluye citas canceladas (ver ítem 20).

@@ -43,7 +43,8 @@ pruebas negativas; ver `tasks.md`). **Depende de que el usuario acepte las ADR-0
 - **Qué ven los demás de un diagnóstico de Psicología (D4):** nada; ven los medicamentos (vista de H6c). Se deja como pregunta
   al usuario si debe haber algo más (alternativas B a D).
 - **Evaluación estructurada (D5):** plantilla de Psicología de ADR-0029 (campos propuestos, `REVISAR` con los psicólogos de la
-  clínica) sobre `atenciones`, con el mismo sello, huella, inmutabilidad y addendas; solo un psicólogo puede usarla.
+  clínica) sobre `atenciones`, con el mismo sello, huella, inmutabilidad y addendas; solo un psicólogo puede usarla (`exige_profesion = 'psicologo'`, regla común de
+  `historias-clinicas`, D15).
 - **Notas de sesión reservadas (D6):** tabla nueva `notas_sesion_psicologia` (RLS + prueba negativa), firmada e inmutable, con
   rectificación por nota nueva y borradores visibles solo para su autor.
 - **Tests con puntaje automático (D7):** usa `instrumentos_evaluacion` y `aplicaciones_instrumento` de H6i con `area = psicologia`;
@@ -60,8 +61,8 @@ pruebas negativas; ver `tasks.md`). **Depende de que el usuario acepte las ADR-0
 - **Copia al paciente (D13):** la copia incluye Psicología (decisión del usuario); este change clasifica sus tablas y escribe la
   sección «Psicología» del compilado de H6d.
 - **Cambios en lo existente (no rompen a ningún usuario):** políticas restrictivas nuevas sobre `atenciones`, `addendas`,
-  `antecedentes` y `adjuntos_historia` (las permisivas no se tocan); una columna en el catálogo `plantillas_clinicas`
-  (`exige_profesion`); el valor `psicologia` en `accesos_historia.tipo_acceso` y una política restrictiva de inserción; una
+  `antecedentes` y `adjuntos_historia` (las permisivas no se tocan); el dato `exige_profesion = 'psicologo'` en la plantilla v1
+  (la columna es de `historias-clinicas`, D15); el valor `psicologia` en `accesos_historia.tipo_acceso` y una política restrictiva de inserción; una
   especialidad «Psicología» por migración de datos si falta. Los profesionales que no son psicólogos siguen viendo **exactamente
   lo mismo que hoy** (la historia compartida): lo único que desaparece de su vista es lo escrito por psicólogos.
 
@@ -114,7 +115,7 @@ que aún no están archivados: no hay delta posible; se coordina en las tareas 0
 - **Base de datos:** **una tabla nueva** (`notas_sesion_psicologia`, RLS y prueba negativa); una función `SECURITY DEFINER` de
   reserva (`fila_de_psicologia()`; la de acceso es la única de H6i); políticas **restrictivas** sobre `atenciones`, `addendas`, `antecedentes`, `adjuntos_historia`, `accesos_historia` (solo
   inserción), `aplicaciones_instrumento` y `planes_de_sesiones` (estos dos de H6i; `sesiones_del_plan` no tiene autor y queda aislada por el área de su plan); disparadores de
-  autoría y coherencia; una columna en `plantillas_clinicas`; filas de datos (plantilla, especialidad; los instrumentos solo tras
+  autoría y coherencia (más el de `HC074` sobre `atenciones`); filas de datos (plantilla, especialidad; los instrumentos solo tras
   verificar su licencia); SQLSTATE `HC070` a `HC074` (`HC075` a `HC079` reservados); pruebas pgTAP **77 y 78**.
 - **Dependencias nuevas:** ninguna.
 - **Qué NO incluye:** acceso del paciente a su información desde el portal (el PRD lo excluye; la recibe en copia); vía de

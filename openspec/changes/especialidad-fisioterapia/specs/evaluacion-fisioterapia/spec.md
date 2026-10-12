@@ -13,7 +13,8 @@ que al firmarla se abra el episodio de tratamiento.
 El sistema SHALL registrar la evaluación inicial, la reevaluación y el alta de Fisioterapia como una atención de la historia clínica
 que usa la plantilla `Fisioterapia v1`, cuyos datos de especialidad son el tipo de registro (evaluación inicial, reevaluación o
 alta), la zona tratada y, en el alta, el motivo. La atención SHALL conservar los campos genéricos obligatorios de la historia clínica
-(motivo, anamnesis, examen físico, diagnóstico CIE-10 y plan). Solo un fisioterapeuta SHALL poder usar la plantilla de Fisioterapia.
+(motivo, anamnesis, examen físico, diagnóstico CIE-10 y plan). Solo un fisioterapeuta SHALL poder usar la plantilla de Fisioterapia: la plantilla SHALL llevar `exige_profesion = 'fisioterapeuta'` y la
+regla común de la historia clínica (D15 de `historias-clinicas`) SHALL hacerla cumplir, sin disparador propio de este change.
 Una atención sin plantilla SHALL seguir siendo posible para el fisioterapeuta (por ejemplo, una consulta de orientación).
 
 #### Scenario: Evaluación inicial en borrador

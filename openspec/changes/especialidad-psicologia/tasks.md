@@ -61,11 +61,12 @@ Convenciones de todo el change (leer antes de empezar):
       coinciden con estos y que consta en `design.md` D3, D7, D8 y D12; si H6g se aplicara antes que H6i, la migración define
       provisionalmente `psicologo_tiene_paciente()` con la misma firma y semántica y H6i la reemplaza con `create or replace` idéntico
       (nunca existen dos nombres). Verificar también que ninguna tabla con datos de paciente queda fuera de la clasificación de 6.3.
-- [ ] 0.4 Coordinar con H6 y con H6e a H6h: (a) la columna `plantillas_clinicas.exige_profesion` (si otro change ya añadió una
-      equivalente, se reutiliza y se ajusta D5); (b) el orden de las migraciones respecto de la tarea 4.1 de H6 (`tipo_acceso`), la
+- [ ] 0.4 Coordinar con H6 y con H6e a H6h: (a) la columna `plantillas_clinicas.exige_profesion` y el disparador que la aplica son de H6 (D15 de
+      `historias-clinicas`), no de H6g: comprobar que existen con ese nombre antes de la migración 2.1 (H6g solo fija el dato en su plantilla v1); (b) el orden de las migraciones respecto de la tarea 4.1 de H6 (`tipo_acceso`), la
       de `adjuntos_historia` y la de la plantilla de Medicina general; (c) que `lib/historias/guardia.ts` y `lib/ui/navegacion.ts`
       admiten una guarda por profesión; (d) la prueba `56` de H6 (¿enumera los tipos de acceso?) y la `47_estructura_historia`
-      (no cambia: este change no altera columnas de `atenciones`). Verificar que las notas constan en `design.md` D5 y D12 y que
+      (no cambia: este change no altera columnas de `atenciones`); (e) el orden de `atenciones_psicologia_10_plantilla` frente al
+      disparador de validación de H6 que aplica `exige_profesion` (nombres y orden en `pg_trigger`). Verificar que las notas constan en `design.md` D5 y D12 y que
       ningún otro change tomó `HC070` a `HC079` ni las pruebas 77 y 78.
 - [ ] 0.5 Coordinar con H6d, H6b y H6c: (a) H6d: la sección «Psicología» del compilado, que las filas de autor psicólogo salgan en
       ella y no en «Atenciones», `incluye_psicologia` sin conteos y la cuenta agregada de borradores (`design.md` D13); (b) H6b:
@@ -139,27 +140,28 @@ Convenciones de todo el change (leer antes de empezar):
 
 ## 2. Plantilla de Psicología y evaluación estructurada
 
-- [ ] 2.1 Migración `psicologia-plantilla`: (a) especialidad «Psicología» si falta (idempotente por nombre); (b) columna
-      `plantillas_clinicas.exige_profesion` (`profesion_salud`, nula; o la equivalente de 0.4); (c) disparador `BEFORE INSERT OR
-      UPDATE OF plantilla_id` en `atenciones` (`SECURITY DEFINER`, `search_path` vacío) que rechaza con **`HC070`** que una plantilla
-      con `exige_profesion` la use un autor de otra profesión y con **`HC074`** que un psicólogo registre una atención sin la
-      plantilla vigente de Psicología; (d) plantilla «Evaluación psicológica» v1 con los campos de `design.md` D5 ya validados en
-      0.8, por migración de datos idempotente. Verificar que se aplica dos veces sin duplicar filas y que la plantilla queda
+- [ ] 2.1 Migración `psicologia-plantilla`: (a) especialidad «Psicología» si falta (idempotente por nombre); (b) **sin** columna
+      `exige_profesion` ni disparador de profesión–plantilla (son de H6, D15 de `historias-clinicas`; se comprueban en 0.4); (c) disparador
+      propio `atenciones_psicologia_10_plantilla` (`BEFORE INSERT OR UPDATE OF plantilla_id`, `SECURITY DEFINER`, `search_path` vacío) que
+      rechaza con **`HC074`** que un psicólogo registre una atención sin la plantilla vigente de Psicología (regla inversa, propia de este
+      change); (d) plantilla «Evaluación psicológica» v1 con los campos de `design.md` D5 ya validados en
+      0.8 y con `exige_profesion = 'psicologo'`, por migración de datos idempotente. Verificar que se aplica dos veces sin duplicar filas y que la plantilla queda
       vigente con `exige_profesion = 'psicologo'`.
 - [ ] 2.2 Prueba pgTAP `tests/pgtap/78_psicologia_notas_y_canales.test.sql`, parte «evaluación»: evaluación completa se guarda y se
       firma con sello del servidor y huella; campo obligatorio vacío, solo espacios o invisibles, opción fuera de lista y sí/no como
       texto fallan por campo; **médico, odontólogo, fisioterapeuta y podólogo (aunque estén registrados en Psicología) con la plantilla
-      de Psicología: `HC070`**; psicólogo sin plantilla o con la de otra especialidad: `HC074`; firmada, no se modifica y la huella
+      de Psicología: `HC005` de H6 (D15 de `historias-clinicas`)**; la plantilla v1 vigente tiene `exige_profesion = 'psicologo'` (se afirma sobre el dato real);
+      psicólogo sin plantilla o con la de otra especialidad: `HC074`; firmada, no se modifica y la huella
       cubre los datos; la evaluación es ilegible para las demás profesiones y roles (cubierto por 1.3, aquí con la plantilla). Verificar
       que pasa y que `47_estructura_historia` no se modificó.
 - [ ] 2.3 `lib/schemas/psicologia.ts` (Zod 3, `.strict()`, campos de la plantilla desde `lib/schemas/plantilla.ts` de H6, texto con contenido
       que rechaza invisibles y `U+0000`, NFC) y `lib/psicologia/etiquetas.ts` con los rótulos de los cuatro textos genéricos;
       `tests/psicologia/esquemas.test.ts` con `node:test`. Verificar que pasan y que fallan al relajar una regla a propósito
       (revertido).
-- [ ] 2.4 Documentar: TECH-DESIGN («Modelo de datos»: `exige_profesion`, plantilla de Psicología) y nota en
-      [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (primera plantilla restringida a una profesión).
+- [ ] 2.4 Documentar: TECH-DESIGN («Modelo de datos»: plantilla de Psicología y su `exige_profesion`; la columna la documenta H6) y nota en
+      [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (primera plantilla que declara su profesión).
       Verificar los enlaces.
-- [ ] 2.5 Revisión con el agente `code-review` de la migración y el disparador (`HC070`, `HC074`, `SECURITY DEFINER`, idempotencia
+- [ ] 2.5 Revisión con el agente `code-review` de la migración y el disparador (`HC074`, `SECURITY DEFINER`, idempotencia
       de los datos). Verificar que los hallazgos quedan resueltos o justificados.
 
 ## 3. Notas de sesión reservadas
@@ -306,7 +308,7 @@ Convenciones de todo el change (leer antes de empezar):
       `npm run test:concurrencia`, `npm run test:integracion` y la suite E2E completa. Verificar que todo pasa y que el PR trae el cuadro de cada requisito
       de las cuatro especificaciones con la prueba que lo cubre.
 - [ ] 9.2 **Verificación por mutación completa:** en un branch de desarrollo, debilitar a propósito cada política, función y disparador nuevos (las del
-      grupo 1; la restrictiva de cada tabla reservada, una por una, incluidas las de H6i; la comprobación de profesión de `HC070`; `exige_profesion`;
+      grupo 1; la restrictiva de cada tabla reservada, una por una, incluidas las de H6i; la comprobación de profesión de `HC070` (notas); `exige_profesion` puesto en `NULL` en la plantilla v1;
       `HC074`; la inmutabilidad `HC072`; la rectificación `HC073`; el borrador solo del autor; el sello y la huella de la nota; la restrictiva de
       inserción de `accesos_historia`; el filtro de Psicología del compilado; hacer que la vista de medicamentos dependa de `atenciones`; volcar
       contenido a `auditoria`; añadir una función `SECURITY DEFINER` que lea una tabla reservada; dejar una tabla nueva sin clasificar; permitir el

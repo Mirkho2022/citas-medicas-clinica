@@ -5,7 +5,7 @@
 Convenciones de todo el change (leer antes de empezar):
 
 - **Este change toca RLS y el acceso a historias clínicas, el riesgo principal del proyecto:** crea cuatro tablas clínicas con
-  política propia, funciones y disparadores `SECURITY DEFINER` y dos disparadores sobre `atenciones`. Cada grupo que cambia
+  política propia, funciones y disparadores `SECURITY DEFINER` y un disparador de sello sobre `atenciones`. Cada grupo que cambia
   políticas, funciones `SECURITY DEFINER`, disparadores o rutas que sirven contenido clínico termina con una tarea de **revisión con
   el agente `code-review`** y no se da por cerrado hasta corregir o justificar sus hallazgos.
 - **Datos reales: prohibidos.** Mientras la decisión legal P-1 siga abierta no se carga ningún dato clínico real. Los datos
@@ -61,7 +61,7 @@ Convenciones de todo el change (leer antes de empezar):
       `authenticated`, que `select … for share` sobre `atenciones` espera una firma en curso y luego no devuelve la fila firmada
       (D10); si no, usar un ayudante `SECURITY DEFINER` sin parámetro de rol; (b) que el tipo `si_no` del validador de H6 guarda un
       booleano JSON; (c) los nombres y el orden de los disparadores de `atenciones` de H6 (`atenciones_inmutables`, validación de
-      datos de especialidad, sello) frente a `atenciones_odontologia_10_coherencia` y `_20_sellar`; (d) que
+      datos de especialidad, sello) frente a `atenciones_odontologia_20_sellar` y frente al validador de H6 que impone `exige_profesion` (D15 de `historias-clinicas`); (d) que
       `registrar_auditoria_sin_contenido()` cubre `DELETE` y funciona con tablas cuya clave se llama `id`; (e) el nombre exacto de las
       columnas `subido_por` y `vigente` de `adjuntos_historia`; (f) la firma de `exigir_paciente_admisible()` (lee `new.paciente_id`).
       Verificar que cada punto tiene su resultado escrito y que una diferencia con lo supuesto ajusta `design.md` antes de escribir SQL.
@@ -101,11 +101,13 @@ Convenciones de todo el change (leer antes de empezar):
 ## 2. Plantilla de Odontología
 
 - [ ] 2.1 Migración de datos `plantilla-odontologia` (idempotente): crea la especialidad «Odontología» si falta y la plantilla v1
-      con `registra_seccion_odontologica` (`si_no`, obligatorio), `observaciones_odontologicas` (`texto`, ≤ 2000) y `proxima_cita`
+      con `exige_profesion = 'odontologo'` (columna que añade D15 de `historias-clinicas`; este change solo fija el dato y no crea
+      disparador propio), `registra_seccion_odontologica` (`si_no`, obligatorio), `observaciones_odontologicas` (`texto`, ≤ 2000) y `proxima_cita`
       (`fecha`), con el encabezado `REVISAR` de D8. Verificar que aplicarla dos veces no duplica filas, que el arreglo `campos` pasa
       el `CHECK` de forma de H6 y que existe exactamente una especialidad «Odontología».
 - [ ] 2.2 Pruebas pgTAP (en `75_odontologia_reglas`): con la plantilla, una atención de un odontólogo sin `registra_seccion_odontologica`
-      se rechaza (`HC005` de H6); con la declaración se guarda; las claves ajenas se descartan; la plantilla sigue sin ser legible por
+      se rechaza (`HC005` de H6); con la declaración se guarda; la plantilla v1 vigente tiene `exige_profesion = 'odontologo'` (se afirma
+      sobre el dato real) y un médico que intenta usarla recibe `HC005` de H6; las claves ajenas se descartan; la plantilla sigue sin ser legible por
       administrativo, enfermera ni paciente (cubierto por la prueba 62 de H6, que no se modifica). Verificar que pasan.
 - [ ] 2.3 Documentar: TECH-DESIGN («Datos por especialidad»: plantilla de Odontología) y `docs/pruebas-sql.md`. Verificar los enlaces.
 
@@ -153,24 +155,22 @@ Convenciones de todo el change (leer antes de empezar):
 
 - [ ] 4.1 Migración `odontograma-sello-y-coherencia`: `especialidad_odontologia_id()`; `huella_odontograma(uuid)` (`'v1:'` + SHA-256
       del `jsonb` canónico de D10, por código de catálogo y con listas ordenadas, sin `firmada_en`); `verificar_odontograma(uuid)`;
-      `atenciones_odontologia_10_coherencia` (`BEFORE INSERT OR UPDATE OF plantilla_id`: la plantilla de Odontología exige que el
-      autor sea odontólogo, `HC050`) y `atenciones_odontologia_20_sellar` (`BEFORE UPDATE OF firmada_en`, `WHEN` del paso a firmada:
-      coherencia con la declaración `HC052`, piezas contra la dentición `HC053`, huella y `sellado_en`), ambos `SECURITY DEFINER`
-      con `search_path` vacío. `EXECUTE` de las funciones solo a quien corresponde. Verificar que se aplica y que `atenciones_inmutables`
-      sigue ejecutándose antes de los nuevos.
+      `atenciones_odontologia_20_sellar` (`BEFORE UPDATE OF firmada_en`, `WHEN` del paso a firmada:
+      coherencia con la declaración `HC052`, piezas contra la dentición `HC053`, huella y `sellado_en`), `SECURITY DEFINER`
+      con `search_path` vacío. No hay disparador de profesión–plantilla: lo impone `exige_profesion` (grupo 2). `EXECUTE` de las funciones solo a quien corresponde. Verificar que se aplica y que `atenciones_inmutables`
+      sigue ejecutándose antes del nuevo.
 - [ ] 4.2 Pruebas pgTAP `75_odontologia_reglas`, parte «sello»: firmar con la sección coherente sella y la huella coincide con su
       recálculo; declarar registrar sin registros, declarar no registrar con cabecera y una pieza incompatible rechazan la firma y la
       atención sigue sin firmar (`HC052`, `HC053`); alterar un registro firmado (con el disparador desactivado solo en la transacción
       de prueba) hace que la huella deje de coincidir; borrar la cabecera de una atención que declaraba registrar se detecta;
-      insertar, actualizar o borrar filas de una atención firmada falla para el odontólogo y para el dueño (`HC051`); un médico no
-      puede usar la plantilla de Odontología (`HC050`); la huella no cambia al firmarse en otro momento. Verificar que pasan.
+      insertar, actualizar o borrar filas de una atención firmada falla para el odontólogo y para el dueño (`HC051`); la huella no cambia al firmarse en otro momento. Verificar que pasan.
 - [ ] 4.3 Prueba de concurrencia `tests/concurrencia/` (siguiente número libre, sugerido 30; dos sesiones `pg` como `authenticated`): editar
       un registro mientras se firma su atención, en ambos órdenes (el editor recibe `HC051` o la huella ya incluye el cambio; nunca un
       sello desfasado); y dos borradores del mismo paciente firmados en orden inverso al de creación (se conservan ambos registros y
       el actual es el de la firma más tardía). Verificar que pasa 20 rondas seguidas y actualizar `docs/pruebas-sql.md`.
 - [ ] 4.4 Documentar: TECH-DESIGN («Inmutabilidad»: sello propio de la sección odontológica y su límite frente a la huella de la
       atención) y nota en `historias-clinicas/design.md`, D5, sobre las tablas hijas si 0.5 lo decide. Verificar los enlaces.
-- [ ] 4.5 Revisión con el agente `code-review` de las funciones y disparadores sobre `atenciones` (coherencia, sello, huella, bloqueo,
+- [ ] 4.5 Revisión con el agente `code-review` de las funciones y disparador sobre `atenciones` (sello, huella, bloqueo,
       que no cambie el comportamiento de H6 para otras profesiones). Verificar que los hallazgos quedan resueltos o justificados.
 
 ## 5. Lectura derivada: odontograma actual y tratamientos pendientes
@@ -292,7 +292,7 @@ Convenciones de todo el change (leer antes de empezar):
       `profesional_tiene_paciente` de la política de `SELECT`; permitir `UPDATE` en el catálogo; quitar la unicidad de pieza y cara;
       aceptar piezas de otra dentición; omitir la comprobación de `reemplaza_caras` al escribir y al derivar; incluir borradores en
       `odontograma_actual`; saltar la coherencia con la declaración al firmar; dejar de calcular la huella; quitar los controles de
-      `HC055` y `HC056`; quitar el disparador de coherencia profesión–plantilla; dar `EXECUTE` de `copia_seccion_odontologia()` a
+      `HC055` y `HC056`; poner `exige_profesion` en `NULL` en la plantilla v1 (debe fallar la prueba de 2.2); dar `EXECUTE` de `copia_seccion_odontologia()` a
       `authenticated`; quitar la sección del compilado; quitar la guarda de datos reales. Verificar anotando en el PR la mutación y la
       prueba que falló, una por elemento.
 - [ ] 11.3 Prueba de usabilidad de la carga del odontograma con al menos un odontólogo (si no es posible, un recorrido cronometrado por

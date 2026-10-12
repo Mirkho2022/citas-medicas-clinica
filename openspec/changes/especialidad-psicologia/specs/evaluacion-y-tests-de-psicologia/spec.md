@@ -16,8 +16,9 @@ El sistema SHALL registrar la evaluación inicial y las reevaluaciones de Psicol
 Psicología, cuyos campos obligatorios (tipo de evaluación, origen de la consulta, tratamientos previo y actual, antecedentes
 familiares de salud mental, consumo de sustancias, orientación, ánimo y afecto, pensamiento, juicio y riesgo de autolesión) SHALL tener contenido
 real, tipo, rango y opciones válidos, validados por el servidor y por la base. La atención SHALL incluir de uno a diez diagnósticos
-CIE-10 con su tipo. La plantilla SHALL poder usarla únicamente un psicólogo, y un psicólogo SHALL usar solo la plantilla vigente de
-Psicología; si no se cumple, la base SHALL rechazar la atención con `SQLSTATE HC070` o `HC074`.
+CIE-10 con su tipo. La plantilla SHALL llevar `exige_profesion = 'psicologo'`, de modo que la regla común de la historia clínica (D15 de
+`historias-clinicas`) permita usarla únicamente a un psicólogo, y un psicólogo SHALL usar solo la plantilla vigente de Psicología; si no
+se cumple, la base SHALL rechazar la atención con `SQLSTATE HC005` (otra profesión usa la plantilla) o `HC074` (un psicólogo no usa la plantilla).
 
 #### Scenario: Evaluación completa
 - **WHEN** un psicólogo a cargo envía una evaluación con todos los campos de la plantilla y al menos un diagnóstico CIE-10
@@ -33,7 +34,7 @@ Psicología; si no se cumple, la base SHALL rechazar la atención con `SQLSTATE 
 
 #### Scenario: Médico u otra profesión usa la plantilla de Psicología (negativo)
 - **WHEN** un médico, un odontólogo, un fisioterapeuta o un podólogo, aunque esté registrado en la especialidad Psicología por error, envía una atención con la plantilla de Psicología
-- **THEN** la base lo rechaza con `HC070` y no se guarda la atención
+- **THEN** la base lo rechaza con `HC005` (regla común de la historia clínica) y no se guarda la atención
 
 #### Scenario: Psicólogo sin la plantilla de Psicología (negativo)
 - **WHEN** un psicólogo envía una atención sin plantilla o con la plantilla de otra especialidad

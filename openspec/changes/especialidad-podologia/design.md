@@ -34,13 +34,15 @@ el repositorio y en los changes vecinos (todos aún sin aplicar salvo H2):
   etiquetas de su plantilla.
 - **H6e `especialidad-odontologia` (terminado, es el patrón a alinear):** tablas hijas propias de la atención; **sello propio de la
   sección** (la huella `v1` de la atención no cubre tablas hijas); catálogo gestionado por migración; plantilla v1 con pocos
-  campos que declara si la atención registra la sección; disparadores `atenciones_<especialidad>_10_coherencia` y `_20_sellar`;
+  campos que declara si la atención registra la sección; el disparador `atenciones_<especialidad>_20_sellar` (la regla profesión–plantilla ya no es de cada especialidad: la impone
+  `exige_profesion`, D15 de `historias-clinicas`);
   función `copia_seccion_<especialidad>()` con `EXECUTE` revocado a todo rol de usuario; identidades pgTAP por profesión; las
   imágenes se vinculan hoy a un PDF de `adjuntos_historia` hasta que se decida P-15.
-- **H6i `mecanismos-clinicos-comunes` (por escribir; no hay archivos en disco):** se usa **solo por su interfaz** (contrato común,
-  sección 8): `planes_de_sesiones` (un plan de un paciente con un profesional: descripción o protocolo, total de sesiones,
-  frecuencia en días, vigencia, estado `activo`/`completado`/`cancelado`) y `sesiones_del_plan` (cada sesión es una cita de H3 o
-  queda por agendar), con el contador de sesiones restantes. Los supuestos concretos están en D4 y la tarea 0.2 los confirma.
+- **H6i `mecanismos-clinicos-comunes` (escrito y validado el 2026-10-12; sin aplicar):** se usa **solo por su interfaz**:
+  `planes_de_sesiones` (un plan de un paciente con un profesional: `protocolo_clave` y/o `descripcion`, `total_sesiones` de 1 a 60,
+  `frecuencia_dias` de 1 a 90, vigencia, estado `activo`/`completado`/`cancelado`) y `sesiones_del_plan` (cada sesión es una cita de H3 o
+  queda por agendar), con la vista `planes_de_sesiones_con_contador` (`asistidas`, `restantes`). Solo se escribe con sus funciones, a través de
+  `lib/historias/planes.ts`. El contrato concreto está en D4 y la tarea 0.2 lo relee con el change aplicado.
 - **Imágenes (P-15):** el diseño de adjuntos de H6 es solo PDF; admitir imágenes es decisión abierta del usuario (TECH-DESIGN).
 - **Norma:** `docs/investigacion-marco-legal-y-saniape.md` no verificó ninguna norma de podología ni la que rige fotografiar al
   paciente. Este change no cita ni reproduce ninguna. De la NTS 139 solo se usa (nivel A) que la firma electrónica del paciente no
@@ -144,18 +146,22 @@ el validador de H6** (`obligatorio_si`): cambia una ADR aceptada; la regla se im
 (e) **mediciones numéricas** (ángulos, índice de la huella plantar): sin una norma o criterio validado por los podólogos, no se
 inventan.
 
-### D3. Coherencia profesión–plantilla, evaluación inicial completa y declaración de fotos
+### D3. Quién usa la plantilla, evaluación inicial completa y declaración de fotos
 
-Dos disparadores sobre `atenciones`, `SECURITY DEFINER` con `search_path` vacío, con el patrón de nombres de H6e (el prefijo
-numérico fija el orden alfabético respecto de los de H6, y una prueba lee `pg_trigger` y falla si cambia):
+**Quién puede usar la plantilla (regla común, D15 de `historias-clinicas`).** Este change **no crea un disparador propio** para
+«solo un podólogo usa la plantilla de Podología». La regla la impone `historias-clinicas` (D15) para todas las especialidades, con la
+columna `plantillas_clinicas.exige_profesion` (tipo `profesion_salud`; nula = cualquiera) dentro del disparador de validación de
+`atenciones` que ya existe (`HC005`). Aquí solo se fija el dato: la plantilla Podología v1 se inserta con `exige_profesion = 'podologo'`
+(migración 1 de D14) y una prueba pgTAP lo afirma. El validador de H6 ya exige que la plantilla sea de la especialidad del autor, pero
+`especialidad_id` es libre (H2c): con `exige_profesion`, aunque un médico quedara mal registrado en Podología, no podría guardar una
+atención con su plantilla ni, por tanto, abrir su sección. **No** se exige lo inverso (un podólogo puede registrar una atención
+genérica sin plantilla), y la compatibilidad dentro de `profesionales` no se impone aquí (D8 de H6e: es de H2c y de la pantalla de
+alta de H3; el fallo es cerrado). La escritura en `fotos_evolucion` conserva su propia barrera de profesión (D6, `HC080`), que es otra
+regla: quién escribe en esa tabla, no quién usa la plantilla.
 
-- **`atenciones_podologia_10_coherencia`** (`BEFORE INSERT OR UPDATE OF plantilla_id`): si la plantilla es la de Podología
-  (`especialidad_podologia_id()`, que centraliza la búsqueda por nombre), la **profesión del autor**
-  (`profesionales.profesion` del `profesional_id` de la atención) debe ser `podologo`; si no, `HC080`. El validador de H6 ya exige
-  que la plantilla sea de la especialidad del autor, pero `especialidad_id` es libre (H2c): así, aunque un médico quedara mal
-  registrado en Podología, no podría usar su plantilla ni su sección. **No** se exige lo inverso (un podólogo puede registrar una
-  atención genérica sin plantilla), y la compatibilidad dentro de `profesionales` no se impone aquí (D8 de H6e: es de H2c y de la
-  pantalla de alta de H3; el fallo es cerrado).
+Un disparador sobre `atenciones`, `SECURITY DEFINER` con `search_path` vacío, con el patrón de nombres de H6e (el prefijo numérico fija el
+orden alfabético respecto de los de H6, y una prueba lee `pg_trigger` y falla si cambia):
+
 - **`atenciones_podologia_20_sellar`** (`BEFORE UPDATE OF firmada_en`, `WHEN old.firmada_en is null and new.firmada_en is not
   null`): corre en el instante de la firma, antes del sello y la huella de H6, y si la atención usa la plantilla de Podología:
   1. **Declaración de fotos** (`HC082`): `fotos_registradas` debe ser igual al número de filas de `fotos_evolucion` de la
@@ -182,11 +188,11 @@ inicial vacía; (c) **ampliar el validador de H6 con campos condicionales**: toc
 
 | Columna | Detalle |
 |---|---|
-| `id`, `clave` | `uuid` y `text` única (por ejemplo `onicomicosis`) |
+| `id`, `clave` | `uuid` y `text` única con el formato de `protocolo_clave` de H6i, `^[a-z][a-z0-9_]{1,59}$` (por ejemplo `onicomicosis`) |
 | `nombre` | Rótulo en español |
 | `modalidad` | `sesiones` o `controles` |
-| `total_sesiones` | `smallint` nula, `≥ 1`; **nula si la fuente no lo da** |
-| `frecuencia_dias` | `smallint` nula, `≥ 1`; **nula si la fuente no lo da** |
+| `total_sesiones` | `smallint` nula, de 1 a 60 (el límite de H6i); **nula si la fuente no lo da** |
+| `frecuencia_dias` | `smallint` nula, de 1 a 90 (el límite de H6i); **nula si la fuente no lo da** |
 | `estado_validacion` | `por_validar` (todos hoy) o `validado` |
 | `validado_por`, `validado_en` | Obligatorios si `validado` (`CHECK`); nombre y colegiatura del podólogo que validó, y fecha |
 | `fuente` | Texto obligatorio: de dónde salió el dato |
@@ -218,20 +224,32 @@ validar» (texto e icono, no solo color) junto a cada protocolo no validado.
 el **prellenado**:
 - *Protocolo por sesiones:* el podólogo elige un protocolo; el formulario del plan (de H6i) se prellena con su total y su
   frecuencia; los valores nulos **hay que indicarlos** (sin ellos el plan no se abre) y todos son editables. El plan guarda **sus
-  propios valores** y el nombre y la clave del protocolo en su campo de descripción o protocolo: cambiar el catálogo después no
-  altera un plan abierto.
-- *Plan de controles:* un plan sin protocolo (descripción propia, total, frecuencia y vigencia que fija el podólogo). Es el mismo
+  propios valores** (`total_sesiones` y `frecuencia_dias`), la **clave** del protocolo en `protocolo_clave` y su **nombre** en
+  `descripcion`: cambiar el catálogo después no altera un plan abierto.
+- *Plan de controles:* un plan sin protocolo (`descripcion` propia, sin `protocolo_clave`, y el total, la frecuencia y la vigencia que fija el podólogo; H6i exige al menos uno de los dos textos). Es el mismo
   mecanismo; `modalidad` solo sugiere la etiqueta («sesiones» o «controles») en la interfaz.
-- Cada sesión es una cita de H3 (con su anticruce y su ventana de cancelación de 1 hora) o queda por agendar; el contador de
+- Cada sesión es una cita de H3 (con su anticruce y su ventana de cancelación de 1 hora) o queda por agendar (la agenda recepción, que confirma la serie que propone la base con
+  `proponer_serie_sesiones()`, D9 de H6i; el podólogo no crea citas); el contador de
   restantes, la sesión a la que no se asiste, la reprogramada y el paciente que abandona son de H6i.
 
-**Supuestos sobre la interfaz de H6i (la tarea 0.2 los confirma; si alguno falla, se ajusta solo esta sección):**
-1. el plan de un podólogo pertenece al área Podología y H6i impone su visibilidad: lo leen todos los profesionales a cargo y lo
-   escribe solo un profesional de esa profesión (contrato común, sección 8);
-2. el plan admite un texto de descripción o protocolo donde guardar la clave y el nombre del protocolo;
-3. el total y la frecuencia se indican al crear el plan, y el plan puede no tener protocolo;
-4. H6i ofrece la operación de crear el plan y este change la invoca con los valores prellenados (no escribe sobre sus tablas);
-5. H6i clasifica sus propias tablas en el compilado de la copia.
+**Contrato con la interfaz de H6i (contrastado con su `design.md` escrito y validado el 2026-10-12; la tarea 0.2 lo relee con el change
+aplicado y, si algo difiere, se ajusta solo esta sección):**
+1. el plan de un podólogo es del área `podologia` (la fija la base como `area_de_profesion(profesion_actual())`) y H6i impone su
+   visibilidad (D2 de H6i): lo leen todos los profesionales a cargo (solo Psicología queda aislada) y lo escriben solo las funciones de
+   H6i, que exigen la profesión del área (`HC090`); el podólogo es una de las tres profesiones que pueden crear planes;
+2. el plan tiene `protocolo_clave` (formato `^[a-z][a-z0-9_]{1,59}$`, que cumplen las cuatro claves) y `descripcion` (hasta 1 000
+   caracteres), con al menos uno de los dos; que la clave exista en `protocolos_podologia` lo valida la aplicación (el servidor relee el
+   catálogo bajo RLS) y este change no crea un disparador sobre `planes_de_sesiones` (H6i lo permite, D1, regla 3);
+3. el total (1 a 60) y la frecuencia (1 a 90 días) son obligatorios al crear el plan, igual que `vigente_hasta` (hasta 365 días); el
+   plan puede no tener protocolo. H6i no admite planes sin total: un tratamiento más largo se amplía con `ajustar_plan_de_sesiones` (solo
+   hacia arriba, hasta el tope) o se encadena con un plan nuevo;
+4. la operación es `crear_plan_de_sesiones(p_id, p_paciente, p_atencion, p_protocolo_clave, p_descripcion, p_total, p_frecuencia_dias,
+   p_vigente_hasta)`, que este change invoca solo a través de `crearPlan` de `lib/historias/planes.ts` con los valores prellenados (no
+   escribe sobre sus tablas); `p_id` lo aporta el formulario (idempotencia) y `p_atencion` es opcional (si se indica, debe ser del mismo
+   paciente y del mismo podólogo, `HC094`); el podólogo amplía o cierra el plan con `ajustarPlan` y `cerrarPlan`;
+5. H6i clasifica sus propias tablas y aporta su sección «Planes de sesiones» al compilado de la copia (D16 de H6i), con el protocolo o la
+   descripción del plan (por eso `descripcion` lleva el nombre legible del protocolo); las lecturas de planes se registran con el tipo
+   `plan_sesiones` de H6i (D15 de H6i).
 
 *Alternativas descartadas:* (a) **tabla puente `planes_podologia`** (plan ↔ protocolo con el protocolo como llave foránea): una
 tabla clínica más con RLS y pruebas para un dato que el texto del plan ya conserva, y sin ningún reporte que lo pida; (b) **guardar
@@ -313,13 +331,13 @@ el almacenamiento que el usuario no autorizó y duplica la RLS y la auditoría d
 | **Podólogo a cargo, autor de la atención sin firmar** | Sí | **Sí** |
 | Podólogo a cargo, no autor | Sí | No (atención ajena: `HC081`) |
 | Podólogo sin el paciente a cargo, con asignación vencida o perfil inactivo | No (cero filas) | No |
-| Médico, odontólogo, fisioterapeuta o psicólogo a cargo | **Sí** (la historia es compartida; ADR-0031 no restringe Podología) | **No** (`HC080`) |
+| Médico, odontólogo, fisioterapeuta o psicólogo a cargo | **Sí** (la historia es compartida; ADR-0031 no restringe Podología) | **No** (`HC005` de H6 en la evaluación; `HC080` en las fotos) |
 | Administrativo | No | No |
 | Enfermera | No | No |
 | Paciente (incluido el titular) | No | No |
 | Sin rol, `anonymous`, `cron_notificaciones`, `sync_identidad` | Sin `GRANT` | Sin `GRANT` |
 
-- **Evaluación:** es `atenciones`: sus políticas (H6) no cambian. Lo que añade este change es el disparador `HC080` (D3).
+- **Evaluación:** es `atenciones`: sus políticas (H6) no cambian. Lo que añade este change es el dato `exige_profesion = 'podologo'` de la plantilla (D3); la regla la impone H6 (D15 de `historias-clinicas`, `HC005`).
 - **`fotos_evolucion`:** `SELECT` con `rol_actual() = 'profesional' and profesional_tiene_paciente(paciente_id)` (idéntico a
   `atenciones`, así que la visibilidad de borradores de otros profesionales sigue la de H6); `INSERT`, `UPDATE` y `DELETE` añaden
   `profesion_actual() = 'podologo'` y que la atención sea propia y esté sin firmar. Se usa `(select …)` para forzar `InitPlan`.
@@ -378,7 +396,8 @@ comparación**: no hace falta, las políticas de `atenciones` y de `fotos_evoluc
   lleva disparador.
 - **Lectura.** Toda lectura de evaluación o de fotos es contenido clínico y se registra en `accesos_historia` **en la misma
   transacción** (tipos `historia`, `atencion` y `adjunto` de H6; **no se añade ningún tipo ni columna**). Las lecturas del módulo
-  las llama `lib/historias/podologia.ts` tras `exigir_modo_clinico()` y el registro del acceso.
+  las llama `lib/historias/podologia.ts` tras `exigir_modo_clinico()` y el registro del acceso. Las lecturas de los planes de sesiones las
+  hace el módulo de H6i (`lib/historias/planes.ts`) y se registran con su tipo `plan_sesiones` (D15 de H6i), no con un tipo de este change.
 - **Un solo módulo.** Todo el SQL contra `fotos_evolucion` vive en `lib/podologia/repositorio.ts` y una prueba
   (`tests/podologia/acceso-unico.test.ts`) falla si otro archivo de `app/`, `lib/` o `components/` lo contiene. Sus funciones de
   lectura **exigen un argumento de tipo `TransaccionConAcceso`**, que solo crea `lib/historias/`, de modo que no se puede leer
@@ -389,7 +408,7 @@ comparación**: no hace falta, las políticas de `atenciones` y de `fotos_evoluc
 | Tabla | Clasificación | Razón |
 |---|---|---|
 | `fotos_evolucion` | **Incluida** | Metadato de cada foto de atenciones firmadas; el archivo vigente viaja como adjunto (H6d) y el anulado se declara no incluido |
-| `protocolos_podologia` | **Excluida** | Catálogo de referencia, no registro del paciente; el nombre del protocolo ya figura en el plan |
+| `protocolos_podologia` | **Excluida** | Catálogo de referencia, no registro del paciente; la clave y el nombre del protocolo ya figuran en el plan (`protocolo_clave`, `descripcion`) |
 | Evaluación podológica | Ya incluida | Vive en `atenciones.datos_especialidad`, que H6d incluye con las etiquetas de su plantilla (tarea 4.2 lo verifica) |
 | Planes de sesiones | De H6i | H6i clasifica sus tablas |
 
@@ -413,7 +432,7 @@ es la derivación a otra especialidad que H6b ya ofrece. **Pregunta abierta, no 
 
 | SQLSTATE | Significado | Mensaje al usuario (usted) |
 |---|---|---|
-| `HC080` | Quien escribe no es podólogo, o usa la plantilla de Podología sin serlo | «Solo un podólogo puede registrar la evaluación podológica y las fotos de evolución.» |
+| `HC080` | Quien escribe en `fotos_evolucion` no es podólogo | «Solo un podólogo puede registrar las fotos de evolución.» |
 | `HC081` | La atención no admite cambios en la sección (firmada, de otro autor o sin plantilla de Podología) | «Esta atención ya no admite cambios en la sección podológica. Para corregirla, agregue una addenda y registre el cambio en una atención nueva.» |
 | `HC082` | El recuento declarado de fotos no coincide con las fotos de la atención | «El número de fotos no coincide. Guarde de nuevo la atención antes de firmarla.» |
 | `HC083` | Foto con un adjunto inválido | «La foto debe vincularse a un archivo vigente de este paciente que usted haya adjuntado y que no esté usado en otra foto.» |
@@ -422,9 +441,9 @@ es la derivación a otra especialidad que H6b ya ofrece. **Pregunta abierta, no 
 
 Además: `23505` sobre `adjunto_id` → «Ese archivo ya está usado en otra foto»; `23514` (zona y dedo, nota, consentimiento) → «Hay
 campos vacíos o inválidos. Revise la foto» y, para el consentimiento, «Confirme que el paciente fue informado y aceptó la foto»;
-`42501` → «No tiene permiso para esta operación»; `HC002`, `HC004` y `HC005` los mensajes de H6. Ningún mensaje contiene texto de
+`42501` → «No tiene permiso para esta operación»; `HC002`, `HC004` y `HC005` los mensajes de H6, y `HC090`–`HC098` los de H6i. Ningún mensaje contiene texto de
 la base ni datos del paciente. La traducción vive en `lib/podologia/errores.ts`, una función pura con una prueba por fila.
-`HC080`–`HC089` no chocan con H6 (`HC001`–`HC005`), H2c, H6b a H6e ni las otras especialidades.
+`HC080`–`HC089` no chocan con H6 (`HC001`–`HC005`), H2c, H6b a H6e, H6i (`HC090`–`HC098`) ni las otras especialidades.
 
 ### D12. Aplicación: módulo, acciones, rutas y pantallas
 
@@ -438,10 +457,10 @@ la base ni datos del paciente. La traducción vive en `lib/podologia/errores.ts`
   catálogo bajo RLS y valida contra ellos, nunca contra lo que diga el cliente.
 - **Acciones** (devuelven `{ ok: true, datos } | { ok: false, mensaje, errores? }`): `guardarFotosPodologicas(atención, fotos)`
   **reemplaza** el conjunto de fotos del borrador en una transacción (modo → borrar sus filas → insertar → recalcular
-  `fotos_registradas` en la misma atención); `abrirPlanDeProtocolo` e `abrirPlanDeControles` (invocan la operación de H6i con los
-  valores prellenados y el mapeo de errores). **Firmar sigue siendo `firmarAtencion` de H6**: el sello lo hace la base.
+  `fotos_registradas` en la misma atención); `abrirPlanDeProtocolo` e `abrirPlanDeControles` (invocan `crearPlan` de `lib/historias/planes.ts` de H6i con los
+  valores prellenados y el mapeo de errores, incluidos `HC090`–`HC098`). **Firmar sigue siendo `firmarAtencion` de H6**: el sello lo hace la base.
 - **Rutas:** la **vista de evolución** `app/profesional/pacientes/[pacienteId]/podologia/page.tsx` (matriz, series de fotos y planes
-  del paciente; la ve todo profesional a cargo, solo el podólogo ve los botones de registrar); la **evaluación** y las **fotos**
+  del paciente, que entrega `lib/historias/planes.ts` de H6i; la ve todo profesional a cargo, solo el podólogo ve los botones de registrar); la **evaluación** y las **fotos**
   viven dentro de la atención del podólogo (`.../atenciones/nueva` y `.../atenciones/[atencionId]`) como secciones del formulario
   que `FormularioAtencion` de H6 ofrece a la plantilla de Podología. Toda página repite `auth.protect()`, `exigirRol("profesional")`
   y MFA con el ayudante de guardia de H6 y, para escribir, comprueba la profesión **leída de la base** (la pantalla no es la
@@ -461,7 +480,7 @@ la base ni datos del paciente. La traducción vive en `lib/podologia/errores.ts`
   (leen, no escriben); además `has_table_privilege` de lo que no se concede y `columns_are` exacto. No asumen tablas vacías. Las
   identidades por profesión (`podologo_a`, `podologo_b`, `medico_a`, `odontologo_a`, `fisioterapeuta_a`, `psicologo_a`) se
   reutilizan de las que añade H6e a `scripts/ejecutar-pgtap.ts`; la tarea 0.1 comprueba cuáles existen y añade `podologo_b`.
-- **Reglas:** `HC080` a `HC084` cada una por separado; la evaluación inicial con una clave ausente (`HC084`), con todas presentes,
+- **Reglas:** `exige_profesion = 'podologo'` en la plantilla v1 (el rechazo del no podólogo es `HC005` de H6); `HC080` a `HC084` cada una por separado; la evaluación inicial con una clave ausente (`HC084`), con todas presentes,
   con solo observaciones vacías y un control con solo `momento` y `fotos_registradas`; la declaración de fotos con una foto de más,
   de menos y borrada con el disparador desactivado en la prueba; zona y dedo; adjunto de otro paciente, anulado, subido por otro
   profesional o ya usado; fotos sobre una atención ya firmada, ajena o sin plantilla; huella reproducible y alteración detectada;
@@ -486,8 +505,8 @@ la base ni datos del paciente. La traducción vive en `lib/podologia/errores.ts`
 ### D14. Migraciones, orden y datos de demostración
 
 Cinco migraciones nuevas, después de las de H2c, H6, H6b y H6i y (para la última) H6d; nunca se edita una aplicada y `down`
-queda vacío (ADR-0027): **(1)** `plantilla-podologia` (especialidad si falta, `especialidad_podologia_id()`, plantilla v1 y los
-dos disparadores de `atenciones`; `_20_sellar` nace solo con `HC084`); **(2)** `protocolos-podologia` (tabla, `CHECK`, RLS,
+queda vacío (ADR-0027): **(1)** `plantilla-podologia` (especialidad si falta, `especialidad_podologia_id()`, plantilla v1 con
+`exige_profesion = 'podologo'` y el disparador `_20_sellar` de `atenciones`, que nace solo con `HC084`); **(2)** `protocolos-podologia` (tabla, `CHECK`, RLS,
 `GRANT` de lectura, las cuatro semillas); **(3)** `fotos-evolucion` (tabla, índices, disparadores, políticas, `GRANT` por columna,
 auditoría, `verificar_fotos_podologia()`); **(4)** `sellado-de-fotos-podologia` (`create or replace` de `_20_sellar` partiendo de
 la definición vigente, para añadir `HC082` cuando la tabla de fotos ya existe); **(5)** `copia-seccion-podologia` (la función de la
@@ -517,8 +536,8 @@ firmados, un plan de protocolo y, con PDF, dos fotos; rehace solo lo marcado.
   la tarea 0.6 comprueba que `atenciones_podologia_20_sellar` corre antes del sello y la huella de H6.
 - [Las claves de la plantilla cambian de significado en una versión futura y la comparación miente] → Prueba pgTAP de estabilidad
   entre versiones consecutivas y regla de revisión de migraciones.
-- [Los supuestos sobre H6i no se cumplen] → Aislados en D4; la tarea 0.2 los confirma antes de escribir la apertura de planes; el
-  resto del change no depende de ellos.
+- [El contrato con H6i cambia al aplicarse] → Contrastado con el H6i escrito y validado (2026-10-12) y aislado en D4; la tarea 0.2 lo relee con
+  el change aplicado antes de escribir la apertura de planes; el resto del change no depende de él.
 - [Los nombres `profesional` dependen de ADR-0030] → Nota al inicio; este change usa los nombres propuestos.
 
 ## Migration Plan
@@ -552,15 +571,16 @@ firmados, un plan de protocolo y, con PDF, dos fotos; rehace solo lo marcado.
 
 **Las demás no cambian las especificaciones ni el desglose de tareas:**
 
-- **Compatibilidad profesión–especialidad** (H2c la deja a H6e–H6h): hoy cada especialidad impone solo «quien usa mi plantilla es de
-  mi profesión» (`HC080`). Conviene una **regla común única** para las cuatro (por ejemplo, que `profesionales` impida un podólogo
-  fuera de Podología y a quien no es podólogo dentro de ella) en lugar de cuatro disparadores: decisión para el orquestador.
+- **Compatibilidad profesión–especialidad** (H2c la deja a H6e–H6h): la regla «solo un podólogo usa la plantilla de Podología» ya es común y
+  la impone `historias-clinicas` (D15) con `exige_profesion` (decisión del orquestador, 2026-10-12). Sigue abierto lo que es de H2c y de la
+  pantalla de alta de H3: que `profesionales` impida un podólogo fuera de Podología y a quien no es podólogo dentro de ella.
 - **Obligatoriedad de la evaluación inicial:** ¿se exige al firmar (propuesta) o solo se recomienda? ¿Qué campos son realmente
   obligatorios?
 - **Cuántas evaluaciones se comparan** (cinco) y si el profesional elige dos a voluntad; si se comparan también las fotos por
   plan de sesiones y no solo por fecha.
 - **Fotos de ambos pies en una sola imagen,** más zonas (p. ej. por cara del pie) y más de 20 fotos por atención.
 - **Lesiones localizadas con seguimiento propio** (D1, «Límite»): ¿hacen falta?
-- **Plan de controles sin total** (pie diabético): H6i exige un total; ¿se renueva por periodos?
+- **Plan de controles sin total** (pie diabético): H6i exige un total (1 a 60) y ofrece ampliarlo con `ajustar_plan_de_sesiones` o encadenar
+  un plan nuevo; ¿cuál prefiere la clínica, y qué total se usa al abrirlo?
 - **Corrección ligera de una foto o de una evaluación firmada:** hoy exige una atención nueva (costo conocido, igual que H6e).
 - **Quién valida un protocolo** y cómo se registra (`validado_por` como texto): ¿basta el nombre y la colegiatura?

@@ -41,14 +41,36 @@ modificarlos ni eliminarlos.
 - **WHEN** cualquier usuario intenta actualizar o eliminar un registro de acceso
 - **THEN** la operación se rechaza
 
+### Requirement: Los tipos de acceso permitidos son una lista cerrada que solo crece por unión
+`accesos_historia.tipo_acceso` SHALL aceptar únicamente los tipos vigentes (en este change: `historia`, `atencion` y `adjunto`) y
+SHALL rechazar cualquier otro. Cuando otro change añada tipos (`copia`, `receta`, `medicamentos`, `plan_sesiones`, `instrumento`,
+`psicologia`), su migración SHALL leer la restricción vigente y recrearla con la unión de los valores vigentes y los suyos, sin
+quitar ninguno.
+
+#### Scenario: Tipo permitido
+- **WHEN** se registra un acceso con uno de los tipos vigentes
+- **THEN** se guarda
+
+#### Scenario: Tipo no permitido (negativo)
+- **WHEN** se intenta registrar un acceso con un tipo que no está en la lista vigente
+- **THEN** se rechaza con una violación de restricción y no se guarda nada
+
+#### Scenario: Ampliación por otro change
+- **WHEN** una migración posterior añade un tipo de acceso
+- **THEN** los tipos que ya existían siguen aceptándose y la prueba de tipos de acceso incluye los nuevos
+
 ### Requirement: El administrativo revisa los accesos sin ver contenido
 El sistema SHALL permitir al administrativo consultar los registros de acceso (médico, paciente, tipo de recurso y hora en
-`America/Lima`) filtrados por paciente, por médico y por rango de fechas, con paginación. La consulta SHALL NO mostrar ni
+`America/Lima`) filtrados por paciente, por actor (quien accedió) y por rango de fechas, con paginación. Los registros de tipo `copia`, que escribe el change `copia-de-historia-clinica` al entregarse una copia, SHALL aparecer como cualquier otro tipo. La consulta SHALL NO mostrar ni
 permitir llegar a contenido clínico. Ningún otro rol SHALL poder leerlos.
 
 #### Scenario: Revisión por paciente
 - **WHEN** el administrativo busca los accesos a la historia de un paciente por su documento
 - **THEN** ve la lista de médicos que accedieron, el tipo de acceso y la hora, y ningún dato clínico
+
+#### Scenario: Revisión por actor y accesos de copia
+- **WHEN** el administrativo filtra por la persona que accedió y entre los registros hay accesos de tipo `copia`
+- **THEN** ve esos registros con su tipo, su actor y su hora, igual que cualquier otro acceso, y ningún dato clínico
 
 #### Scenario: Médico (negativo)
 - **WHEN** un médico intenta leer los registros de acceso, incluidos los de sus propios pacientes

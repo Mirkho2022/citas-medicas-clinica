@@ -41,6 +41,13 @@ mismo, con un flujo pensado para un adulto mayor sin ayuda.
 - **Usabilidad y accesibilidad como requisitos verificables:** WCAG 2.1 AA con axe sobre cada pantalla y estado, teclado,
   reflujo a 320 px y zoom 200 %, objetivos táctiles, máximo de pasos por tarea y un protocolo de prueba con personas
   mayores. El registro de `origen = 'portal'` y `cancelada_por` deja medible la autogestión.
+- **Notas del PRD del 2026-10-11 (sin cambiar el alcance).** (a) Los pacientes que llegan **sin cita** (visita de
+  `triaje-y-derivacion`) no cuentan para el 75 %: el indicador se mide solo sobre reservas y cancelaciones de citas. (b) Decisión
+  abierta de `mecanismos-clinicos-comunes`: las citas de sesiones (planes de varias sesiones) que agenda la recepción entran en
+  el denominador y lo inflan; o se excluyen del indicador, o se permite que el paciente reserve sus sesiones en el portal, que
+  sería un **change de H4** aparte (no se hace aquí; `design.md`, D10 y Q10). (c) El paciente **no ve su historia clínica** en el
+  portal (PRD), ni recetas, triaje ni copias. (d) Nombres (ADR-0030): `slots_disponibles(p_medico)` y la lista de médicos de la
+  búsqueda cambian a profesional al aplicar `profesionales-de-la-salud` (`design.md`, D6).
 
 ## Capabilities
 
@@ -80,7 +87,7 @@ sincronizadas en openspec/specs/, así que este change no las modifica: las usa 
 - **ADR pendiente:** la política de verificación al vincular una ficha preexistente (correo verificado de la cuenta + fecha
   de nacimiento) es una decisión de arquitectura de seguridad nueva. No se decide en este proposal: `design.md` (D3) la
   propone y la tarea 1.2 la formaliza como un ADR nuevo con la skill `architecture` **antes** de aplicar la migración
-  (número por asignar al redactarlo: el change `notificaciones-email` ya propone el 0029). Los ADR vigentes que se
+  (número por asignar al redactarlo: el siguiente libre; el 0029 ya lo ocupa «datos clínicos por especialidad» y hasta el 0036 están en uso). Los ADR vigentes que se
   respetan: 0003, 0005, 0006, 0008, 0010, 0012, 0022, 0023, 0026.
 - **Código nuevo (previsto):** `migrations/*.sql` (2 archivos), `tests/pgtap/70_*.test.sql` y `71_*.test.sql`,
   `app/completar-registro/`, `app/paciente/citas/`, `app/paciente/citas/nueva/`, `lib/portal/`, `lib/schemas/paciente.ts`,
@@ -90,5 +97,5 @@ sincronizadas en openspec/specs/, así que este change no las modifica: las usa 
   redirección tras el alta, protección contra bots y bloqueo de cuenta), Vercel (activar BotID, integración de Upstash) y una
   segunda cuenta de paciente de prueba para la E2E de concurrencia.
 - **Fuera de alcance:** reprogramar por el paciente (lo hace el administrativo), editar los datos del paciente, recordatorios
-  y correos (H5: este change no envía correos ni promete que lleguen), historias clínicas (H6), turnos y dashboard (H7),
+  y correos (H5: este change no envía correos ni promete que lleguen), historias clínicas (H6) y lo clínico que añade el PRD del 2026-10-11 (triaje, recetas, copia de la historia: el paciente no lo ve en el portal), turnos y dashboard (H7),
   representante de menores o pacientes sin correo, lista de espera, pagos, telemedicina y analítica de BI.

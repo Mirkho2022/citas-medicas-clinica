@@ -22,7 +22,7 @@ quedar sellada con la firma. La plantilla por especialidad de [ADR-0029](../../.
 ## What Changes
 
 **Este change toca RLS y el acceso a historias clínicas (el riesgo principal del proyecto): crea seis tablas clínicas nuevas, dos
-vistas y disparadores sobre `atenciones` que completan y sellan la firma. Requiere revisión aparte con el agente `code-review`
+vistas y un disparador sobre `atenciones` que completa y sella la firma. Requiere revisión aparte con el agente `code-review`
 (hay una tarea de revisión al final de cada grupo que toca políticas, funciones o disparadores, y una revisión final sobre todo el
 diff; `tasks.md`) y verificación por mutación de sus pruebas negativas (tarea 8.2).**
 
@@ -83,7 +83,7 @@ diff; `tasks.md`) y verificación por mutación de sus pruebas negativas (tarea 
 
 ### Modified Capabilities
 
-<!-- Ninguna en `openspec/specs/` (solo existe `autenticacion-roles`). Este change añade disparadores sobre `atenciones` y un tipo de
+<!-- Ninguna en `openspec/specs/` (solo existe `autenticacion-roles`). Este change añade un disparador sobre `atenciones` y un tipo de
 acceso a `accesos_historia` (ambos de `historias-clinicas`, aún sin archivar): no hay delta posible; se coordina en la tarea 0.6 y se
 declara en design.md, D8 y D14. -->
 
@@ -92,11 +92,11 @@ declara en design.md, D8 y D14. -->
 - **Hito:** **H6f** de `docs/BACKLOG.md` (el orden fino lo fija el backlog). **Depende de** H2c `profesionales-de-la-salud`
   (`profesion_actual()`, la profesión `fisioterapeuta`), de H6 `historias-clinicas` (atenciones, firma y huella, plantillas,
   asignaciones, `accesos_historia`, guarda de modo de datos, módulo único de acceso) y de **H6i `mecanismos-clinicos-comunes`**
-  (planes de sesiones e instrumentos de evaluación; aún en redacción: se usa por su interfaz, `design.md` D1). Usa además
+  (planes de sesiones e instrumentos de evaluación; ya escrito y validado el 2026-10-12: se usa por su interfaz, contrastada en `design.md` D1 y D11). Usa además
   `registrar_auditoria_sin_contenido()` de H6b y añade su sección al compilado de H6d. Las pantallas dependen de H2b.
 - **RLS y acceso a historias clínicas (revisión aparte):** tablas nuevas `catalogo_fisioterapia`, `episodios_fisioterapia`,
   `evaluaciones_fisioterapia`, `mediciones_fisioterapia`, `objetivos_fisioterapia` y `notas_sesion_fisioterapia`; dos vistas
-  `security_invoker`; funciones `SECURITY DEFINER` acotadas; y **dos disparadores sobre `atenciones`** que reaccionan solo al
+  `security_invoker`; funciones `SECURITY DEFINER` acotadas; y **un disparador sobre `atenciones`** que reacciona solo al
   firmar una atención con la plantilla de Fisioterapia (comprobar que está completa y sellarla). Casos negativos por rol
   (administrativo, profesional a cargo, otro profesional, enfermera, paciente, sin rol, `anonymous`, `cron_notificaciones`,
   `sync_identidad`) **y por profesión** (médico, odontólogo, psicólogo y podólogo a cargo leen pero no escriben): pruebas pgTAP `76`
@@ -119,8 +119,8 @@ declara en design.md, D8 y D14. -->
   escala de dolor, contador de sesiones, comparación, nota de sesión); `tests/pgtap/76_*`, `tests/concurrencia/`,
   `tests/fisioterapia/`, `e2e/fisioterapia*.spec.ts`.
 - **Base de datos:** tablas y vistas de arriba; tipos `tipo_medicion_fisioterapia`, `lado_fisioterapia` y
-  `estado_episodio_fisioterapia`; SQLSTATE `HC060` a `HC067` (`HC068` y `HC069` reservados); una fila de plantilla `Fisioterapia v1`
-  en `plantillas_clinicas` y, si no existe, la especialidad `Fisioterapia`; ampliación de `tipo_acceso` de `accesos_historia`.
+  `estado_episodio_fisioterapia`; SQLSTATE `HC060` a `HC068` (`HC069` reservado); una fila de plantilla `Fisioterapia v1` con `exige_profesion = 'fisioterapeuta'`
+  (regla común D15 de `historias-clinicas`) en `plantillas_clinicas` y, si no existe, la especialidad `Fisioterapia`; ampliación de `tipo_acceso` de `accesos_historia`.
   **No se añade ninguna columna a `atenciones`.**
 - **Dependencias nuevas:** ninguna. **Infraestructura:** ninguna variable de entorno ni rol de Postgres nuevos.
 - **Fuera de alcance (no se construye ni se sugiere):** **recetas** (los fisioterapeutas no recetan según la guía comercial de

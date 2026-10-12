@@ -386,6 +386,18 @@ con datos ya firmados; prepararlo ahora cuesta una tabla y dos columnas. La deci
   NTS 139, numeral 5.2.1 (a validar con el personal médico, tarea 0.6): `tiempo_enfermedad` (obligatorio),
   `funciones_biologicas`, `examenes_auxiliares`, `referencia` y `proxima_cita`. **Sin signos vitales ni receta**: pertenecen
   a los seguimientos de triaje y recetas, que no se construyen aquí.
+- **Regla común: `exige_profesion` (PRD del 2026-10-11; ADR-0030 y ADR-0036).** `plantillas_clinicas` gana la columna
+  `exige_profesion profesion_salud null` (el tipo `profesion_salud` es de H2c: `medico`, `odontologo`, `fisioterapeuta`,
+  `psicologo`, `podologo`; nula = cualquier profesión). El **mismo disparador** `atenciones_validar_datos_especialidad` la aplica
+  junto a la regla de especialidad: si la plantilla tiene `exige_profesion` y no coincide con `public.profesion_actual()`, rechaza
+  con `HC005` y un mensaje propio («Esta plantilla solo la usa un profesional de la profesión que corresponde»). La profesión se
+  lee **solo** con `profesion_actual()` (H2c, el único punto de lectura): nunca viene del cliente ni del token. Así las cuatro
+  especialidades (Odontología, Fisioterapia, Psicología y Podología) **no** crean disparadores propios para «solo un X usa la
+  plantilla de X»: la migración de cada plantilla fija el dato `exige_profesion` y la validación ya existe. *Alternativa
+  descartada:* un disparador por especialidad (cuatro disparadores casi idénticos que mantener, probar con pgTAP y revisar, para
+  una regla que solo cambia en un dato). La plantilla de Medicina general queda con `exige_profesion` nula (la regla de
+  especialidad ya la limita a quien tiene esa especialidad) salvo que el personal médico pida otra cosa (tarea 0.6). La
+  migración de 2.8 asume que `profesion_salud` existe: H2c va antes que cualquier migración de H3 a H7.
 
 *Alternativas descartadas:* (a) **una tabla por especialidad** (`atencion_odontologia`…): tipado fuerte, pero una migración,
 una política RLS, una prueba negativa por rol y un cambio en `47` por cada especialidad, y ver «todas las atenciones de un
@@ -401,6 +413,38 @@ esquema ya en producción y la regla de roles de `CLAUDE.md`: exige decisión ex
 skill `generar-prd-conversacional` y revisión con `code-review`. D15 no lo prejuzga: `plantillas_clinicas` cuelga de
 `especialidades`, no de `medicos`, y la regla «plantilla de la especialidad del autor» se reescribe cuando exista el
 concepto de profesional.
+
+**Actualización del 2026-10-11.** La [ADR-0030](../../../docs/adrs/0030-profesional-de-la-salud.md) (H2c,
+`profesionales-de-la-salud`) generaliza «médico» a «profesional de la salud» con `profesion` y `colegiatura`: entonces
+«especialidad del autor» se lee de `profesionales.especialidad_id`, la profesión sale de `profesion_actual()` y la regla
+`exige_profesion` de arriba cubre «solo un X usa la plantilla de X». Este change no se reescribe; D16 lista lo que cambiaría.
+
+### D16. Reconciliación con el PRD del 2026-10-11 (notas, sin rediseño)
+
+Los changes `profesionales-de-la-salud` (H2c), `triaje-y-derivacion` (H6b), `recetas-medicas` (H6c),
+`copia-de-historia-clinica` (H6d) y `mecanismos-clinicos-comunes` (H6i) tocan lo que este change entrega. Ninguno cambia sus
+decisiones; esto es lo que conviene tener presente al implementarlo.
+
+- **Nombres (ADR-0030).** Este change conserva `medico`. Al aplicar H2c cambiarían: `exigirRol("medico")` (→ `profesional`),
+  `app/medico/pacientes/**` (→ `app/profesional/pacientes/**`), `atenciones.medico_id` (→ `profesional_id`),
+  `asignarPacienteAMedico`, `medico_tiene_paciente()` (→ `profesional_tiene_paciente()`, tarea 3.4), la prueba
+  `47_estructura_historia` (columnas), `asignaciones_paciente_medico` (→ `asignaciones_paciente_profesional`) y la regla de
+  plantilla de D15, que leería `profesionales.especialidad_id`. H2c va antes en el orden de merge; si no, se renombra al integrar.
+- **Historia compartida y Psicología aparte (ADR-0031).** El profesional a cargo de cualquier especialidad ve la historia
+  compartida del paciente; la información de Psicología queda aparte y la implementa `especialidad-psicologia`. Este change no la
+  separa: allí se ajustan la lectura y las políticas, con su prueba negativa.
+- **Triaje.** El triaje que el profesional lee al abrir la historia lo define `triaje-y-derivacion`; se integra en `abrirHistoria`
+  (D2) sin cambiar el orden de sentencias (modo → acceso → lectura) y con su propio registro de acceso.
+- **Recetas.** El panel de medicamentos de la historia lo entrega `recetas-medicas` (vista `medicamentos_vigentes_del_paciente`,
+  tipos de acceso `receta` y `medicamentos`). Las recetas no se guardan en `datos_especialidad`.
+- **Copia de la historia.** `copia-de-historia-clinica` añade el tipo de acceso `copia` y clasifica toda tabla clínica; la
+  pantalla de revisión de accesos (tarea 4.5) filtra por **actor** (quien accedió, no solo el médico) y muestra las filas `copia`.
+- **Unión de valores de `accesos_historia.tipo_acceso`.** La migración de 4.1 crea la restricción con `historia`, `atencion` y
+  `adjunto`, y otros changes la amplían: `copia` (H6d), `receta` y `medicamentos` (H6c), `plan_sesiones` e `instrumento` (H6i) y
+  `psicologia` (la separación de Psicología, ADR-0031). **Regla:** cada change lee la restricción vigente de la base de datos al
+  escribir su migración y la recrea con la **unión** de los valores vigentes más los suyos; nunca copia la lista de otro change ni
+  quita un valor. La prueba `56_accesos_historia_tipo` se actualiza en cada ampliación (añade sus valores a los permitidos; no se
+  duplica).
 
 ## Risks / Trade-offs
 
@@ -470,7 +514,9 @@ Ninguna cambia las especificaciones, el enfoque ni el desglose de tareas; se pue
 - **Profesionales que no son médicos** (D15): Odontología, Fisioterapia, Psicología y Podología. ¿Se generaliza `medicos` a
   «profesional de salud» (con colegiatura y tipo)? Toca producción, la regla de roles y el PRD: decisión del usuario y del
   cliente antes de cualquier plantilla de esas especialidades.
+  *Respondida el 2026-10-11:* la ADR-0030 (H2c) generaliza «médico» a «profesional de la salud»; ver D15 y D16.
 - **Campos de la plantilla de Medicina general** y **qué otras plantillas** hacen falta (D15): validar con el personal médico
   (tarea 0.6). También, qué hacer en una interconsulta con la regla «plantilla de la especialidad del autor».
 - **Recetas y triaje** (seguimientos pedidos por el usuario): cada uno es un change propio; el triaje amplía el permiso de la
   enfermera y reabre la regla de roles. Ver `proposal.md`, «Impact».
+  *Respondida el 2026-10-11:* son los changes `recetas-medicas` (H6c) y `triaje-y-derivacion` (H6b); el PRD y la regla de roles ya se actualizaron.

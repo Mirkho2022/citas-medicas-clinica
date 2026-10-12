@@ -65,8 +65,9 @@ SHALL fallar si el modo se cambia a real sin validarlos.
 Un podólogo SHALL poder abrir, para un paciente que tiene a cargo, un plan de controles o un plan de un protocolo usando los
 planes de sesiones comunes, con su contador de sesiones restantes y sin cobros ni saldos. Al elegir un protocolo, el formulario
 SHALL prellenar el total y la frecuencia del catálogo, que el podólogo puede cambiar; los valores que el protocolo no trae SHALL
-indicarse antes de abrir el plan. El plan SHALL conservar sus propios valores y el nombre del protocolo, de modo que un cambio
-posterior del catálogo no altere un plan abierto. Un plan SHALL poder abrirse sin protocolo.
+indicarse antes de abrir el plan. El plan SHALL conservar sus propios valores, la clave y el nombre del protocolo, de modo que un cambio
+posterior del catálogo no altere un plan abierto. El total SHALL estar entre 1 y 60 sesiones y la frecuencia entre 1 y 90 días, los
+límites de los planes de sesiones comunes. Un plan SHALL poder abrirse sin protocolo.
 
 #### Scenario: Protocolo con total y frecuencia
 - **WHEN** un podólogo elige hongos en las uñas para un paciente a cargo
@@ -75,6 +76,10 @@ posterior del catálogo no altere un plan abierto. Un plan SHALL poder abrirse s
 #### Scenario: Protocolo con un valor vacío
 - **WHEN** un podólogo elige ortonixia o pie diabético
 - **THEN** el plan no se abre hasta que indique la frecuencia de ortonixia o el total de pie diabético
+
+#### Scenario: Total o frecuencia fuera de los límites comunes (negativo)
+- **WHEN** un podólogo indica un total de 0 o de más de 60 sesiones, o una frecuencia de 0 o de más de 90 días
+- **THEN** se rechaza y no se crea el plan
 
 #### Scenario: Plan de controles sin protocolo
 - **WHEN** un podólogo abre un plan con su propia descripción, total y frecuencia

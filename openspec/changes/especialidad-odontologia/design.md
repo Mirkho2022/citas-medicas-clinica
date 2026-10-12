@@ -295,10 +295,10 @@ duplicaría la RLS, la auditoría de descarga y la anulación de H6; (b) **un `a
 foránea real; (c) **sin tabla de metadatos** (la radiografía es solo un adjunto): pierde tipo, piezas y fecha de toma, que son
 clínicos.
 
-### D8. Plantilla de Odontología (ADR-0029) y coherencia profesión–plantilla
+### D8. Plantilla de Odontología (ADR-0029) y quién puede usarla
 
 **Plantilla `Odontología` v1**, por migración de datos idempotente (crea la especialidad «Odontología» si falta, como hace la
-siembra). Tres campos, deliberadamente pocos, porque el PRD no define el resto de la atención:
+siembra) y con `exige_profesion = 'odontologo'` (ver abajo). Tres campos, deliberadamente pocos, porque el PRD no define el resto de la atención:
 
 | Clave | Tipo | Obligatorio | Para qué |
 |---|---|---|---|
@@ -311,17 +311,23 @@ siembra). Tres campos, deliberadamente pocos, porque el PRD no define el resto d
 Las atenciones siguen exigiendo los campos genéricos de H6 (motivo, anamnesis, examen físico, diagnósticos CIE-10, plan); para
 Odontología, el «examen físico» es el examen estomatológico.
 
-**Coherencia profesión–plantilla (`HC050`).** El validador de H6 exige que la plantilla sea de la especialidad del autor, pero
-`especialidad_id` es libre en `profesionales` (pregunta abierta de H2c). Un disparador `atenciones_odontologia_10_coherencia`
-(`BEFORE INSERT OR UPDATE OF plantilla_id`, `SECURITY DEFINER`) añade: si la plantilla es la de Odontología, la **profesión del
-autor** (`profesionales.profesion` del `profesional_id` de la atención) debe ser `odontologo`. Así, aunque un médico quedara mal
-registrado en Odontología, no podría usar la plantilla ni su sección. No se exige lo inverso (un odontólogo puede registrar una
-atención genérica sin plantilla). La compatibilidad en `profesionales` (impedir un odontólogo en otra especialidad) **no** se
-impone aquí: es de H2c y de la pantalla de alta (H3); el fallo es cerrado.
+**Quién puede usar la plantilla (regla común, D15 de `historias-clinicas`).** `especialidad_id` es libre en `profesionales`
+(pregunta abierta de H2c), así que la especialidad del autor no basta para saber quién puede usar la plantilla. La regla «solo un
+profesional de la profesión X usa la plantilla de X» la impone `historias-clinicas` (D15) para todas las especialidades, con la
+columna `plantillas_clinicas.exige_profesion` (tipo `profesion_salud`; nula = cualquiera) dentro del disparador de validación de
+`atenciones` que ya existe (`HC005`). Este change **solo fija el dato**: la plantilla v1 se inserta con
+`exige_profesion = 'odontologo'` en su migración de datos, y **no crea un disparador propio sobre `atenciones` ni un código de
+error propio para eso**. Así, aunque un médico quedara mal registrado en Odontología, no podría guardar una atención con esta
+plantilla ni, por tanto, abrir su sección (que exige la plantilla, `HC051`). No se exige lo inverso (un odontólogo puede registrar
+una atención genérica sin plantilla). La compatibilidad en `profesionales` (impedir un odontólogo en otra especialidad) **no** se
+impone aquí: es de H2c y de la pantalla de alta (H3); el fallo es cerrado. La escritura en las tablas de la sección conserva su
+propia barrera de profesión (D9, `HC050`), que es otra regla: quién escribe en esas tablas, no quién usa la plantilla.
 
 *Alternativas descartadas:* (a) **exigir plantilla a todo odontólogo**: invento de proceso; una urgencia sin odontograma sería
 imposible; (b) **identificar la especialidad por nombre en cada disparador**: se centraliza en `especialidad_odontologia_id()`;
-(c) **restringir solo por política RLS de las tablas**: no cubriría el uso de la plantilla en `datos_especialidad`.
+(c) **un disparador propio de Odontología sobre `atenciones` para la profesión**: repetiría en cada especialidad una regla que es
+común y que `historias-clinicas` mantiene en un solo lugar; (d) **restringir solo por política RLS de las tablas**: no cubriría el
+uso de la plantilla en `datos_especialidad`.
 
 ### D9. Quién lee y quién escribe: RLS por rol y por profesión
 
@@ -447,7 +453,7 @@ tarea 6.1 lo verifica. Si H6d prefiere la sección en línea, se escribe así si
 
 | SQLSTATE | Significado | Mensaje al usuario (usted) |
 |---|---|---|
-| `HC050` | Quien escribe no es odontólogo, o usa la plantilla de Odontología sin serlo | «Solo un odontólogo puede registrar el odontograma, los tratamientos y las radiografías.» |
+| `HC050` | Quien escribe en la sección odontológica no es odontólogo | «Solo un odontólogo puede registrar el odontograma, los tratamientos y las radiografías.» |
 | `HC051` | La atención no admite cambios en la sección (firmada, de otro autor o sin plantilla de Odontología) | «Esta atención ya no admite cambios en la sección odontológica. Para corregirla, agregue una addenda y registre el cambio en una atención nueva.» |
 | `HC052` | La sección no coincide con lo declarado al firmar | «Indique si registra odontograma, tratamientos o radiografías y complete al menos un registro, o declare que no.» |
 | `HC053` | Pieza que no corresponde a la dentición declarada | «Hay piezas que no corresponden a la dentición elegida. Revise la dentición o las piezas.» |
@@ -501,7 +507,7 @@ H2c, H6b, H6c, H6d ni las otras especialidades.
   añaden al ejecutor `scripts/ejecutar-pgtap.ts`.
 - **Reglas:** las 52 piezas válidas y un conjunto de inválidas (0, 9, 19, 29, 56, 86, 90), caras y alcance, `UNIQUE`, dentición,
   `reemplaza_caras` (al escribir y al derivar), vínculo de tratamientos (`HC055`), radiografía (`HC056`, fecha futura), `HC050`
-  a `HC054`, coherencia con la declaración al firmar (`HC052`), huella reproducible y alteración detectada, derivación del actual
+  a `HC054`, `exige_profesion = 'odontologo'` en la plantilla v1 (el rechazo del no odontólogo es `HC005` de H6), coherencia con la declaración al firmar (`HC052`), huella reproducible y alteración detectada, derivación del actual
   («a una fecha», dos borradores firmados en orden inverso a su creación), pendientes, orden de los disparadores
   (`pg_trigger`), que la auditoría y la copia no contengan un texto centinela de `detalle`, y la prueba de cobertura de H6d.
 - **Concurrencia** (`tests/concurrencia/`, número sugerido 30): dos sesiones `pg` reales como `authenticated`: edición de un registro
@@ -521,10 +527,10 @@ Siete migraciones nuevas, después de las de H2c, H6, H6b y (para la última) H6
 
 1. `catalogo-odontologico`: tipos, `pieza_fdi_valida()`, `denticion_de_pieza()`, tabla, RLS, protección del significado.
 2. `catalogo-odontologico-datos`: hallazgos y tratamientos (propuesta `REVISAR`), idempotente. Se escribe tras la revisión de 0.4.
-3. `plantilla-odontologia`: especialidad «Odontología» si falta y la plantilla v1 (idempotente).
+3. `plantilla-odontologia`: especialidad «Odontología» si falta y la plantilla v1 con `exige_profesion = 'odontologo'` (idempotente).
 4. `odontograma-tablas`: cuatro tablas, índices, RLS, `GRANT` por columna, políticas y disparadores `_10` a `_40` y de auditoría.
-5. `odontograma-sello-y-coherencia`: `huella_odontograma()`, `verificar_odontograma()`, `especialidad_odontologia_id()` y los dos
-   disparadores sobre `atenciones` (`HC050`, `HC052`).
+5. `odontograma-sello-y-coherencia`: `huella_odontograma()`, `verificar_odontograma()`, `especialidad_odontologia_id()` y el
+   disparador de sello sobre `atenciones` (`HC052`, `HC053`).
 6. `odontograma-lectura-derivada`: `odontograma_actual()` y `tratamientos_odontologicos_pendientes()`.
 7. `copia-seccion-odontologia`: `copia_seccion_odontologia()` y el reemplazo del compilado (H6d).
 

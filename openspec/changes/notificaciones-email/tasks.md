@@ -9,7 +9,7 @@ chocan al implementar). Las pruebas unitarias van en `tests/notificaciones/` con
 `tests/integracion/`, las de concurrencia en `tests/concurrencia/` (`30_…`) y las de navegador en `e2e/`. Ninguna prueba
 envía correo real. Cada grupo deja sus pruebas y su documentación; el último solo integra. Las dependencias nuevas se
 instalan con la autorización del usuario. **Ninguna tarea toca historias clínicas**: ningún objeto nuevo lee `atenciones`,
-`antecedentes`, `addendas`, `historias_clinicas`, `asignaciones_paciente_medico` ni `citas.motivo`.
+`antecedentes`, `addendas`, `historias_clinicas`, `asignaciones_paciente_medico`, `visitas`, `triajes`, `derivaciones`, `recetas`, `solicitudes_copia_historia` ni `citas.motivo`.
 
 ## 1. Base: supuestos de H3, dependencias, variables y conexión del cron
 
@@ -74,7 +74,7 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       `motivo_de_omision`; las funciones son `SECURITY DEFINER` con `search_path` vacío (salvo `motivo_de_omision`, `INVOKER`);
       un `INSERT` directo en `notificaciones` de `paciente_a`, `administrativo` y `medico_a` sigue rechazado con `42501`;
       ninguna de las funciones nuevas referencia `atenciones`, `antecedentes`, `addendas`, `historias_clinicas` ni
-      `asignaciones_paciente_medico` (consulta a `pg_get_functiondef`). Verificar que pasa y que falla al conceder
+      `asignaciones_paciente_medico` ni, desde el PRD del 2026-10-11, `visitas`, `triajes`, `derivaciones`, `recetas` ni `solicitudes_copia_historia` (consulta a `pg_get_functiondef`). Verificar que pasa y que falla al conceder
       `execute … to authenticated` en una de ellas (mutación).
 - [ ] 3.4 `tests/pgtap/83_vigencia_de_avisos.test.sql`: `motivo_de_omision` por tabla de casos: cada tipo × {cita vigente futura,
       cancelada, ya ocurrida, con `inicio` distinto al de la copia, con otro `medico_id`, sin `contenido`} devuelve el motivo
@@ -242,7 +242,7 @@ su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» d
 - [ ] 10.2 Revisión aparte con el agente `code-review` de las tres migraciones, el disparador, las funciones `SECURITY DEFINER`
       y la ruta del cron, por tocar privilegios y datos de personas (aunque no historias clínicas). Verificar con la lista de
       hallazgos resuelta o justificada en el PR.
-- [ ] 10.3 Proponer, para revisión humana (no editar en silencio), con la skill `architecture`: **ADR-0029** («Escritura de
+- [ ] 10.3 Proponer, para revisión humana (no editar en silencio), con la skill `architecture`: una **ADR nueva** con el siguiente número libre (el 0029 ya lo ocupa «Datos clínicos por especialidad»), titulada («Escritura de
       notificaciones: disparador de recordatorio, función de registro acotada y copia mínima del contenido»; incluye la regla
       de hora de D1 y el tipo `reprogramacion`) y notas fechadas en ADR-0017 (`programada_para`, tipo nuevo, guarda ampliada),
       ADR-0018 (la política usa `rol_actual()` y no `auth.session() ->> 'rol'`; ruta real de la vista), ADR-0008 y ADR-0028
