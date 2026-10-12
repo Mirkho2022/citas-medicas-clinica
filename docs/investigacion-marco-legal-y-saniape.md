@@ -66,6 +66,8 @@ Conclusión: **como resumen de la NTS 139 es fiable en todo lo que pude contrast
   - d) En menores o personas con representante, firma el representante.
 - **Definiciones:** la historia clínica electrónica está refrendada con firma digital. La informatizada es la soportada en medios electrónicos que no usa firma digital.
 
+**Formato de filiación (NTS 139, numeral 5.2.2, «Formatos especiales»; nivel A).** Contiene como mínimo: identificación estándar y categoría de la IPRESS; número de historia clínica; nombres y apellidos; lugar y fecha de nacimiento; edad; sexo; grupo sanguíneo; factor Rh; domicilio actual; domicilio de procedencia; teléfono; documento de identificación (DNI o carné de extranjería); número de seguro (social, SIS, SOAT u otros); estado civil; grado de instrucción; ocupación; religión; y nombre, DNI y domicilio de la persona acompañante o responsable. Además, los formatos de la primera atención por etapa de vida piden pertenencia étnica entre los datos generales. **La religión y el origen étnico son datos sensibles** según la propia definición de la NTS (convicciones religiosas, origen racial y étnico). La **apertura** de la historia (numeral 5.3.1) exige una historia única e individualizada, tras consultar el registro de usuarios de la IPRESS para asegurar que no tenga una anterior.
+
 ### 4.2 DS 009-2017-SA, reglamento de la Ley 30024 (RENHICE), publicado el 23/03/2017
 
 - **Art. 13:** todo establecimiento público, privado o mixto con un sistema de información de historias clínicas electrónicas (SIHCE) **debe acreditarlo** ante el MINSA o la Autoridad Regional de Salud.

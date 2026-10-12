@@ -778,7 +778,7 @@ protocolos o de instrumentos, sin redefinirlo:
   restantes**. Sin cobros ni saldos en dinero. Cubre la sesión a la que el paciente no asiste, la reprogramada, el paciente
   que abandona y el plan con sesiones recurrentes programadas solas. Lo usan el plan de sesiones de Fisioterapia, el plan de
   controles y los protocolos por sesiones de Podología y las sesiones recurrentes de Psicología.
-  <!-- REVISAR: «programadas solas» no debe exigir un cron nuevo (ADR-0028 limita el proyecto a uno diario); se supone que las citas de la serie se crean al crear el plan. Lo decide el change. -->
+  <!-- REVISAR: «programadas solas» no debe exigir un cron nuevo (ADR-0028 limita el proyecto a uno diario); H6i propone (D9) que la base proponga la serie y que recepción la confirme, una transacción por sesión, porque el profesional no crea citas en H3 y no hay cron nuevo; a confirmar con el usuario. -->
 - **Instrumentos de evaluación con puntaje** (`instrumentos_evaluacion`, `aplicaciones_instrumento`): catálogo gestionado
   **por migración** (clave, nombre, ítems, reglas de puntaje, interpretación, `area` —`psicologia`, `fisioterapia`…— y
   `uso_libre`) y aplicaciones con las respuestas y un puntaje **calculado en el servidor y en la base**. El profesional puede
@@ -2194,10 +2194,10 @@ pierde información. La fecha de corte la fija la clínica.
 | H6b | Triaje y derivación: visitas, triajes, derivaciones y «tomar al paciente»; la enfermera registra el triaje y deriva (**Propuesta**, ADR-0032) | H2c, H3, H6, ADR-0032 y ADR-0033 aceptadas |
 | H6c | Recetas médicas: `profesiones_que_recetan`, `recetas`, `receta_items`, plantilla de impresión y medicamentos del paciente | H6, H2c, ADR-0035 aceptada |
 | H6d | Copia de la historia clínica: solicitud, identidad verificada, generación y entrega en 5 días | H6, H3, ADR-0034 aceptada (cada tabla clínica nueva añade su sección al compilado; incluye Psicología al llegar H6g) |
-| H6i | Mecanismos comunes de las especialidades: planes de sesiones con contador (apoyados en las citas de H3) e instrumentos de evaluación con puntaje (**Propuesta**; se construye antes que H6e a H6h) | H6, H2c, H3 |
-| H6e | Odontología: odontograma (adulto e infantil, piezas y caras), hallazgos y tratamientos por pieza, radiografías como adjuntos | H6, H2c, H6i, P-15 |
+| H6i | Mecanismos comunes de las especialidades: planes de sesiones con contador (apoyados en las citas de H3) e instrumentos de evaluación con puntaje (**Propuesta**; se construye antes que H6f, H6g y H6h; Odontología no lo usa) | H6, H2c, H3 |
+| H6e | Odontología: odontograma (adulto e infantil, piezas y caras), hallazgos y tratamientos por pieza, radiografías como adjuntos | H6, H2c, P-15 |
 | H6f | Fisioterapia: evaluación inicial, nota por sesión, plan de sesiones con contador, reevaluación y alta | H6, H2c, H6i |
-| H6g | Psicología: evaluación estructurada, tests con puntaje automático, notas de sesión reservadas, sesiones recurrentes (**Propuesta**, ADR-0031) | H6, H2c, H6c, H6i, ADR-0031 aceptada |
+| H6g | Psicología: evaluación estructurada, tests con puntaje automático, notas de sesión reservadas, sesiones recurrentes (**Propuesta**, ADR-0031) | H6, H2c, H6b, H6c, H6i, ADR-0031 aceptada |
 | H6h | Podología: evaluación de pie, uñas, piel y pisada, plan de controles, protocolos por sesiones, fotos de evolución | H6, H2c, H6i, P-15 |
 | H7 | Turnos de enfermería y dashboard operativo | H3 |
 | H8 | Migración de datos, capacitación, manual de usuario | H4, H6 |

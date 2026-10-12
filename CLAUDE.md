@@ -48,8 +48,9 @@ sin el `authToken` de la sesión de Clerk adjunto.
   [ADR-0031](docs/adrs/0031-aislamiento-de-la-informacion-de-psicologia.md) (Psicología aparte),
   [ADR-0032](docs/adrs/0032-acceso-a-la-historia-de-pacientes-sin-cita.md) (pacientes sin cita),
   [ADR-0033](docs/adrs/0033-visita-del-paciente-llegada-y-estados.md) (visita del paciente),
-  [ADR-0034](docs/adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) (emisión de la copia) y
-  [ADR-0035](docs/adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) (recetas).
+  [ADR-0034](docs/adrs/0034-emision-de-la-copia-de-la-historia-clinica.md) (emisión de la copia),
+  [ADR-0035](docs/adrs/0035-recetas-funciones-acotadas-numeracion-y-medicamentos.md) (recetas) y
+  [ADR-0036](docs/adrs/0036-mecanismos-clinicos-comunes.md) (planes de sesiones e instrumentos).
 
 Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y quedaron
 formalizadas como ADR — no las reabras sin que el cliente lo pida:
