@@ -303,12 +303,28 @@ empieza cuando H2b está aplicado.
       `<dialog>`) en las `confirmada` cuya hora ya empezó. Verificar con las pruebas de `traducirError` de 7.1 y a mano con la
       cuenta de administrativo: confirmar una cita futura la pasa a «Confirmada», «No asistió» no se ofrece antes de la hora,
       y una cita cancelada no ofrece ninguna de las dos.
-- [ ] 10.5 Crear `app/medico/acciones-cita.ts` con la acción `marcarAtendida` (guarda `exigirPersonal('medico')`, Zod del
+      Avance (sin marcar: faltan los botones «Confirmar» y «No asistió» de la agenda del día, 10.1): `lib/citas/transiciones.ts`
+      (`confirmarCita`, `marcarNoAsistio`, `update … set estado … where id = … returning estado` sin filtrar por estado) y
+      `app/administrativo/agenda/acciones.ts` con `auth.protect()` y el entorno real; la guarda, el refresco y la composición están en
+      `lib/citas/casos-de-uso.ts`, que se prueba con un entorno inyectado. Ninguna emite evento. Pruebas:
+      `tests/agenda/transiciones.test.ts` (11) y `tests/integracion/transiciones.test.ts` (7, como administrativo, médico dueño, otro
+      médico, enfermera, paciente y sin rol): confirmar una futura pasa a «Confirmada», crea la asignación (una sola, también al
+      repetir) y recién entonces el médico ve la historia; confirmar una terminada, una atendida o una «No asistió» da el mensaje
+      propio de confirmar (`UC004`); «No asistió» solo en una confirmada cuya hora ya empezó. Por mutación, agregar `and estado =
+      'reservada'` al `WHERE` hace fallar la unitaria del SQL y las dos de integración de confirmar; restaurado.
+- [x] 10.5 Crear `app/medico/acciones-cita.ts` con la acción `marcarAtendida` (guarda `exigirPersonal('medico')`, Zod del
       identificador, llamada a `public.marcar_cita_atendida()` mediante `lib/citas/transiciones.ts`, resultado tipado, sin
       eventos, `revalidatePath` de la jornada del médico) para que H7 solo conecte el botón. Verificar con una prueba unitaria
       de la acción con dependencias inyectadas (un administrativo es rechazado; `UC002` y `UC004` se traducen) y ejecutándola como
       el médico de demostración sobre una cita `confirmada` ya empezada, preparada como dueño de la base en un branch de
       desarrollo, que pasa a `atendida`.
+      Resultado: `marcarAtendida` en `lib/citas/transiciones.ts` (llama a `public.marcar_cita_atendida()`) y `app/medico/acciones-cita.ts`
+      (`auth.protect()` + entorno real; la guarda `exigirPersonal('medico')` y el refresco de `/medico` están en `casoMarcarAtendida`),
+      sin eventos. Pruebas unitarias con dependencias inyectadas: un administrativo, una enfermera, un paciente, sin sesión y personal
+      sin MFA son rechazados sin consultar la base de datos, y `UC002`/`UC004` se traducen; de integración: el médico dueño marca
+      «Atendida» una confirmada ya empezada, solo cambia `estado` (comparado el resto de la fila) y la auditoría lo registra como
+      `medico`; una cita ajena y una inexistente dan el mismo «La cita ya no está vigente»; administrativo, enfermera, paciente y sin
+      rol reciben «No tiene permiso…» sin cambiar la cita; una reservada o una futura reciben el mensaje de «Atendida».
 - [ ] 10.6 Marcar `disponible: true` los destinos de administrativo que H3 construye en `lib/ui/navegacion.ts` (Agenda,
       Pacientes, Horarios, Bajas). Verificar que la barra lateral enlaza a páginas que responden 200 y que ningún destino sigue
       como «Próximamente» por error.
