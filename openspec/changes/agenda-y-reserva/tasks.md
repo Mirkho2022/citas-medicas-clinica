@@ -145,7 +145,7 @@ empieza cuando H2b está aplicado.
 
 ## 6. Migración 5: ciclo de estados de la cita (decisión del cliente)
 
-- [ ] 6.1 Crear la migración `transiciones-de-estado-de-cita` con `validar_transicion_estado()` y su disparador
+- [x] 6.1 Crear la migración `transiciones-de-estado-de-cita` con `validar_transicion_estado()` y su disparador
       `citas_validar_transicion` (`BEFORE INSERT OR UPDATE OF estado`, `SECURITY INVOKER`, `search_path` vacío, actúa solo si
       `current_user = 'authenticated'`) con la matriz de `design.md`, D13, y `marcar_cita_atendida(cita uuid)` (`SECURITY
       DEFINER`, `search_path` vacío, `EXECUTE` solo a `authenticated`, revocado a `public`, solo fija `estado`), con errores
@@ -153,7 +153,10 @@ empieza cuando H2b está aplicado.
       `pg_proc` (`prosecdef` verdadero solo en `marcar_cita_atendida`, `search_path=""` en ambas), `pg_trigger` (el disparador
       existe y es posterior a `citas_validar_cancelacion` en orden) y `npm run test:pgtap` completo sin romper ninguna prueba de
       H2; si una choca, informar al usuario en vez de editarla.
-- [ ] 6.2 Escribir `tests/pgtap/61_transiciones_de_cita.test.sql`. Positivos: el administrativo confirma una cita futura
+      Resultado (branch `h3/pruebas`): migración aplicada; `marcar_cita_atendida` es DEFINER y `validar_transicion_estado` INVOKER, ambas con
+      `search_path=""`; `citas_validar_transicion` es BEFORE y va después de `citas_validar_cancelacion`; la suite completa (680 pruebas)
+      sigue en verde: **ninguna prueba de H2 chocó** y no se editó ninguna.
+- [x] 6.2 Escribir `tests/pgtap/61_transiciones_de_cita.test.sql`. Positivos: el administrativo confirma una cita futura
       (queda la asignación vigente del ADR-0016 y el médico dueño pasa a ver las atenciones del paciente; antes de confirmar,
       no); confirmar una ya confirmada es idempotente y no duplica la asignación; marca «No asistió» una `confirmada` ya
       empezada; el médico dueño marca «Atendida» una `confirmada` ya empezada y solo cambia `estado` (comparando el resto de
@@ -167,7 +170,9 @@ empieza cuando H2b está aplicado.
       `reservada` o una cita futura reciben `UC004`; el `UPDATE` directo del médico dueño no cambia ninguna fila. Verificar con
       `node scripts/ejecutar-pgtap.ts 61` y por mutación: quitar `medico_id = medico_actual()` de la función hace fallar la prueba
       de `medico_b`, y quitar `now() < fin` de la confirmación hace fallar la de la cita terminada.
-- [ ] 6.3 Completar `docs/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
+      Resultado: 56 pruebas, 0 fallos. Mutaciones: sin `medico_id = v_medico` en `marcar_cita_atendida` falla la de `medico_b` (34); sin
+      `now() >= old.fin` fallan «confirmar una cita que ya terminó» (17) y «alargar el fin en el mismo UPDATE» (33). Ambas restauradas.
+- [x] 6.3 Completar `docs/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
       no actúa sobre el dueño de la base. Verificar que los comandos del documento corren tal como están escritos.
 - [ ] 6.4 Revisar el SQL de las cinco migraciones con el agente `code-review` (funciones `SECURITY DEFINER`, `search_path`,
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y

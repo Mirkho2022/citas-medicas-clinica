@@ -41,10 +41,30 @@ correr. En CI las pruebas corren en el branch efímero del PR (`neon-branch-pr.y
 | `35_slots` | `slots_disponibles` y `horario_en_agenda`: malla, bloqueos, citas, pasado, baja, frontera con UTC y que el paciente no ve citas ni bloqueos ajenos |
 | `36_reservar_cita` | `reservar_cita`: origen por rol, `UC001`, `23P01` y roles sin permiso (`42501`) |
 | `37_reprogramar_cita` | `reprogramar_cita`: éxito, original intacta si falla, ventana de 1 hora, `UC002` y cancelar antes de insertar |
+| `38_reasignacion_baja` | `propuestas_reasignacion` (mismo horario primero, más cercano, exclusiones, proponer no cambia nada) y `reasignar_cita_por_baja` (ventana de 1 hora con bloqueo, `UC003`, sin acceso a historias, roles) |
+| `39_citas_por_reasignar_rls` | vista `citas_por_reasignar` (`security_invoker`): el administrativo ve todas, el médico las suyas, los demás ninguna; sale sola al resolver la cita |
+| `61_transiciones_de_cita` | ciclo de estados: matriz de transiciones, `marcar_cita_atendida`, auditoría del actor y acceso a la historia al confirmar |
 
 Los datos de estas pruebas usan DNI `74NNxxxx` (NN = número del archivo) y fechas de 2032, lejos en el futuro; `now()` es fijo dentro de
 la transacción, así que los límites de 1 hora son deterministas. Una sola prueba: `node scripts/ejecutar-pgtap.ts 35_slots`
 (el filtro es una subcadena del nombre del archivo; con `35` a secas también coincidiría cualquier archivo que lo contenga).
+
+**Matriz de transiciones de `estado` (archivo `61`).** La aplica el disparador `citas_validar_transicion` (`BEFORE INSERT OR UPDATE OF estado`)
+a los cambios hechos por un usuario de la aplicación; las condiciones de tiempo miran los valores anteriores de la cita:
+
+| Transición | Quién | Condición | Si no se cumple |
+|---|---|---|---|
+| insertar | cualquiera con política | `estado = reservada` | `UC004` |
+| `reservada` → `confirmada` | administrativo | `now() < fin` | `UC004`; `42501` si no es administrativo |
+| `confirmada` → `no_asistio` | administrativo | `now() >= inicio` | `UC004`; `42501` si no es administrativo |
+| `reservada`/`confirmada` → `cancelada` | quien la política deje | la ventana la valida `validar_cancelacion` | `P0001` |
+| cualquiera → `atendida` por `UPDATE` | nadie | siempre rechazado; solo `marcar_cita_atendida` (médico dueño, `confirmada` ya empezada) | `42501` |
+| cualquier otra | — | — | `UC004` |
+
+**El disparador no actúa sobre el dueño de la base** (`current_user <> 'authenticated'`): las migraciones, la siembra de demostración, la carga
+histórica de H8 y los datos que preparan las pruebas pgTAP como dueño no pasan por la matriz. Tampoco sobre las funciones `SECURITY DEFINER`,
+que corren como dueño y se validan a sí mismas. Por eso una prueba que quiera ejercer la matriz debe autenticarse (`tests.autenticar_como`) antes
+del `UPDATE`, y las preparaciones como dueño pueden dejar cualquier estado.
 
 **Concurrencia como usuario de la aplicación.** `tests/concurrencia/_sesion.ts` firma tokens Ed25519 (par efímero por proceso), abre la
 conexión con `pg_session_jwt.jwk`, ejecuta `auth.jwt_session_init` y `set role authenticated`: `abrirSesion({ sub, rol })` devuelve un
