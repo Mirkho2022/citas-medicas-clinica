@@ -45,3 +45,16 @@ export function crearPacienteSchema(ahora: () => Date = () => new Date()) {
 export const pacienteSchema = crearPacienteSchema();
 
 export type DatosPaciente = z.infer<typeof pacienteSchema>;
+
+export const MENSAJE_BUSQUEDA_VACIA = "Ingrese un documento o un apellido";
+export const LONGITUD_MAXIMA_BUSQUEDA = 100;
+
+// Texto de búsqueda de pacientes: un documento exacto o el inicio de los apellidos. Sin espacios en los extremos y con un
+// largo acotado (el texto va a un `ilike`, y uno desmedido solo sirve para castigar la base de datos).
+export const busquedaPacienteSchema = z.object({
+  termino: textoObligatorio(MENSAJE_BUSQUEDA_VACIA).pipe(
+    z.string().max(LONGITUD_MAXIMA_BUSQUEDA, `El texto de búsqueda no puede superar los ${LONGITUD_MAXIMA_BUSQUEDA} caracteres`),
+  ),
+});
+
+export type BusquedaPaciente = z.infer<typeof busquedaPacienteSchema>;

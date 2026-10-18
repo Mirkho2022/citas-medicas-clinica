@@ -39,7 +39,7 @@ export const MENSAJE_TRANSICION = {
 //  - agendar, reprogramar, reasignar: insertan una cita (23P01 y 40P01 = doble reserva).
 //  - cancelar: además de reprogramar y reasignar, que cancelan la original, puede recibir P0001 (ventana de 1 hora).
 //  - confirmar, no_asistio, atendida: transiciones de estado (UC004 con el mensaje propio de cada una).
-//  - registrar_paciente: 23505 es documento duplicado.
+//  - registrar_paciente: 23505 es documento duplicado. buscar_paciente: solo 42501 y el error inesperado.
 //  - disponibilidad, bloqueo: 23P01 es solape de horarios o de ausencias.
 export const CONTEXTOS_ERROR = [
   "agendar",
@@ -50,6 +50,7 @@ export const CONTEXTOS_ERROR = [
   "no_asistio",
   "atendida",
   "registrar_paciente",
+  "buscar_paciente",
   "disponibilidad",
   "bloqueo",
 ] as const;

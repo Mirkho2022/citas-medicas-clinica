@@ -216,14 +216,30 @@ empieza cuando H2b está aplicado.
 
 ## 8. Pacientes: documento, búsqueda y registro
 
-- [ ] 8.1 Crear `lib/citas/pacientes.ts` y `app/administrativo/pacientes/acciones.ts` con `buscarPacientes` (documento exacto
+- [x] 8.1 Crear `lib/citas/pacientes.ts` y `app/administrativo/pacientes/acciones.ts` con `buscarPacientes` (documento exacto
       o inicio de apellidos, sin distinguir mayúsculas, comodines escapados, máximo 20, solo datos de identificación y contacto)
       y `registrarPaciente` (guarda, Zod, `23505` → «Ya existe un paciente con ese documento»). Verificar con pruebas unitarias
       del escape de comodines en `tests/agenda/` y ejecutando ambas acciones como administrativo en un branch de desarrollo
       (el paciente `99…` queda creado y la búsqueda lo encuentra).
-- [ ] 8.2 Añadir a `tests/concurrencia/` (archivo `21_registro_paciente.test.ts`) el caso de dos altas simultáneas del mismo
+      Resultado: `lib/citas/pacientes.ts` (`buscarPacientes`, `registrarPaciente`, `escaparComodines`) recibe un `Ejecutor`
+      (`lib/db/ejecutor.ts`: en producción `ejecutorAutenticado`, en las pruebas una sesión firmada con la RLS del rol) y
+      `app/administrativo/pacientes/acciones.ts` solo añade `auth.protect()` (lo exige la regla de ESLint de Clerk),
+      `exigirPersonal('administrativo')` y `revalidatePath`. El duplicado devuelve `DOCUMENTO_DUPLICADO` con el mensaje también
+      en `campos.numero_documento`, para que la pantalla lo marque y ofrezca abrir al existente (buscando por ese documento).
+      Se añadió el contexto `buscar_paciente` al traductor. Pruebas: `tests/agenda/pacientes.test.ts` (12, ejecutor doble) y
+      `tests/integracion/pacientes.test.ts` (8, contra el branch de pruebas como administrativo, paciente, enfermera, médico
+      sin relación y sin rol: DNI exacto, prefijo sin distinguir mayúsculas, `%` y `_` literales, tope de 20, alta que la
+      búsqueda encuentra, duplicado, negativos por rol). Por mutación: sin el escape de comodines fallan 3 pruebas (la
+      unitaria del escape, la de la sentencia y la de integración de `%`/`_`); restaurado.
+- [x] 8.2 Añadir a `tests/concurrencia/` (archivo `21_registro_paciente.test.ts`) el caso de dos altas simultáneas del mismo
       documento (una fila, la otra recibe `23505`) y, en pgTAP `34`, que el administrativo no ve `historias_clinicas` del
       paciente que acaba de registrar. Verificar con `npm run test:concurrencia` y `node scripts/ejecutar-pgtap.ts 34`.
+      Resultado: `tests/concurrencia/21_registro_paciente.test.ts` (10 rondas de 5 administrativos con el mismo documento: una
+      sola fila y las otras cuatro reciben `DOCUMENTO_DUPLICADO`; y dos altas simultáneas del mismo Carné escrito distinto se
+      normalizan y solo una prospera). Sin restos en el branch de pruebas. **Corrección al enunciado:** la prueba pgTAP del
+      administrativo y la historia del paciente recién registrado no va en `34` (que es de solapes de disponibilidad), sino en
+      `41_historia_al_registrar.test.sql`, donde ya se probaba el alta por el administrativo: 10 pruebas, 0 fallos, con dos
+      aserciones nuevas (no ve la historia del paciente que acaba de registrar ni ninguna otra).
 - [ ] 8.3 Crear la página `/administrativo/pacientes` (`auth.protect()`, `exigirRol`, redirección a MFA) con buscador por
       documento o apellido, resultado con la tabla de H2b, formulario de registro con `CampoDocumento` y estados vacío, de
       carga y de error. Verificar a mano en `next dev` con la cuenta de administrativo: DNI de 7 dígitos muestra «El DNI debe
