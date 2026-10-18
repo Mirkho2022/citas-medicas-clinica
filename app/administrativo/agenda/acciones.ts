@@ -4,10 +4,8 @@
 // exige la regla de ESLint de Clerk, en el cuerpo de cada acción) y el entorno real; la guarda de rol y MFA, la lógica de datos
 // y el refresco están en `lib/citas/casos-de-uso.ts`. La autoridad real es la RLS, las restricciones y los disparadores.
 import { auth } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
 import type { ResultadoAccion } from "@/lib/acciones/resultado";
 import { entradaDeFormulario } from "@/lib/acciones/entrada";
-import { exigirPersonal } from "@/lib/auth/accion-personal";
 import {
   casoCancelarCita,
   casoConfirmarCita,
@@ -15,18 +13,9 @@ import {
   casoReasignarPorBaja,
   casoReprogramarCita,
   casoReservarCita,
-  type Entorno,
 } from "@/lib/citas/casos-de-uso";
+import { entornoReal as entorno } from "@/lib/citas/entorno-real";
 import type { ResultadoFilaReasignacion } from "@/lib/citas/reservas";
-import { emitirTrasCommit } from "@/lib/notificaciones/eventos-cita";
-import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
-
-const entorno: Entorno = {
-  guarda: (rol) => exigirPersonal(rol),
-  ejecutar: ejecutorAutenticado,
-  refrescar: (rutas) => rutas.forEach((ruta) => revalidatePath(ruta)),
-  emitir: (evento) => emitirTrasCommit(evento),
-};
 
 // `reservada → confirmada`. Confirmar concede al médico acceso a la historia del paciente (ADR-0016).
 export async function confirmarCita(entrada: unknown): Promise<ResultadoAccion<{ estado: "confirmada" | "no_asistio" }>> {

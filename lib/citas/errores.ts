@@ -26,6 +26,7 @@ export const MENSAJE_CITA_NO_VIGENTE = "La cita ya no está vigente";
 export const MENSAJE_REASIGNACION_INVALIDA = "Esta reasignación no corresponde a la baja registrada";
 export const MENSAJE_DOCUMENTO_DUPLICADO = "Ya existe un paciente con ese documento";
 export const MENSAJE_SOLAPE_DISPONIBILIDAD = "Este horario se cruza con otro ya definido para el médico";
+export const MENSAJE_VIGENCIA_INVERTIDA = "La fecha de fin no puede ser anterior a la de inicio";
 export const MENSAJE_SOLAPE_BLOQUEO = "Ya existe una ausencia registrada que se cruza con ese periodo";
 
 // Mensaje de `UC004` según la acción que lo provocó.
@@ -131,6 +132,14 @@ export function traducirError(
     case "UC004":
       if (contexto === "confirmar" || contexto === "no_asistio" || contexto === "atendida") {
         return fallo("TRANSICION_INVALIDA", MENSAJE_TRANSICION[contexto]);
+      }
+      break;
+
+    // `daterange(vigente_desde, vigente_hasta)` con el fin anterior al inicio (`data_exception`): solo se llega aquí cuando la
+    // fecha de inicio que se conserva (al modificar) o la de hoy (al crear) es posterior al fin que se envió.
+    case "22000":
+      if (contexto === "disponibilidad") {
+        return fallo("DATOS_INVALIDOS", MENSAJE_VIGENCIA_INVERTIDA, { vigente_hasta: MENSAJE_VIGENCIA_INVERTIDA });
       }
       break;
 

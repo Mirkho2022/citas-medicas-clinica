@@ -51,17 +51,23 @@ export function fallo(codigo: CodigoError, mensaje: string, campos?: Record<stri
 
 // Lo mínimo que se usa de un `ZodError`; así este módulo no depende de Zod.
 interface ErrorDeValidacion {
-  issues: ReadonlyArray<{ path: ReadonlyArray<string | number>; message: string }>;
+  issues: ReadonlyArray<{ code?: string; path: ReadonlyArray<string | number>; message: string }>;
 }
+
+// Una entrada que ni siquiera es un objeto (`null`, un texto, un arreglo) la rechaza Zod con un mensaje en inglés («Expected
+// object, received null»): se reemplaza por uno genérico en español.
+const MENSAJE_ENTRADA_INVALIDA = "Revise los datos ingresados";
 
 // Convierte los problemas de Zod en un `DATOS_INVALIDOS` con un mensaje por campo (el primero de cada campo). Un problema
 // sin ruta (de todo el objeto) se guarda bajo la clave `_` y también da el mensaje general.
 export function falloPorValidacion(error: ErrorDeValidacion): Fallo {
   const campos: Record<string, string> = {};
+  const mensajeDe = (problema: ErrorDeValidacion["issues"][number]): string =>
+    problema.code === "invalid_type" && problema.path.length === 0 ? MENSAJE_ENTRADA_INVALIDA : problema.message;
   for (const problema of error.issues) {
     const clave = problema.path.length > 0 ? problema.path.join(".") : "_";
-    if (!(clave in campos)) campos[clave] = problema.message;
+    if (!(clave in campos)) campos[clave] = mensajeDe(problema);
   }
-  const primero = error.issues[0]?.message ?? "Revise los datos ingresados";
+  const primero = error.issues[0] ? mensajeDe(error.issues[0]) : MENSAJE_ENTRADA_INVALIDA;
   return fallo("DATOS_INVALIDOS", primero, campos);
 }

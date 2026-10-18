@@ -20,6 +20,7 @@ import {
   MENSAJE_REPROGRAMACION_TARDIA,
 } from "../../lib/citas/errores.ts";
 import { cancelarCita, reasignarPorBaja, reprogramarCita, reservarCita } from "../../lib/citas/reservas.ts";
+import type { Ejecutor } from "../../lib/db/ejecutor.ts";
 import { fechaYHoraLima } from "../../lib/fechas/lima.ts";
 import { conectar } from "../concurrencia/_conexion.ts";
 import { ejecutorDeSesion } from "../concurrencia/_ejecutor.ts";
@@ -50,6 +51,10 @@ function slot(horas: number): { inicio: Date; fin: Date } {
   const inicio = Math.ceil((Date.now() + horas * HORA) / SLOT) * SLOT;
   return { inicio: new Date(inicio), fin: new Date(inicio + SLOT) };
 }
+// El horario que reservan la primera y la segunda prueba: se calcula UNA vez (si cada prueba lo recalculara, un cambio de franja de
+// 20 minutos entre ambas las apuntaría a horarios distintos).
+const RESERVADO = slot(48);
+
 const entrada = (paciente: string, medico: string, s: { inicio: Date; fin: Date }, extra: Record<string, unknown> = {}) => ({
   paciente_id: paciente,
   medico_id: medico,
@@ -148,7 +153,7 @@ const cuentaDeCitas = (medico: string, desde: Date, hasta: Date) =>
   comoDueno(async (c) => (await c.query(`select count(*)::int as n from public.citas where medico_id = $1 and inicio >= $2 and inicio < $3`, [medico, desde, hasta])).rows[0].n as number);
 
 test("el administrativo agenda un horario libre: nace reservada, con origen administrativo y su perfil como autor, y el horario deja de ofrecerse", async () => {
-  const s = slot(48);
+  const s = RESERVADO;
   const r = await como(ADMIN, (e) => reservarCita(e, entrada(pacienteA, medicoA, s, { motivo: "Control" })));
   assert.equal(r.ok, true);
   if (!r.ok) return;
@@ -162,11 +167,13 @@ test("el administrativo agenda un horario libre: nace reservada, con origen admi
     e([{ texto: `select inicio from public.slots_disponibles($1, $2::date)`, parametros: [medicoA, fechaYHoraLima(s.inicio).fecha] }]).then((rs) => rs[0]!.map((f) => new Date(f.inicio as string | Date).getTime())),
   );
   assert.equal(libres.includes(s.inicio.getTime()), false, "el horario reservado ya no se ofrece");
-  assert.equal(libres.includes(s.inicio.getTime() + 2 * SLOT), true, "los demás siguen libres");
+  // Otro horario del MISMO día de Lima (a 2 franjas hacia adelante o, si eso cruza la medianoche de Lima, hacia atrás).
+  const otro = [2, -2].map((k) => s.inicio.getTime() + k * SLOT).find((t) => fechaYHoraLima(new Date(t)).fecha === fechaYHoraLima(s.inicio).fecha)!;
+  assert.equal(libres.includes(otro), true, "los demás siguen libres");
 });
 
 test("la doble reserva da exactamente «Registro de cita ya agendado»: mismo médico y mismo paciente con otro médico", async () => {
-  const s = slot(48); // el horario de la prueba anterior: ya está reservado con el médico A
+  const s = RESERVADO; // el horario de la prueba anterior: ya está reservado con el médico A
   const mismoMedico = await como(ADMIN, (e) => reservarCita(e, entrada(pacienteB, medicoA, s)));
   assert.deepEqual(mismoMedico, { ok: false, codigo: "DOBLE_RESERVA", mensaje: "Registro de cita ya agendado" });
   assert.equal(MENSAJE_DOBLE_RESERVA, "Registro de cita ya agendado");
@@ -395,4 +402,62 @@ test("solo el administrativo reprograma y cancela: el paciente (hasta que H4 añ
   const delAdministrativo = await como(ADMIN, (e) => cancelarCita(e, { cita_id: propia }));
   assert.equal(delAdministrativo.ok, true);
   assert.equal((await fila(propia)).estado, "cancelada");
+});
+
+// Ejecutor que simula una red que falla en torno a la reasignación: `cuando` = «despues» ejecuta la sentencia de verdad (se confirma
+// en la base de datos) y luego pierde la respuesta; «antes» la pierde sin haberla ejecutado. Solo afecta a la primera reasignación.
+function conRedInestable(base: Ejecutor, cuando: "antes" | "despues"): Ejecutor {
+  let pendiente = true;
+  return async (sentencias) => {
+    const esReasignacion = sentencias.some((s) => s.texto.includes("reasignar_cita_por_baja"));
+    const caida = () => Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+    if (esReasignacion && pendiente && cuando === "antes") {
+      pendiente = false;
+      throw caida();
+    }
+    const filas = await base(sentencias);
+    if (esReasignacion && pendiente) {
+      pendiente = false;
+      throw caida();
+    }
+    return filas;
+  };
+}
+
+test("si la respuesta de una fila se pierde DESPUÉS de confirmar, se recupera la cita nueva real y sale su evento; si se perdió ANTES, la fila falla y la cita sigue vigente", async () => {
+  const dia = slot(300);
+  const lejos = slot(301);
+  const hecha = await citaDueno(pacienteA, medicoA, dia.inicio, dia.fin);
+  const noHecha = await citaDueno(pacienteB, medicoA, lejos.inicio, lejos.fin);
+  const bloqueo = await comoDueno(async (c) =>
+    (await c.query(`insert into public.bloqueos_agenda (medico_id, rango, motivo) values ($1, tstzrange($2, $3), 'Baja de recuperación') returning id`, [medicoA, new Date(dia.inicio.getTime() - HORA), new Date(lejos.fin.getTime() + HORA)])).rows[0].id as string,
+  );
+  const filaDe = (cita: string, s: { inicio: Date; fin: Date }) => ({ cita_id: cita, medico_id: medicoB, inicio: s.inicio.toISOString(), fin: s.fin.toISOString() });
+
+  // El error inesperado se registra con su clase y SQLSTATE (`console.error`); en esta prueba es lo esperado.
+  const original = console.error;
+  console.error = () => undefined;
+
+  // Respuesta perdida DESPUÉS de confirmar: la reasignación se hizo de verdad y la comprobación la encuentra.
+  const eventos: { citaId: string; id: string }[] = [];
+  const despues = await como(ADMIN, (e) =>
+    reasignarPorBaja(conRedInestable(e, "despues"), { bloqueo_id: bloqueo, reasignaciones: [filaDe(hecha, dia)] }, { alHacerseFila: (f) => void eventos.push(f) }),
+  );
+  assert.equal(despues.ok && despues.datos.filas[0]?.ok, true, "la fila se recupera");
+  const nueva = despues.ok && despues.datos.filas[0]?.ok ? despues.datos.filas[0].id : "";
+  assert.equal((await fila(hecha)).estado, "cancelada");
+  const creada = await fila(nueva);
+  assert.equal(creada.reprogramada_de, hecha);
+  assert.equal(creada.medico_id, medicoB);
+  assert.deepEqual(eventos, [{ citaId: hecha, id: nueva }], "el evento no se perdió");
+
+  // Respuesta perdida ANTES de ejecutar: no se hizo nada, la comprobación no encuentra cita nueva y la fila queda como error.
+  let antes;
+  try {
+    antes = await como(ADMIN, (e) => reasignarPorBaja(conRedInestable(e, "antes"), { bloqueo_id: bloqueo, reasignaciones: [filaDe(noHecha, lejos)] }));
+  } finally {
+    console.error = original;
+  }
+  assert.deepEqual(antes.ok && antes.datos.filas[0]?.ok, false);
+  assert.equal((await fila(noHecha)).estado, "reservada", "la cita sigue vigente y sin cancelar");
 });

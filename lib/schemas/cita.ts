@@ -20,7 +20,7 @@ const camposHorario = {
   inicio: instanteIso(MENSAJE_HORARIO_REQUERIDO, "El horario elegido no es válido"),
   fin: instanteIso(MENSAJE_HORARIO_REQUERIDO, "El horario elegido no es válido"),
   // «Motivo de la visita (opcional, sin datos clínicos)»
-  motivo: textoOpcional,
+  motivo: textoOpcional(),
 };
 
 function finPosteriorAlInicio(datos: { inicio: string; fin: string }, ctx: z.RefinementCtx): void {

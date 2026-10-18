@@ -8,6 +8,7 @@ import {
   fallo,
   falloPorValidacion,
   type CodigoError,
+  type Fallo,
   type ResultadoAccion,
 } from "../acciones/resultado.ts";
 import { consultar, type Ejecutor } from "../db/ejecutor.ts";
@@ -94,6 +95,33 @@ export type ResultadoFilaReasignacion =
   | { ok: true; citaId: string; id: string }
   | { ok: false; citaId: string | null; codigo: CodigoError; mensaje: string };
 
+export interface OpcionesReasignacion {
+  // Se llama apenas se hace cada fila (antes de intentar la siguiente). Un fallo del callback no cambia el resultado de la fila.
+  alHacerseFila?: (fila: { citaId: string; id: string }) => Promise<void> | void;
+}
+
+// Después de un error inesperado (p. ej. la respuesta se perdió tras confirmar) comprueba si la reasignación SÍ se hizo: existe
+// una cita vigente nueva que apunta a la original, con el mismo médico y horario. Sin esto, el reintento daría «La cita ya no está
+// vigente» y ocultaría que la cita ya estaba reasignada. Si la comprobación misma falla, la fila queda como error.
+async function citaNuevaDe(
+  ejecutar: Ejecutor,
+  fila: { cita_id: string; medico_id: string; inicio: string },
+): Promise<string | null> {
+  try {
+    const filas = await consultar(
+      ejecutar,
+      `select id from public.citas
+        where reprogramada_de = $1 and medico_id = $2 and inicio = $3 and estado in ('reservada', 'confirmada')
+        order by creada_en desc limit 1`,
+      [fila.cita_id, fila.medico_id, fila.inicio],
+    );
+    const id = filas[0]?.id;
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 // Reasigna las citas elegidas a un médico sustituto de la misma especialidad (ADR-0011). UNA transacción por cita: la pantalla
 // confirma las filas elegidas y aquí se llama a `reasignar_cita_por_baja()` una vez por cita, en orden, e informa éxito o error
 // por fila (una fila fallida no deshace las demás). La función valida que el bloqueo cubra la cita, que el destino sea un médico
@@ -102,6 +130,7 @@ export type ResultadoFilaReasignacion =
 export async function reasignarPorBaja(
   ejecutar: Ejecutor,
   entrada: unknown,
+  opciones: OpcionesReasignacion = {},
 ): Promise<ResultadoAccion<{ bloqueoId: string; filas: ResultadoFilaReasignacion[] }>> {
   const validada = reasignarPorBajaSchema.safeParse(entrada);
   if (!validada.success) return falloPorValidacion(validada.error);
@@ -117,6 +146,8 @@ export async function reasignarPorBaja(
       continue;
     }
     const r = valida.data;
+    let nuevaId: string | null = null;
+    let rechazo: Fallo | null = null;
     try {
       const resultado = await consultar(ejecutar, `select public.reasignar_cita_por_baja($1, $2, $3, $4, $5) as id`, [
         r.cita_id,
@@ -127,10 +158,26 @@ export async function reasignarPorBaja(
       ]);
       const id = resultado[0]?.id;
       if (typeof id !== "string") throw new Error("reasignación sin id");
-      filas.push({ ok: true, citaId: r.cita_id, id });
+      nuevaId = id;
     } catch (error) {
-      const rechazo = traducirError(error, "reasignar");
-      filas.push({ ok: false, citaId: r.cita_id, codigo: rechazo.codigo, mensaje: rechazo.mensaje });
+      rechazo = traducirError(error, "reasignar");
+      // Un error inesperado puede ser una respuesta perdida DESPUÉS de confirmar: se comprueba antes de declarar la fila fallida.
+      if (rechazo.codigo === "ERROR_INTERNO") {
+        nuevaId = await citaNuevaDe(ejecutar, r);
+        if (nuevaId !== null) rechazo = null;
+      }
+    }
+
+    if (nuevaId !== null) {
+      filas.push({ ok: true, citaId: r.cita_id, id: nuevaId });
+      try {
+        await opciones.alHacerseFila?.({ citaId: r.cita_id, id: nuevaId });
+      } catch {
+        // El notificador nunca cambia el resultado de una fila ya confirmada.
+      }
+    } else {
+      const motivo = rechazo ?? traducirError(new Error("reasignación sin resultado"), "reasignar");
+      filas.push({ ok: false, citaId: r.cita_id, codigo: motivo.codigo, mensaje: motivo.mensaje });
     }
   }
   return exito({ bloqueoId: bloqueo_id, filas });

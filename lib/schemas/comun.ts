@@ -11,16 +11,26 @@ import { esFechaLima, esHoraLima } from "../fechas/lima.ts";
 
 const aTexto = (valor: unknown): unknown => (valor === null || valor === undefined ? "" : valor);
 
-// Texto obligatorio, sin espacios al inicio ni al final.
-export function textoObligatorio(mensaje: string) {
-  return z.preprocess(aTexto, z.string({ invalid_type_error: mensaje }).trim().min(1, mensaje));
+// Largo máximo de los textos libres. Las columnas son `text` sin tope: sin este límite, un envío desmedido (hasta el máximo de
+// Next, 1 MB) llegaría tal cual a la base de datos. El motivo de una cita también lo escribirá el paciente desde el portal.
+export const LONGITUD_MAXIMA = { nombre: 120, correo: 254, telefono: 30, direccion: 200, motivo: 500 } as const;
+export const mensajeLongitudMaxima = (maximo: number): string => `No puede superar los ${maximo} caracteres`;
+
+// Texto obligatorio, sin espacios al inicio ni al final y con un largo máximo.
+export function textoObligatorio(mensaje: string, maximo: number = LONGITUD_MAXIMA.motivo) {
+  return z.preprocess(
+    aTexto,
+    z.string({ invalid_type_error: mensaje }).trim().min(1, mensaje).max(maximo, mensajeLongitudMaxima(maximo)),
+  );
 }
 
-// Texto opcional: vacío o solo espacios queda como `undefined`.
-export const textoOpcional = z.preprocess(
-  (valor) => (typeof valor === "string" && valor.trim() === "" ? undefined : (valor ?? undefined)),
-  z.string({ invalid_type_error: "El valor no es válido" }).trim().optional(),
-);
+// Texto opcional: vacío o solo espacios queda como `undefined`. Con un largo máximo.
+export function textoOpcional(maximo: number = LONGITUD_MAXIMA.motivo) {
+  return z.preprocess(
+    (valor) => (typeof valor === "string" && valor.trim() === "" ? undefined : (valor ?? undefined)),
+    z.string({ invalid_type_error: "El valor no es válido" }).trim().max(maximo, mensajeLongitudMaxima(maximo)).optional(),
+  );
+}
 
 // Identificador `uuid` (de un paciente, un médico, una cita…).
 export function identificador(mensaje: string) {

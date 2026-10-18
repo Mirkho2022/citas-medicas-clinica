@@ -20,11 +20,12 @@ export const MENSAJE_BLOQUEO_INEXISTENTE = "La ausencia ya no existe. Actualice 
 
 const RANGO = `tstzrange($1::timestamptz, $2::timestamptz, '[)')`;
 
-// Citas vigentes (reservadas o confirmadas) del médico que se cruzan con el periodo del bloqueo.
+// Citas vigentes (reservadas o confirmadas) del médico que no han terminado y se cruzan con el periodo del bloqueo: las mismas
+// que lista `citas_por_reasignar` (`c.fin > now()`).
 function sentenciaCitasAfectadas(medicoId: string, inicio: string, fin: string): Sentencia {
   return {
     texto: `select count(*)::int as n from public.citas
-             where medico_id = $1 and estado in ('reservada', 'confirmada')
+             where medico_id = $1 and estado in ('reservada', 'confirmada') and fin > now()
                and rango && tstzrange($2::timestamptz, $3::timestamptz, '[)')`,
     parametros: [medicoId, inicio, fin],
   };

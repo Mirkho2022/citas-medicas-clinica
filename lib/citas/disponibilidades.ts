@@ -96,7 +96,8 @@ function sentenciasDeEfecto(medicoId: string): Sentencia[] {
   return [
     {
       texto: `select id, inicio, fin from public.citas
-               where medico_id = $1 and estado in ('reservada', 'confirmada') and inicio > now()`,
+               where medico_id = $1 and estado in ('reservada', 'confirmada') and inicio > now()
+               order by inicio, id`,
       parametros: [medicoId],
     },
     {

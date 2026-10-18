@@ -2,7 +2,7 @@
 // lleva un mensaje que dice qué corregir. La base de datos conserva sus propios CHECK y la restricción de solape como
 // segunda barrera.
 import { z } from "zod";
-import { esFechaLima, esHoraLima, instanteDesdeLima } from "../fechas/lima.ts";
+import { esFechaLima, esHoraLima, hoyLima, instanteDesdeLima } from "../fechas/lima.ts";
 import {
   enteroDeFormulario,
   fechaCalendario,
@@ -56,6 +56,14 @@ export const disponibilidadSchema = z
         code: "custom",
         path: ["hora_fin"],
         message: "La hora de fin debe ser posterior a la hora de inicio",
+      });
+    }
+    // Sin fecha de inicio, la base de datos usa la de hoy en Lima: un fin anterior a hoy sería un rango invertido.
+    if (!datos.vigente_desde && datos.vigente_hasta && datos.vigente_hasta < hoyLima()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["vigente_hasta"],
+        message: "La fecha de fin no puede ser anterior a hoy",
       });
     }
     if (datos.vigente_desde && datos.vigente_hasta && datos.vigente_hasta < datos.vigente_desde) {

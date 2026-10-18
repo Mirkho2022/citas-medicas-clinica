@@ -5,20 +5,10 @@
 // llamada a `public.marcar_cita_atendida()` están en `lib/citas/casos-de-uso.ts`. Esa función solo deja marcar una cita
 // `confirmada` cuya hora ya empezó y que sea del médico que llama; una cita ajena y una inexistente dan el mismo error.
 import { auth } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
 import type { ResultadoAccion } from "@/lib/acciones/resultado";
 import { entradaDeFormulario } from "@/lib/acciones/entrada";
-import { exigirPersonal } from "@/lib/auth/accion-personal";
-import { casoMarcarAtendida, type Entorno } from "@/lib/citas/casos-de-uso";
-import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
-import { emitirTrasCommit } from "@/lib/notificaciones/eventos-cita";
-
-const entorno: Entorno = {
-  guarda: (rol) => exigirPersonal(rol),
-  ejecutar: ejecutorAutenticado,
-  refrescar: (rutas) => rutas.forEach((ruta) => revalidatePath(ruta)),
-  emitir: (evento) => emitirTrasCommit(evento), // «Atendida» no emite eventos; el entorno lo exige por tipo
-};
+import { casoMarcarAtendida } from "@/lib/citas/casos-de-uso";
+import { entornoReal as entorno } from "@/lib/citas/entorno-real";
 
 export async function marcarAtendida(entrada: unknown): Promise<ResultadoAccion<void>> {
   await auth.protect();

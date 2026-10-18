@@ -3,7 +3,7 @@
 // y correo electrónico válido. Opcionales: teléfono y dirección. Cada campo inválido lleva su propio mensaje.
 import { z } from "zod";
 import { hoyLima } from "../fechas/lima.ts";
-import { fechaCalendario, opcionDeLista, textoObligatorio, textoOpcional } from "./comun.ts";
+import { fechaCalendario, LONGITUD_MAXIMA, mensajeLongitudMaxima, opcionDeLista, textoObligatorio, textoOpcional } from "./comun.ts";
 import { camposDocumento, normalizarCampoDocumento, validarDocumento } from "./documento.ts";
 
 export const SEXOS = ["M", "F", "X"] as const;
@@ -17,8 +17,8 @@ export function crearPacienteSchema(ahora: () => Date = () => new Date()) {
   return z
     .object({
       ...camposDocumento,
-      nombres: textoObligatorio("Ingrese los nombres"),
-      apellidos: textoObligatorio("Ingrese los apellidos"),
+      nombres: textoObligatorio("Ingrese los nombres", LONGITUD_MAXIMA.nombre),
+      apellidos: textoObligatorio("Ingrese los apellidos", LONGITUD_MAXIMA.nombre),
       fecha_nacimiento: fechaCalendario("Ingrese la fecha de nacimiento", "Ingrese una fecha de nacimiento válida"),
       sexo: opcionDeLista(SEXOS, "Seleccione el sexo (M, F o X)"),
       email: z.preprocess(
@@ -27,10 +27,11 @@ export function crearPacienteSchema(ahora: () => Date = () => new Date()) {
           .string({ invalid_type_error: "Ingrese el correo electrónico" })
           .trim()
           .min(1, "Ingrese el correo electrónico")
+          .max(LONGITUD_MAXIMA.correo, mensajeLongitudMaxima(LONGITUD_MAXIMA.correo))
           .email("Ingrese un correo electrónico válido"),
       ),
-      telefono: textoOpcional,
-      direccion: textoOpcional,
+      telefono: textoOpcional(LONGITUD_MAXIMA.telefono),
+      direccion: textoOpcional(LONGITUD_MAXIMA.direccion),
     })
     .superRefine((datos, ctx) => {
       validarDocumento(datos, ctx);

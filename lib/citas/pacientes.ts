@@ -59,7 +59,9 @@ export async function buscarPacientes(
 
   const { texto, parametros } = sentenciaBusqueda(validada.data.termino);
   try {
-    // Un rol que no es administrativo no recibe filas (RLS): el resultado vacío es el correcto, no un error.
+    // La RLS acota las filas de cada rol (un paciente solo ve su propio registro; un médico, los pacientes con quienes tiene
+    // relación vigente; enfermera y sin rol, ninguno). Por eso la acción exige ANTES el rol administrativo: la RLS es la última
+    // barrera, no la única.
     return exito((await consultar(ejecutar, texto, parametros)) as unknown as PacienteEncontrado[]);
   } catch (error) {
     return traducirError(error, "buscar_paciente");
