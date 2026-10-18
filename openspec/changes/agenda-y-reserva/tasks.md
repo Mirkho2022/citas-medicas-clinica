@@ -178,6 +178,36 @@ empieza cuando H2b está aplicado.
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y
       acceso a historias clínicas vía confirmación). Verificar que no quedan hallazgos críticos abiertos y que los corregidos
       tienen su prueba pgTAP.
+      Avance (sin marcar: hay hallazgos medios abiertos que necesitan decisión): revisión de solo lectura con el agente `code-review`
+      (2026-10-18; no ejecutó pgTAP). **Sin hallazgos críticos:** no hay filtración de historias clínicas ni función `SECURITY DEFINER`
+      mal acotada (`search_path` vacío, `EXECUTE` solo a `authenticated`, la interna a nadie); las funciones `INVOKER` verifican
+      `rol_actual()` antes de sondear citas; la vista `citas_por_reasignar` es `security_invoker` y no une `pacientes`; reprogramar
+      cancela antes de insertar y se revierte entera; `atendida` solo se alcanza por `marcar_cita_atendida`; confirmar no concede
+      acceso por reprogramar ni reasignar; `UC002` no distingue una cita ajena de una inexistente. **Abiertos:**
+      (1) MEDIA, reproducida en `h3/pruebas`: la ventana de 1 h solo se valida en `UPDATE OF estado` y `authenticated` tiene `UPDATE` de
+      tabla completa, así que el administrativo puede mover `inicio`/`fin` de una cita que empieza en 50 minutos con un `UPDATE` y luego
+      cancelarla con otro (la ventana se mide contra el `inicio` ya movido), o mover `fin` hacia adelante y confirmar una cita
+      terminada, lo que concede acceso a la historia de forma retroactiva (D13 lo quiere evitar con `now() < fin`); y un paciente
+      puede `INSERT` directo una cita de 400 días fuera de la malla (la RLS solo mira `paciente_id`, `origen` e `inicio > now()`; el
+      `EXCLUDE` solo protege contra solapes). Hoy ninguna acción de la aplicación lo hace (solo SQL directo); H4 añadirá la política de
+      `UPDATE` del paciente y lo volvería alcanzable. **No se corrigió** porque cualquier arreglo choca con pruebas de H2 que fijan el
+      comportamiento actual (`31_cancelacion` líneas 85–98: mover y cancelar en el mismo `UPDATE` espera `P0001` y un `UPDATE` de otra
+      columna debe pasar; `32_citas_rls` inserta citas como `authenticated` en horarios fuera de malla) y la regla es informar en vez
+      de editarlas. Propuesta para decidir: un disparador `BEFORE UPDATE` (también para el administrativo) que rechace cambios fuera
+      de `estado`, `cancelada_en` y `cancelada_por`, y una comprobación `BEFORE INSERT` con `horario_en_agenda`; encaja con
+      `citas_proteger_columnas_paciente` de H4 (D4), que quedaría subsumido.
+      (2) MEDIA-BAJA: un bloqueo sin fecha de fin (`tstzrange(x, null)`) hace que `citas_por_reasignar` no devuelva ninguna cita
+      (`upper(b.rango) > now()` es nulo), aunque `validar_cancelacion` sí le aplica la excepción; solo la Zod exige el fin. Arreglo:
+      `CHECK (not upper_inf(rango))` en `bloqueos_agenda` o `upper_inf(b.rango) or …` en la vista.
+      (3) BAJA-MEDIA: `propuestas_reasignacion` ordena por cita pero sin desempate por candidato; no garantiza que el «mismo horario» vaya
+      primero con muchas citas en orden físico desordenado (la prueba 38 usa 3 citas ya ordenadas). Arreglo: `row_number()` dentro del
+      lateral y `order by a.inicio, a.cita_id, t.orden`.
+      (4) BAJA: una cita `reservada` cuya hora pasó no tiene salida (`reservada → no_asistio` no existe) y el médico conserva la lectura
+      de `pacientes` mientras siga vigente; depende de la pregunta abierta 1 de design.md.
+      Notas: el paciente puede distinguir «ausencia» de «cita ocupada» combinando `horario_en_agenda` y `slots_disponibles` (sin
+      motivos ni identidades); la excepción de la ventana también llega por `reprogramar_cita` y por `UPDATE` directo (D9 es más fuerte
+      que la realidad); el disparador de transiciones solo actúa sobre `authenticated`, así que toda función `SECURITY DEFINER`
+      futura que escriba en `citas` (H4, H5, H7) debe validarse sola, como `marcar_cita_atendida`.
 
 ## 7. Fundamentos de la aplicación
 
