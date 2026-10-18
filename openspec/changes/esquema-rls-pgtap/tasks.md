@@ -215,6 +215,10 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
       antes del despliegue porque el endpoint registrado apunta a la URL de producción de Vercel (código de H1,
       sin sincronización a base de datos) y el webhook no puede llegar a una base local; se hace tras el merge,
       con los pasos de 10.5 cumplidos.
+      **Verificado en parte (2026-10-18, producción, solo agregados sobre `perfiles`):** tras registrarse una cuenta
+      nueva hay 1 perfil, con rol `paciente`, nombres y apellidos no vacíos y activo, de modo que `user.created`
+      sincroniza. **Sigue pendiente:** comprobar `user.updated` (cambiar el nombre en Clerk y ver el perfil) y que una
+      cuenta de personal invitada queda con el rol invitado.
 
 ## 9. Datos de demostración (mock)
 
@@ -304,7 +308,10 @@ PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
       concurrencia 5/5, integración 7/7, E2E de Preview 9/9 y `99_rls_en_todas_las_tablas` en verde; las 19 tablas de
       `public` tienen RLS y prueba negativa (listado en la descripción del PR). El CI destapó que una reserva
       simultánea puede fallar con `40P01` además de `23P01` (ver 5.2).
-- [ ] 10.7 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las migraciones a producción
+- [x] 10.7 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las migraciones a producción
       y que el deployment de Vercel sigue en estado READY; verificar con el log del workflow y
       `get_deployment`. La siembra de demostración en producción, si se quiere, es una acción
       aparte y explícita (9.1), no parte del merge.
+      **Verificado (2026-10-18):** `migrar-produccion.yml` terminó en `success` tras el merge de #5 (ejecución
+      37853540586, fa0c6cb, 2026-10-08 22:27 UTC), y los despliegues de producción de ese commit y del merge
+      posterior de #6 (c54f860) están en `READY`.
