@@ -11,11 +11,13 @@ import { entradaDeFormulario } from "@/lib/acciones/entrada";
 import { exigirPersonal } from "@/lib/auth/accion-personal";
 import { casoMarcarAtendida, type Entorno } from "@/lib/citas/casos-de-uso";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
+import { emitirTrasCommit } from "@/lib/notificaciones/eventos-cita";
 
 const entorno: Entorno = {
   guarda: (rol) => exigirPersonal(rol),
   ejecutar: ejecutorAutenticado,
   refrescar: (rutas) => rutas.forEach((ruta) => revalidatePath(ruta)),
+  emitir: (evento) => emitirTrasCommit(evento), // «Atendida» no emite eventos; el entorno lo exige por tipo
 };
 
 export async function marcarAtendida(entrada: unknown): Promise<ResultadoAccion<void>> {

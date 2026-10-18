@@ -292,10 +292,30 @@ empieza cuando H2b está aplicado.
       `Registro de cita ya agendado` como `Alerta` de error con la lista refrescada. Llama a `public.reservar_cita()` y emite el
       evento tras el commit. Verificar a mano con dos pestañas del mismo horario (la segunda ve el mensaje exacto) y con una
       prueba unitaria del cálculo de la hora límite.
+      Avance (sin marcar: falta la página `/administrativo/agenda/nueva`): `reservarCita` en `lib/citas/reservas.ts` (llama a
+      `public.reservar_cita()`) y su acción en `app/administrativo/agenda/acciones.ts` (`auth.protect()` + guarda + refresco +
+      `cita_reservada` tras el commit, vía `lib/citas/casos-de-uso.ts`), y el cálculo de la advertencia en
+      `lib/citas/advertencia.ts` (`advertenciaCancelacion`: «Informe al paciente: la cita solo puede cancelarse hasta 1 hora antes, a las
+      13:30.» para una cita a las 14:30; variante si faltan menos de 1 hora; a exactamente 1 hora todavía se puede cancelar; hora de
+      Lima también con `TZ=UTC` y `TZ=Asia/Tokyo`). Pruebas: `tests/agenda/reservas.test.ts` (25) y `tests/integracion/reservas.test.ts`
+      (13, como administrativo, paciente, médico, enfermera y sin rol): una reserva nace `reservada`, con origen `administrativo` y
+      el administrativo como autor, y el horario deja de ofrecerse; la doble reserva (mismo médico, y mismo paciente con otro médico)
+      da exactamente `Registro de cita ya agendado`; horario pasado, fuera de la malla, de otra duración, dentro de una ausencia o
+      de un médico dado de baja dan el mensaje de horario no disponible sin crear la cita; el paciente reserva solo a su nombre
+      (origen `portal`) y médico, enfermera y sin rol no reservan.
 - [ ] 10.3 Añadir `cancelarCita` y `reprogramarCita` (acciones y `lib/citas`) con el diálogo de confirmación basado en `<dialog>`
       nativo, el botón deshabilitado con explicación cuando falta menos de 1 hora y no hay bloqueo, y el mensaje propio de
       «reprogramar». Verificar a mano: cancelar a más de 1 hora funciona, a menos de 1 hora está deshabilitado, y reprogramar
       hacia un horario ocupado deja la original vigente; y por prueba unitaria que el evento de reprogramación es uno solo.
+      Avance (sin marcar: faltan el diálogo `<dialog>` y el botón deshabilitado con explicación en la pantalla): `cancelarCita` (una sola
+      sentencia, solo sobre citas vigentes) y `reprogramarCita` (`public.reprogramar_cita()`) en `lib/citas/reservas.ts`, con sus
+      acciones y casos de uso. La reprogramación emite UN solo `cita_reprogramada` (prueba unitaria; no se emite además una
+      cancelación ni una reserva). Integración: cancelar con más de 1 hora registra quién y cuándo, libera el horario y no borra; con
+      menos de 1 hora se rechaza aunque cancele el administrativo y con una ausencia del médico que la cubre se acepta; una cita atendida,
+      «No asistió» o ya cancelada da «La cita ya no está vigente»; reprogramar crea la nueva `reservada` (aunque la original
+      estuviera `confirmada`) con `reprogramada_de`; un destino ocupado o inválido deja la original vigente y sin cancelar; una
+      original dentro de la hora previa da el mensaje de «reprogramar». **Contrato para H4:** en H3 el paciente no tiene política de
+      `UPDATE` sobre `citas` (la añade `portal-del-paciente`), así que `cancelarCita` como paciente hoy no encuentra la fila.
 - [ ] 10.4 Crear `lib/citas/transiciones.ts` y las acciones `confirmarCita` y `marcarNoAsistio` en
       `app/administrativo/agenda/acciones.ts` (guarda `exigirPersonal('administrativo')`, `update … set estado … returning
       estado` sin filtrar por estado en el `WHERE`, `UC004` con el mensaje de cada acción, sin eventos), y en la agenda del día
@@ -341,6 +361,13 @@ empieza cuando H2b está aplicado.
       alta de baja que lleva del bloqueo a esta pantalla con el aviso del efecto del bloqueo. Verificar a mano: reasignar dentro
       de la hora previa funciona, tres filas con una fallida dejan dos reasignadas y la tercera vigente, y la fila fallida se
       puede reintentar con propuestas nuevas.
+      Avance (sin marcar: falta el flujo de alta de baja que lleva del bloqueo a la pantalla de reasignación): `reasignarPorBaja` en
+      `lib/citas/reservas.ts` (una llamada a `public.reasignar_cita_por_baja()` por cita, en orden, un resultado por fila, filas
+      inválidas marcadas sin consultar la base de datos, máximo 50 por envío), su acción y su caso de uso, que emite un
+      `cita_reprogramada` con motivo `baja_medica` por cada fila hecha y solo por ellas. Integración: con una cita reasignada y otra a un
+      sustituto de otra especialidad, la primera se reasigna (original `cancelada`, nueva con `reprogramada_de` y el médico sustituto)
+      y la segunda da «Esta reasignación no corresponde a la baja registrada» y queda vigente; reintentada con un sustituto válido
+      se hace; una baja que no cubre la cita da el mismo mensaje. Por mutación, si una fila fallida detuviera el lote fallan 3 pruebas.
 
 ## 12. Pruebas E2E y accesibilidad
 

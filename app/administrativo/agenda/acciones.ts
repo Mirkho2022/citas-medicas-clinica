@@ -8,13 +8,24 @@ import { revalidatePath } from "next/cache";
 import type { ResultadoAccion } from "@/lib/acciones/resultado";
 import { entradaDeFormulario } from "@/lib/acciones/entrada";
 import { exigirPersonal } from "@/lib/auth/accion-personal";
-import { casoConfirmarCita, casoMarcarNoAsistio, type Entorno } from "@/lib/citas/casos-de-uso";
+import {
+  casoCancelarCita,
+  casoConfirmarCita,
+  casoMarcarNoAsistio,
+  casoReasignarPorBaja,
+  casoReprogramarCita,
+  casoReservarCita,
+  type Entorno,
+} from "@/lib/citas/casos-de-uso";
+import type { ResultadoFilaReasignacion } from "@/lib/citas/reservas";
+import { emitirTrasCommit } from "@/lib/notificaciones/eventos-cita";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
 
 const entorno: Entorno = {
   guarda: (rol) => exigirPersonal(rol),
   ejecutar: ejecutorAutenticado,
   refrescar: (rutas) => rutas.forEach((ruta) => revalidatePath(ruta)),
+  emitir: (evento) => emitirTrasCommit(evento),
 };
 
 // `reservada → confirmada`. Confirmar concede al médico acceso a la historia del paciente (ADR-0016).
@@ -27,4 +38,30 @@ export async function confirmarCita(entrada: unknown): Promise<ResultadoAccion<{
 export async function marcarNoAsistio(entrada: unknown): Promise<ResultadoAccion<{ estado: "confirmada" | "no_asistio" }>> {
   await auth.protect();
   return casoMarcarNoAsistio(entorno, entradaDeFormulario(entrada));
+}
+
+// Agendar una cita en un horario libre (único punto de reserva: `public.reservar_cita()`). Emite `cita_reservada` tras el commit.
+export async function reservarCita(entrada: unknown): Promise<ResultadoAccion<{ id: string }>> {
+  await auth.protect();
+  return casoReservarCita(entorno, entradaDeFormulario(entrada));
+}
+
+// Cancelar respeta la ventana de 1 hora para todos los roles; la confirmación explícita la pide la pantalla.
+export async function cancelarCita(entrada: unknown): Promise<ResultadoAccion<{ id: string }>> {
+  await auth.protect();
+  return casoCancelarCita(entorno, entradaDeFormulario(entrada));
+}
+
+// Reprogramar: cancela la original y crea la nueva en una transacción; emite UN solo `cita_reprogramada`.
+export async function reprogramarCita(entrada: unknown): Promise<ResultadoAccion<{ id: string; citaAnteriorId: string }>> {
+  await auth.protect();
+  return casoReprogramarCita(entorno, entradaDeFormulario(entrada));
+}
+
+// Reasignar por baja médica: una transacción por cita elegida y un resultado por fila.
+export async function reasignarPorBaja(
+  entrada: unknown,
+): Promise<ResultadoAccion<{ bloqueoId: string; filas: ResultadoFilaReasignacion[] }>> {
+  await auth.protect();
+  return casoReasignarPorBaja(entorno, entradaDeFormulario(entrada));
 }

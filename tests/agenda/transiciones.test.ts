@@ -119,12 +119,14 @@ function entornoDe(opciones: { rol: Rol | null; usuarioId?: string | null; mfa?:
   };
   const { ejecutar, llamadas } = ejecutorDe({ filas: opciones.filas, error: opciones.error });
   const refrescadas: (readonly string[])[] = [];
+  const emitidos: unknown[] = [];
   const entorno: Entorno = {
     guarda: (rol) => exigirPersonal(rol, dependencias),
     ejecutar,
     refrescar: (rutas) => void refrescadas.push(rutas),
+    emitir: (evento) => void emitidos.push(evento),
   };
-  return { entorno, llamadas, refrescadas };
+  return { entorno, llamadas, refrescadas, emitidos };
 }
 
 test("un administrativo que intenta marcar «Atendida» es rechazado y no ejecuta ninguna consulta", async () => {
@@ -171,8 +173,9 @@ test("con el rol correcto la operación sale, refresca las pantallas y no emite 
   assert.deepEqual(await casoMarcarAtendida(atendida.entorno, { cita_id: CITA }), { ok: true, datos: undefined });
   assert.deepEqual(atendida.refrescadas, [RUTAS_JORNADA_MEDICO]);
 
-  // El entorno no tiene `emitir`: confirmar, «No asistió» y «Atendida» no emiten eventos (design.md, D10 y D13).
-  assert.equal("emitir" in confirmada.entorno, false);
+  // Confirmar, «No asistió» y «Atendida» no emiten eventos (design.md, D10 y D13).
+  assert.deepEqual(confirmada.emitidos, []);
+  assert.deepEqual(atendida.emitidos, []);
 });
 
 test("si la operación falla no se refrescan las pantallas", async () => {

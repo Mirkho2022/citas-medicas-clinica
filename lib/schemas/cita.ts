@@ -48,3 +48,29 @@ export const reprogramarCitaSchema = z
   .superRefine(finPosteriorAlInicio);
 
 export type DatosReprogramacion = z.infer<typeof reprogramarCitaSchema>;
+
+// Reasignación por baja médica (specs/reasignacion-por-baja-medica): una fila por cita elegida, con el médico sustituto y el
+// horario que ofreció `propuestas_reasignacion`. Cada fila se valida y se ejecuta por separado (una transacción por cita).
+export const reasignacionFilaSchema = z
+  .object({
+    cita_id: identificador("Seleccione una cita"),
+    medico_id: identificador("Seleccione el médico sustituto"),
+    inicio: instanteIso(MENSAJE_HORARIO_REQUERIDO, "El horario elegido no es válido"),
+    fin: instanteIso(MENSAJE_HORARIO_REQUERIDO, "El horario elegido no es válido"),
+  })
+  .superRefine(finPosteriorAlInicio);
+
+export type FilaReasignacion = z.infer<typeof reasignacionFilaSchema>;
+
+export const MAXIMO_REASIGNACIONES_POR_ENVIO = 50;
+
+// Una reasignación se hace sobre una baja (un bloqueo del médico) y una lista de citas. La lista se valida fila por fila.
+export const reasignarPorBajaSchema = z.object({
+  bloqueo_id: identificador("Seleccione una baja"),
+  reasignaciones: z
+    .array(z.unknown(), { invalid_type_error: "Seleccione al menos una cita", required_error: "Seleccione al menos una cita" })
+    .min(1, "Seleccione al menos una cita")
+    .max(MAXIMO_REASIGNACIONES_POR_ENVIO, `Reasigne como máximo ${MAXIMO_REASIGNACIONES_POR_ENVIO} citas por vez`),
+});
+
+export type DatosReasignacion = z.infer<typeof reasignarPorBajaSchema>;
