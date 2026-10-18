@@ -247,11 +247,22 @@ empieza cuando H2b está aplicado.
 
 ## 9. Horarios y bloqueos
 
-- [ ] 9.1 Crear `lib/citas/disponibilidades.ts`, `lib/citas/bloqueos.ts` y `app/administrativo/horarios/acciones.ts` con
+- [x] 9.1 Crear `lib/citas/disponibilidades.ts`, `lib/citas/bloqueos.ts` y `app/administrativo/horarios/acciones.ts` con
       `guardarDisponibilidad`, `eliminarDisponibilidad`, `crearBloqueo`, `actualizarBloqueo` y `eliminarBloqueo` (guarda, Zod,
       fechas de bloqueo interpretadas como Lima, `23P01` → mensajes de solape, nunca el de doble reserva). Verificar con las
       pruebas de `traducirError` de 7.1 y ejecutando cada acción como administrativo en un branch de desarrollo (un solape de
       horario y uno de ausencia devuelven su mensaje y `SOLAPE`).
+      Resultado: `lib/citas/disponibilidades.ts` (`guardarDisponibilidad`, con o sin `id`, y `eliminarDisponibilidad`) y
+      `lib/citas/bloqueos.ts` (`crearBloqueo`, `actualizarBloqueo`, `eliminarBloqueo`) con el mismo `Ejecutor` que 8.1;
+      `app/administrativo/horarios/acciones.ts` solo añade `auth.protect()`, la guarda y el refresco. Modificar y eliminar actúan
+      solo si el tramo o el bloqueo es del médico indicado (`id` + `medico_id`). Crear o modificar una ausencia devuelve cuántas
+      citas vigentes del médico caen dentro del periodo (`citasAfectadas`), para el aviso de 11.2. Pruebas:
+      `tests/agenda/horarios.test.ts` (21, también con `TZ=UTC` y `TZ=Asia/Tokyo`) y `tests/integracion/horarios.test.ts` (8, contra el
+      branch de pruebas como administrativo, paciente, médico, enfermera y sin rol): solape de horarios (`SOLAPE`, mensaje propio,
+      distinto de la doble reserva), contiguos, otro día u otro médico, vigencias que no se cruzan, vigencia por defecto = hoy en
+      Lima, 20 minutos por defecto, ausencia con fechas de Lima (08:00 → 13:00Z), solape de ausencias (`SOLAPE`, mensaje
+      propio), auditoría del alta, el cambio y el borrado con rol `administrativo`, y los cuatro roles sin permiso rechazados sin
+      tocar nada. En la primera corrida una prueba cayó con `ECONNRESET` (la conexión, no el código); repetida, 8 de 8.
 - [ ] 9.2 Crear `/administrativo/horarios` (lista de médicos con especialidad) y `/administrativo/horarios/[medicoId]`
       (plantilla semanal con alta, edición y baja de tramos; bloqueos con alta, edición y baja). Verificar a mano: alta de
       «lunes 08:00–12:00, 20 min», rechazo de uno solapado con el mensaje propio, alta de una ausencia con fechas de Lima y
@@ -259,6 +270,13 @@ empieza cuando H2b está aplicado.
 - [ ] 9.3 Implementar la advertencia al eliminar o acortar una disponibilidad: contar las citas vigentes futuras que quedarían
       fuera de la nueva malla y mostrarlas sin cancelarlas. Verificar con una prueba unitaria de la función que decide si una cita
       cae fuera y a mano con una cita futura creada para el caso.
+      Avance (sin marcar: falta mostrar el aviso en la pantalla de horarios, 9.2): la función que decide si una cita cae fuera
+      es `citaEnLaMalla` (`lib/citas/disponibilidades.ts`), y `guardarDisponibilidad`/`eliminarDisponibilidad` devuelven
+      `fueraDelHorario: { cantidad, citaIds }` calculado con la plantilla RESULTANTE en la misma transacción, sin cancelar nada.
+      Pruebas: unitarias de la malla (borde del tramo, desalineada, otra duración, día, vigencia, medianoche de Lima y tramo hasta
+      las 24:00; por mutación fallan al quitar el módulo de la malla, la vigencia o el día), de integración con citas futuras reales
+      (acortar deja 1 fuera, eliminar deja 2, ninguna cancelada) y una comparación de ~400 horarios entre `citaEnLaMalla` y
+      `horario_en_agenda` de la base de datos.
 
 ## 10. Agenda, reserva y ciclo de estados
 

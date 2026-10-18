@@ -27,6 +27,14 @@ export function identificador(mensaje: string) {
   return z.preprocess(aTexto, z.string({ invalid_type_error: mensaje }).trim().uuid(mensaje));
 }
 
+/// Identificador `uuid` opcional: ausente o vacío queda como `undefined` (p. ej. el `id` al guardar: sin él, es un alta).
+export function identificadorOpcional(mensaje: string) {
+  return z.preprocess(
+    (valor) => (valor === null || valor === undefined || (typeof valor === "string" && valor.trim() === "") ? undefined : valor),
+    z.string({ invalid_type_error: mensaje }).trim().uuid(mensaje).optional(),
+  );
+}
+
 // Un valor de una lista cerrada (p. ej. el sexo). Un valor fuera de la lista falla con `mensaje` SIN abortar el objeto que lo
 // contiene (un `z.enum` o un `transform` posterior sí lo abortarían y ocultarían los demás errores del mismo envío). Por eso
 // se valida con `superRefine` y el tipo `T` se declara con una aserción: solo es cierto cuando la validación pasó.

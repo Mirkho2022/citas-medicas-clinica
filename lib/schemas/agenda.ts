@@ -8,6 +8,7 @@ import {
   fechaCalendario,
   horaDelDia,
   identificador,
+  identificadorOpcional,
   textoObligatorio,
 } from "./comun.ts";
 
@@ -114,3 +115,18 @@ export const bloqueoSchema = z
   });
 
 export type DatosBloqueo = z.infer<typeof bloqueoSchema>;
+
+// Identificador de un tramo de disponibilidad o de un bloqueo que se modifica o elimina. Va con el médico dueño: la
+// operación solo actúa si el tramo o el bloqueo es de ese médico, y la respuesta puede calcular el efecto sobre sus citas.
+export const tramoRefSchema = z.object({
+  id: identificador("Seleccione un horario"),
+  medico_id: identificador("Seleccione un médico"),
+});
+
+export const bloqueoRefSchema = z.object({
+  id: identificador("Seleccione una ausencia"),
+  medico_id: identificador("Seleccione un médico"),
+});
+
+// Al guardar, el `id` es opcional: sin él es un alta; con él, una modificación.
+export const idOpcionalSchema = z.object({ id: identificadorOpcional("El identificador no es válido") });
