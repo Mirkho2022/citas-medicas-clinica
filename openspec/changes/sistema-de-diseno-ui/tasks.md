@@ -27,7 +27,7 @@ instalan o ejecutan con la autorización del usuario.
       una lista de pares adicionales (4,5:1 texto; 3:1 controles y foco). Verificar que pasa hoy y que falla en tres
       cambios temporales revertidos: editar DESIGN.md sin regenerar, añadir `#fff` en un archivo de `app/` y bajar el
       contraste de `ink-muted`.
-- [ ] 1.5 Añadir `npm run tema:comprobar` y `npm run test:tema` al job `typecheck-lint-build` de
+- [x] 1.5 Añadir `npm run tema:comprobar` y `npm run test:tema` al job `typecheck-lint-build` de
       `.github/workflows/ci.yml` (archivo con CRLF: conservarlos). Verificar en el PR que los pasos aparecen y pasan.
 
 ## 2. Base de interfaz: tipografía, tema claro y shadcn/ui
@@ -135,7 +135,7 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 9. Verificación integral en el PR
 
-- [ ] 9.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:tema`,
+- [x] 9.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:tema`,
       `npm run tema:comprobar` y la suite E2E completa; verificar que todo pasa y que el PR trae el cuadro de cada
       requisito de la spec con la prueba que lo cubre.
 - [ ] 9.2 Revisar visualmente en el preview de Vercel la galería, las cuatro áreas y las pantallas de autenticación a 390 px
