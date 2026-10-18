@@ -15,10 +15,15 @@ empieza cuando H2b está aplicado.
       `InsigniaEstado`, `TarjetaCita`, `Alerta`, `Campo` y `CampoDocumento`, `lib/ui/formato.ts`, `lib/ui/navegacion.ts` y
       `ConsolaLayout`. Verificar con `ls` y `npm run typecheck`; si falta algo, detenerse y avisar al usuario en vez de
       reinventar los componentes.
-- [ ] 1.2 Buscar solapes ya existentes en `disponibilidades` (misma tupla médico, día de semana, tramo horario y vigencia que
+- [x] 1.2 Buscar solapes ya existentes en `disponibilidades` (misma tupla médico, día de semana, tramo horario y vigencia que
       se cruzan) con una consulta de solo lectura, en el branch con datos de demostración y en producción. Verificar que
       devuelve cero filas y dejar la consulta y su resultado en la descripción del PR; si devuelve filas, parar y consultar al
       usuario (corregir datos es una acción explícita, no parte de la migración).
+      Resultado (2026-10-18, solo lectura): la consulta de solapes (`a.id < b.id` con mismo médico, mismo día de la semana,
+      `tsrange` de horas que se cruzan y `daterange` de vigencias que se cruzan) devolvió **0 solapes** en el branch `h3/pruebas`
+      (hijo de `dev`) y en `production`; ambos tienen **0 filas** en `disponibilidades` (la siembra de demostración aún no se
+      aplicó a `dev` ni a producción, así que la restricción nueva no puede fallar al migrar). Pendiente: copiar la consulta y este
+      resultado a la descripción del PR.
 - [ ] 1.3 Revisar con el usuario las preguntas abiertas de `design.md` que condicionan pantallas (1, 2 y 3: cita `reservada`
       vencida sin confirmar, horizonte de sustitutos y baja sin fecha de término) y anotar las respuestas en `design.md` antes
       del grupo 11. Verificar que cada pregunta queda con respuesta o con el valor por defecto aceptado por escrito.
@@ -36,25 +41,29 @@ empieza cuando H2b está aplicado.
 
 ## 2. Migración 1: disponibilidades sin solape, vigencia en Lima y auditoría de bloqueos
 
-- [ ] 2.1 Crear la migración `disponibilidad-sin-solape-y-auditoria-de-bloqueos`: restricción `EXCLUDE`
+- [x] 2.1 Crear la migración `disponibilidad-sin-solape-y-auditoria-de-bloqueos`: restricción `EXCLUDE`
       `disponibilidades_sin_solape` (médico, día de semana, tramo horario y vigencia como rangos), `vigente_desde` con valor
       por defecto `public.hoy_lima()` y disparador `bloqueos_auditoria` con `registrar_auditoria()`. Verificar con
       `npm run migrate up` en un branch de desarrollo con datos de demostración (sin errores) y con `\d disponibilidades`.
-- [ ] 2.2 Escribir `tests/pgtap/34_disponibilidad_solape.test.sql`: tramos solapados el mismo día fallan con `23P01`, contiguos
+- [x] 2.2 Escribir `tests/pgtap/34_disponibilidad_solape.test.sql`: tramos solapados el mismo día fallan con `23P01`, contiguos
       pasan, otro día u otro médico pasan, vigencias disjuntas pasan, el valor por defecto de `vigente_desde` es la fecha de
       Lima (con `now()` a las 02:00 UTC), y los bloqueos crean, modifican y borran dejando fila en `auditoria` con el actor
       administrativo; negativos: paciente, médico, enfermera y sesión sin rol no escriben `disponibilidades` ni
       `bloqueos_agenda`, y paciente y enfermera no leen bloqueos. Verificar con `node scripts/ejecutar-pgtap.ts 34` y que una
       mutación temporal (quitar `dia_semana with =`) hace fallar al menos una.
+      Resultado: 32 pruebas, 0 fallos; con la restricción mutada (sin `dia_semana`) fallan 5 (otro día, las dos de `vigente_desde`
+      y su conteo, y la de integridad de las disponibilidades). Nota: `now()` es fijo en la transacción y no puede moverse a las 02:00
+      UTC; el valor por defecto se prueba con la sesión en UTC+14 y en UTC-11 (que siempre difieren en un día), de modo que
+      `current_date` no puede coincidir con la fecha de Lima en ambas.
 
 ## 3. Migración 2: cálculo de slots
 
-- [ ] 3.1 Crear la migración `slots-disponibles` con `slots_agenda` (interna, `EXECUTE` revocado a todos),
+- [x] 3.1 Crear la migración `slots-disponibles` con `slots_agenda` (interna, `EXECUTE` revocado a todos),
       `slots_disponibles(médico, fecha)` y `horario_en_agenda(médico, inicio, fin)`: `SECURITY DEFINER`, `search_path` vacío,
       nombres calificados, médico activo, guarda de rol (`administrativo` y `paciente`; vacío o `false` para los demás), solo
       `(inicio, fin)` en la salida, `EXECUTE` a `authenticated` únicamente. Verificar con `migrate up` y con
       `select proconfig, prosecdef from pg_proc where proname in (…)`: las tres con `search_path=""` y `prosecdef` verdadero.
-- [ ] 3.2 Escribir `tests/pgtap/35_slots.test.sql` con todos los escenarios de `disponibilidad-y-slots`: seis slots de 08:00 a
+- [x] 3.2 Escribir `tests/pgtap/35_slots.test.sql` con todos los escenarios de `disponibilidad-y-slots`: seis slots de 08:00 a
       10:00; tramo no múltiplo (último a las 09:20); cita vigente oculta y cancelada libera; bloqueo parcial oculta tres slots;
       pasados no se ofrecen; sin disponibilidad y fuera de vigencia; médico inactivo; tramo 18:00–20:00 de Lima consultado con
       la sesión en `UTC` y en `Asia/Tokyo`; `horario_en_agenda` exacto sí y fuera de malla, duración distinta o dentro de
@@ -69,29 +78,29 @@ empieza cuando H2b está aplicado.
 
 ## 4. Migración 3: reservar y reprogramar en la base de datos
 
-- [ ] 4.1 Crear la migración `reservar-y-reprogramar-cita` con `reservar_cita` y `reprogramar_cita` (PL/pgSQL, `SECURITY
+- [x] 4.1 Crear la migración `reservar-y-reprogramar-cita` con `reservar_cita` y `reprogramar_cita` (PL/pgSQL, `SECURITY
       INVOKER`, `search_path` vacío, `EXECUTE` a `authenticated`, revocado a `public`): guarda de rol, `inicio > now()`,
       `horario_en_agenda`, errores propios `UC001` y `UC002` (nunca `P0001`), cancelar antes de insertar, `select … for update`
       de la original, cita nueva `reservada` con `reprogramada_de`, `origen` por rol y `creada_por = perfil_actual()`.
       Verificar con `migrate up` y consultando `pg_proc` (`prosecdef` falso, `search_path=""`).
-- [ ] 4.2 Escribir `tests/pgtap/36_reservar_cita.test.sql`: reserva del administrativo (origen `administrativo`, `reservada`,
+- [x] 4.2 Escribir `tests/pgtap/36_reservar_cita.test.sql`: reserva del administrativo (origen `administrativo`, `reservada`,
       `creada_por`) y del paciente (origen `portal`); horario pasado, fuera de malla, dentro de bloqueo y médico inactivo fallan
       con `UC001`; segunda reserva del mismo médico y del mismo paciente con otro médico fallan con `23P01`; una cancelada
       libera el horario. Negativos: paciente a nombre de otro paciente, `medico_a`, `enfermera` y `sin_rol` fallan con `42501`
       y no dejan citas. Verificar con `node scripts/ejecutar-pgtap.ts 36`.
-- [ ] 4.3 Escribir `tests/pgtap/37_reprogramar_cita.test.sql`: éxito (original `cancelada` con `cancelada_por`, nueva `reservada`
+- [x] 4.3 Escribir `tests/pgtap/37_reprogramar_cita.test.sql`: éxito (original `cancelada` con `cancelada_por`, nueva `reservada`
       con `reprogramada_de`, nueva no hereda `confirmada` y no crea asignación); nuevo horario ocupado deja la original
       vigente; nuevo horario inválido deja la original vigente; original a 30 minutos falla con `P0001` sin cita nueva; original
       cubierta por bloqueo sí se reprograma; cita cancelada o inexistente falla con `UC002`; mover a un horario contiguo del
       mismo paciente funciona (cancelar antes de insertar). Negativos: paciente, médico, enfermera y sin rol fallan con `42501`.
       Verificar con `node scripts/ejecutar-pgtap.ts 37`.
-- [ ] 4.4 Crear el ayudante `tests/concurrencia/_sesion.ts` (par Ed25519 efímero, token por cliente con `sub` y
+- [x] 4.4 Crear el ayudante `tests/concurrencia/_sesion.ts` (par Ed25519 efímero, token por cliente con `sub` y
       `publicMetadata.rol`, conexión directa con `pg_session_jwt.jwk`, `auth.jwt_session_init` y `set role authenticated`) y
       `tests/concurrencia/20_reservar_cita_funcion.test.ts`: 20 rondas de 5 administrativos llamando a `reservar_cita` sobre el
       mismo horario confirman exactamente una cita y los demás reciben `23P01` o `40P01`; dos reprogramaciones simultáneas de la
       misma cita dejan una sola cita nueva y la otra recibe `UC002`. Las filas de prueba se limpian al empezar y al terminar.
       Verificar con `npm run test:concurrencia`, y que el helper se niega a correr si el destino es producción.
-- [ ] 4.5 Documentar en `docs/pruebas-sql.md` el helper `_sesion.ts`, los archivos 34 a 37 y cómo correr una sola prueba.
+- [x] 4.5 Documentar en `docs/pruebas-sql.md` el helper `_sesion.ts`, los archivos 34 a 37 y cómo correr una sola prueba.
       Verificar que los comandos del documento corren tal como están escritos.
 
 ## 5. Migración 4: reasignación por baja

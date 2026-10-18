@@ -12,6 +12,7 @@ autenticación de pruebas está en [spike-rls-h2.md](spike-rls-h2.md).
 | Ayudas pgTAP | `tests/pgtap/_ayudas.sql` | `tests.autenticar_como(identidad)`, `tests.sub()`, `tests.volver_a_dueno()` |
 | Runner pgTAP | `scripts/ejecutar-pgtap.ts` | Genera los tokens, abre la conexión y corre cada archivo en una transacción que se revierte |
 | Concurrencia | `tests/concurrencia/*.test.ts` | Lo que pgTAP no puede probar (varias sesiones a la vez): doble reserva |
+| Sesiones autenticadas | `tests/concurrencia/_sesion.ts` | Abre conexiones directas como `authenticated` con una identidad y un rol, para llamar a las funciones de la aplicación bajo concurrencia |
 | Integración | `tests/integracion/*.test.ts` | El SQL de la aplicación con los privilegios reales de un rol de servicio (p. ej. `sync_identidad`), en una transacción que se revierte |
 
 ## Cómo se ejecutan
@@ -31,6 +32,31 @@ ENV_FILE=ruta/otro.env npm run test:pgtap   # leer otro archivo de entorno
 Si `DATABASE_URL_PRODUCCION` está definida y coincide con el destino, ambos runners se niegan a
 correr. En CI las pruebas corren en el branch efímero del PR (`neon-branch-pr.yml`), después de
 `migrate up`.
+
+## Pruebas de la agenda (H3)
+
+| Archivo | Qué prueba |
+|---|---|
+| `34_disponibilidad_solape` | `EXCLUDE` de disponibilidades (cruce, contiguo, otro día u otro médico, vigencias), `vigente_desde` en fecha de Lima y auditoría de bloqueos |
+| `35_slots` | `slots_disponibles` y `horario_en_agenda`: malla, bloqueos, citas, pasado, baja, frontera con UTC y que el paciente no ve citas ni bloqueos ajenos |
+| `36_reservar_cita` | `reservar_cita`: origen por rol, `UC001`, `23P01` y roles sin permiso (`42501`) |
+| `37_reprogramar_cita` | `reprogramar_cita`: éxito, original intacta si falla, ventana de 1 hora, `UC002` y cancelar antes de insertar |
+
+Los datos de estas pruebas usan DNI `74NNxxxx` (NN = número del archivo) y fechas de 2032, lejos en el futuro; `now()` es fijo dentro de
+la transacción, así que los límites de 1 hora son deterministas. Una sola prueba: `node scripts/ejecutar-pgtap.ts 35_slots`
+(el filtro es una subcadena del nombre del archivo; con `35` a secas también coincidiría cualquier archivo que lo contenga).
+
+**Concurrencia como usuario de la aplicación.** `tests/concurrencia/_sesion.ts` firma tokens Ed25519 (par efímero por proceso), abre la
+conexión con `pg_session_jwt.jwk`, ejecuta `auth.jwt_session_init` y `set role authenticated`: `abrirSesion({ sub, rol })` devuelve un
+cliente `pg` que se comporta como la aplicación, y `conSesiones([...], fn)` abre varias y las cierra siempre. El `sub` debe existir como
+`clerk_user_id` de un perfil. El ayudante se niega a correr contra el pooler o contra el host de `DATABASE_URL_PRODUCCION` (la misma guarda
+que `_conexion.ts`). `20_reservar_cita_funcion.test.ts` lo usa para 20 rondas de 5 administrativos sobre `reservar_cita` y 10 rondas de dos
+reprogramaciones de la misma cita:
+
+```bash
+npm run test:concurrencia                                          # todas las pruebas de concurrencia
+node --test tests/concurrencia/20_reservar_cita_funcion.test.ts    # solo esa
+```
 
 ## Escribir una prueba pgTAP
 
