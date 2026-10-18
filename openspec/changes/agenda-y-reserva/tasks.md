@@ -72,9 +72,14 @@ empieza cuando H2b está aplicado.
       vacío; la función no devuelve más columnas que `inicio` y `fin` (`columns_are`/`function_returns`). Verificar con
       `node scripts/ejecutar-pgtap.ts 35` y por mutación: quitar `security definer` hace fallar la prueba del slot ocupado por
       otro paciente.
-- [ ] 3.3 Medir el rendimiento: sembrar en un branch de desarrollo un volumen sintético (p. ej. 50 médicos y 100 000 citas) y
+- [x] 3.3 Medir el rendimiento: sembrar en un branch de desarrollo un volumen sintético (p. ej. 50 médicos y 100 000 citas) y
       ejecutar `explain (analyze, buffers)` de `slots_disponibles` para un día. Verificar que usa `citas_medico_inicio_idx` o
       el GiST y que el tiempo está muy por debajo de 500 ms (p95 de TECH-DESIGN); anotar el plan y el tiempo en el PR.
+      Resultado (2026-10-18, branch `h3/pruebas`, 50 médicos con lunes a viernes 08:00-18:00 y 100 000 citas sintéticas, 75 % de
+      ocupación): 200 consultas de `slots_disponibles` como administrativo dan **p50 0,7 ms, p95 1,1 ms** en el servidor
+      (`EXPLAIN ANALYZE`; máximo 70-90 ms en la primera) y ~110 ms con la red desde esta máquina. El anti-join contra `citas` usa
+      un `Index Only Scan using citas_sin_cruce_medico` (el GiST del `EXCLUDE`), con 0 *heap fetches*; la ejecución completa de un
+      día es de ~3 ms. Los datos sintéticos se borraron al terminar. Pendiente: copiar el plan y el tiempo a la descripción del PR.
 
 ## 4. Migración 3: reservar y reprogramar en la base de datos
 
@@ -105,29 +110,38 @@ empieza cuando H2b está aplicado.
 
 ## 5. Migración 4: reasignación por baja
 
-- [ ] 5.1 Crear la migración `reasignacion-por-baja` con `reasignar_cita_por_baja` y `propuestas_reasignacion` (`SECURITY
+- [x] 5.1 Crear la migración `reasignacion-por-baja` con `reasignar_cita_por_baja` y `propuestas_reasignacion` (`SECURITY
       INVOKER`, solo administrativo, slots calculados una vez por médico y fecha, sin horarios que choquen con otra cita del
       paciente) y la vista `citas_por_reasignar` (`security_invoker = true`, `GRANT SELECT` solo a `authenticated`), error `UC003`.
       Verificar con `migrate up` y `select reloptions from pg_class where relname = 'citas_por_reasignar'`.
-- [ ] 5.2 Escribir `tests/pgtap/38_reasignacion_baja.test.sql`: reasignación dentro de la hora previa con bloqueo (la original
+- [x] 5.2 Escribir `tests/pgtap/38_reasignacion_baja.test.sql`: reasignación dentro de la hora previa con bloqueo (la original
       `cancelada`, la nueva `reservada` con `reprogramada_de`); propuestas: mismo horario primero, más cercano después, otra
       especialidad, médico inactivo y médico con bloqueo excluidos, horario que choca con otra cita del paciente excluido, y
       proponer no cambia ninguna cita; `UC003` con bloqueo de otro médico, bloqueo que no cubre, sustituto de otra
       especialidad, inactivo o el mismo médico; el sustituto no obtiene filas de `atenciones` ni `antecedentes` del paciente
       (negativo de historia clínica) y no se crean ni modifican `asignaciones_paciente_medico`. Negativos: paciente, médico,
       enfermera y sin rol fallan con `42501`. Verificar con `node scripts/ejecutar-pgtap.ts 38`.
-- [ ] 5.3 Escribir `tests/pgtap/39_citas_por_reasignar_rls.test.sql`: el administrativo ve las vigentes cubiertas por un
+- [x] 5.3 Escribir `tests/pgtap/39_citas_por_reasignar_rls.test.sql`: el administrativo ve las vigentes cubiertas por un
       bloqueo; no aparecen canceladas, atendidas ni de otro médico; `medico_a` ve solo las suyas; `paciente_a`, `enfermera` y
       `sin_rol` ven cero filas (incluso de sus propias citas); la cita sale de la vista al acortar el bloqueo, al reprogramarla
       o cancelarla. Verificar con `node scripts/ejecutar-pgtap.ts 39` y ejecutando toda la suite (`npm run test:pgtap`) con
       `99_rls_en_todas_las_tablas` en verde.
-- [ ] 5.4 Ampliar `scripts/sembrar-datos-demo.ts` (idempotente, sin desactivar triggers) con un segundo médico de Medicina
+- [x] 5.4 Ampliar `scripts/sembrar-datos-demo.ts` (idempotente, sin desactivar triggers) con un segundo médico de Medicina
       general (`CMP-DEMO-005`, perfil `mock_`) y su disponibilidad de lunes a viernes, para que exista un sustituto de la misma
       especialidad; actualizar `docs/datos-demo.md` (conteos y nota). Verificar ejecutándolo dos veces en un branch de
       desarrollo con los mismos conteos, y `node scripts/comprobar-datos-demo.ts` y la suite pgTAP completa en verde.
-- [ ] 5.5 Medir `propuestas_reasignacion` en un branch con un bloqueo de 2 semanas sobre un médico con ~80 citas y 3
+      Resultado: dos ejecuciones dan los mismos conteos (5 médicos, 25 disponibilidades, 14 citas…); el comprobador pasa y la suite
+      completa da 680 pruebas, 0 fallos con los datos sembrados. Nota: sin `CLERK_SECRET_KEY` el paciente 99000001 queda sin
+      perfil y el comprobador falla al buscarlo; en el branch descartable se vinculó a mano un perfil `mock_paciente_1` (con las
+      cuentas reales de `dev` no hace falta).
+- [x] 5.5 Medir `propuestas_reasignacion` en un branch con un bloqueo de 2 semanas sobre un médico con ~80 citas y 3
       sustitutos. Verificar con `explain (analyze)` que responde en una sola ronda y por debajo de 500 ms; si no, ajustar `días`
       o `máx` por defecto y anotarlo en `design.md`.
+      Resultado: con un bloqueo de 2 semanas sobre un médico con 204 citas vigentes (más que las ~80 del caso) y 3 sustitutos, la
+      primera versión tardaba ~2,3 s (comprobaba el choque con las citas del paciente para cientos de candidatos por cita). Se
+      reescribió para ordenar los candidatos y descartar los que chocan *después*, hasta reunir `máx` (y con los CTE
+      `MATERIALIZED` para calcular los slots una vez por médico y fecha): **~82 ms** para las mismas 612 propuestas, en una sola
+      llamada. `días` (7) y `máx` (3) no cambian. Anotado en `design.md`, D9.
 
 ## 6. Migración 5: ciclo de estados de la cita (decisión del cliente)
 

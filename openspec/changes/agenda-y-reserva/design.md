@@ -191,6 +191,11 @@ Lima no tiene horario de verano, pero el código no lo asume: delega en la zona 
   Marca `mismo_horario`. Usa `slots_disponibles` calculado **una vez por (médico candidato, fecha)** y no por cita, y descarta
   los horarios que se solapan con otra cita vigente del paciente. «Equivalente» se define así por falta de una definición del
   cliente (Open Questions).
+- **Rendimiento medido (tarea 5.5):** con 204 citas afectadas y 3 sustitutos la función responde en ~82 ms (objetivo < 500 ms). La
+  primera versión comprobaba el choque con otra cita del paciente para cada candidato (cientos por cita) y tardaba ~2,3 s; ahora
+  ordena los candidatos y descarta los que chocan *después*, hasta reunir `máx`, y los slots se materializan una vez por
+  (médico, fecha). La vista `citas_por_reasignar` no une `pacientes` (el médico no lee a los que no tiene a cargo): la pantalla
+  del administrativo trae nombre, documento y contacto con su propia consulta.
 - **`reasignar_cita_por_baja(cita, bloqueo, médico, inicio, fin)`** (`SECURITY INVOKER`, solo administrativo) verifica que el
   bloqueo sea del médico de la cita y la cubra, que el destino sea un médico activo de la **misma especialidad** y distinto del
   original (si no, `UC003`), y delega en `reprogramar_cita`. Así la regla «sustituto de la misma especialidad» no depende de la

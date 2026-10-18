@@ -9,12 +9,12 @@ Proyecto de muestra: se permiten datos mock, **nunca datos reales de pacientes**
 | Qué | Cantidad | Notas |
 |---|---|---|
 | Especialidades | 4 | Medicina general, Pediatría, Cardiología, Ginecología |
-| Médicos | 4 | `CMP-DEMO-001..004`; el 1 usa la cuenta real de médico |
+| Médicos | 5 | `CMP-DEMO-001..005`; el 1 usa la cuenta real de médico. El 5 es un segundo médico de Medicina general (perfil `mock_medico_5`): sirve de sustituto en la reasignación por baja (H3) |
 | Enfermeras | 2 | La 1 usa la cuenta real de enfermera |
 | Administrativo | 1 | Usa la cuenta real de administrativo |
 | Pacientes | 12 | 11 con DNI `99000001..11` y 1 con Carné de Extranjería `CEDEMO000001`; el 1 usa la cuenta real de paciente |
 | Historias clínicas | 12 | Las crea el disparador al registrar a cada paciente |
-| Disponibilidad | 4 × lunes a viernes | 4 horas, mañana o tarde; un bloqueo de agenda (vacaciones del médico 4) |
+| Disponibilidad | 5 × lunes a viernes | 4 horas, mañana o tarde (el médico 5, como el 1, de 08:00 a 12:00); un bloqueo de agenda (vacaciones del médico 4) |
 | Citas | 14 | 6 `atendida` pasadas, 3 `confirmada`, 4 `reservada` y 1 `cancelada`; sin solapes |
 | Asignaciones | 9 | Las genera el disparador de citas (3 confirmadas + 6 atendidas) |
 | Atenciones | 6 | Firmadas, una por cita atendida; más una addenda |
