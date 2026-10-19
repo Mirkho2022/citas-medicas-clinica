@@ -1,7 +1,7 @@
 -- H3, tarea 6.2 (agenda-y-reserva): ciclo de estados de la cita. Spec: gestion-de-citas («Ciclo de estados de la cita»).
 -- validar_transicion_estado() / citas_validar_transicion y marcar_cita_atendida(). Decisión del cliente: la recepción confirma
 -- y marca «No asistió»; el médico marca «Atendida». Confirmar concede acceso a la historia (ADR-0016).
-select plan(56);
+select plan(57);
 
 -- Datos de prueba (dueño). Las horas relativas a now() son estables: now() es fijo dentro de la transacción.
 insert into public.especialidades (nombre) values ('Esp transiciones');
@@ -27,6 +27,12 @@ insert into e
   union all select 'p' || right(numero_documento, 1), id from public.pacientes where numero_documento like '7461000%'
   union all select 'perfil_admin', id from public.perfiles where clerk_user_id = tests.sub('administrativo')
   union all select 'perfil_ma', id from public.perfiles where clerk_user_id = tests.sub('medico_a');
+
+-- Malla del médico A: todos los días de 08:00 a 11:00 en huecos de 20 minutos. Las pruebas de INSERT de abajo quieren llegar a
+-- citas_validar_transicion (UC004) con una hora válida: desde H3 6.4, citas_validar_horario (UC001) corre antes y rechazaría
+-- una hora fuera de la agenda.
+insert into public.disponibilidades (medico_id, dia_semana, hora_inicio, hora_fin, duracion_slot_min, vigente_desde, vigente_hasta)
+  select (select id from e where clave = 'm_a'), d, '08:00', '11:00', 20, '2020-01-01', null from generate_series(0, 6) d;
 
 -- Citas (dueño, sin restricciones del disparador). Identificadores fijos terminados en el número de la cita.
 insert into public.citas (id, paciente_id, medico_id, inicio, fin, origen, estado) values
@@ -152,10 +158,21 @@ select lives_ok($q$ update public.citas set estado = 'cancelada' where id = '000
 select throws_ok($q$ select public.marcar_cita_atendida('00000000-0000-4000-8000-000000006107') $q$,
   '42501', null, 'el administrativo tampoco puede marcar «Atendida» con la función (42501)');
 
--- Un mismo UPDATE no puede mover la cita y confirmarla: las condiciones miran los valores anteriores.
+-- Un mismo UPDATE no puede mover la cita y confirmarla. Dos barreras: desde H3 6.4 citas_proteger_columnas rechaza (42501) todo
+-- UPDATE que toque algo más que el estado, y llega primero; si no existiera, las condiciones de tiempo de
+-- validar_transicion_estado() miran los valores ANTERIORES (old.fin) y darían UC004. 62 prueba la primera barrera por separado.
 select throws_ok(
   $q$ update public.citas set estado = 'confirmada', fin = now() + interval '1 hour' where id = '00000000-0000-4000-8000-000000006102' $q$,
-  'UC004', null, 'no se confirma una cita terminada alargando su fin en el mismo UPDATE');
+  '42501', null, 'no se confirma una cita terminada alargando su fin en el mismo UPDATE (42501: la cita no se edita)');
+select tests.volver_a_dueno();
+alter table public.citas disable trigger citas_proteger_columnas;
+select tests.autenticar_como('administrativo');
+select throws_ok(
+  $q$ update public.citas set estado = 'confirmada', fin = now() + interval '1 hour' where id = '00000000-0000-4000-8000-000000006102' $q$,
+  'UC004', null, 'y sin esa barrera, las condiciones miran old.fin y también lo rechazan (UC004)');
+select tests.volver_a_dueno();
+alter table public.citas enable trigger citas_proteger_columnas;
+select tests.autenticar_como('administrativo');
 
 -- ---- Negativos de la función marcar_cita_atendida ----
 select tests.autenticar_como('medico_b');
@@ -231,8 +248,8 @@ select ok(
 select is(
   (select array_agg(tgname::text order by tgname::text) from pg_trigger
     where tgrelid = 'public.citas'::regclass and not tgisinternal and tgtype & 2 = 2),  -- BEFORE
-  array['citas_validar_cancelacion', 'citas_validar_transicion'],
-  'citas_validar_transicion es BEFORE y corre después de citas_validar_cancelacion (orden alfabético)'
+  array['citas_proteger_columnas', 'citas_validar_cancelacion', 'citas_validar_horario', 'citas_validar_transicion'],
+  'los disparadores BEFORE de citas, en orden alfabético: proteger_columnas, validar_cancelacion, validar_horario y validar_transicion'
 );
 select is(
   (select pg_get_triggerdef(t.oid) like '%BEFORE INSERT OR UPDATE OF estado ON public.citas%' from pg_trigger t where t.tgname = 'citas_validar_transicion'),

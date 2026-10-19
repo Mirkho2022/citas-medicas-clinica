@@ -44,6 +44,7 @@ correr. En CI las pruebas corren en el branch efímero del PR (`neon-branch-pr.y
 | `38_reasignacion_baja` | `propuestas_reasignacion` (mismo horario primero, más cercano, exclusiones, proponer no cambia nada) y `reasignar_cita_por_baja` (ventana de 1 hora con bloqueo, `UC003`, sin acceso a historias, roles) |
 | `39_citas_por_reasignar_rls` | vista `citas_por_reasignar` (`security_invoker`): el administrativo ve todas, el médico las suyas, los demás ninguna; sale sola al resolver la cita |
 | `61_transiciones_de_cita` | ciclo de estados: matriz de transiciones, `marcar_cita_atendida`, auditoría del actor y acceso a la historia al confirmar |
+| `62_proteger_citas` | una cita no se edita (`citas_proteger_columnas`, `42501`) y solo nace en un hueco de la agenda (`citas_validar_horario`, `UC001`; `42501` a roles que no crean): columna por columna, los dos escenarios de la revisión 6.4, el paciente con una política de `UPDATE` temporal que simula la de H4 y el dueño sin restricciones |
 
 Los datos de estas pruebas usan DNI `74NNxxxx` (NN = número del archivo) y fechas de 2032, lejos en el futuro; `now()` es fijo dentro de
 la transacción, así que los límites de 1 hora son deterministas. Una sola prueba: `node scripts/ejecutar-pgtap.ts 35_slots`
@@ -65,6 +66,20 @@ a los cambios hechos por un usuario de la aplicación; las condiciones de tiempo
 histórica de H8 y los datos que preparan las pruebas pgTAP como dueño no pasan por la matriz. Tampoco sobre las funciones `SECURITY DEFINER`,
 que corren como dueño y se validan a sí mismas. Por eso una prueba que quiera ejercer la matriz debe autenticarse (`tests.autenticar_como`) antes
 del `UPDATE`, y las preparaciones como dueño pueden dejar cualquier estado.
+
+**Disparadores de `citas` y su orden (archivos `61` y `62`).** Los `BEFORE` corren en orden alfabético del nombre; ninguno depende del orden, pero la
+prueba `61` lo fija para que un cambio de nombre sea una decisión consciente. Los cuatro solo actúan cuando `current_user = 'authenticated'`:
+
+| Disparador | Evento | Qué rechaza | Código |
+|---|---|---|---|
+| `citas_proteger_columnas` | `BEFORE UPDATE` | cualquier cambio fuera de `estado` (`cancelada_en` y `cancelada_por` solo al cancelar) | `42501` |
+| `citas_validar_cancelacion` | `BEFORE UPDATE` | cancelar con menos de 1 hora, salvo bloqueo del médico | `P0001` |
+| `citas_validar_horario` | `BEFORE INSERT` | hora pasada o que no es un hueco exacto de la agenda; roles que no crean citas | `UC001`; `42501` |
+| `citas_validar_transicion` | `BEFORE INSERT OR UPDATE OF estado` | transiciones fuera de la matriz | `UC004`; `42501` |
+
+Un `BEFORE INSERT` corre antes que el `WITH CHECK` de la RLS: por eso las pruebas de política de `32_citas_rls` insertan en huecos reales de una malla
+que preparan, y la del «pasado» apaga `citas_validar_horario` solo en esa sentencia para seguir comprobando la política sola. Una prueba que inserte o
+edite citas como `authenticated` debe usar horas dentro de la malla de su médico (la `62` y la `61` crean la suya).
 
 **Concurrencia como usuario de la aplicación.** `tests/concurrencia/_sesion.ts` firma tokens Ed25519 (par efímero por proceso), abre la
 conexión con `pg_session_jwt.jwk`, ejecuta `auth.jwt_session_init` y `set role authenticated`: `abrirSesion({ sub, rol })` devuelve un

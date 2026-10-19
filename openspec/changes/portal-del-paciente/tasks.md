@@ -49,9 +49,10 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       `email` (`PA004`); `EXECUTE` no concedido a `PUBLIC`; CE en minúsculas guardado en mayúsculas; documento inválido
       rechazado por el `CHECK`. Verificar con `node scripts/ejecutar-pgtap.ts portal_registro` y comprobar por mutación que fallan
       al debilitar la comparación del correo y la de la fecha (cambios temporales revertidos).
-- [ ] 2.4 Crear la migración nueva `portal-paciente-cancelacion` con la política `paciente cancela su cita` y el disparador
-      `citas_proteger_columnas_paciente` (`SECURITY INVOKER`, corre antes de `citas_validar_cancelacion`) según D4. Verificar con
-      `migrate up` y consultando `pg_policies` y `pg_trigger` (nombre, evento y orden de los disparadores de `citas`).
+- [ ] 2.4 Crear la migración nueva `portal-paciente-cancelacion` con la política `paciente cancela su cita` según D4. El disparador
+      que protege las columnas ya existe desde H3 (agenda-y-reserva 6.4): `citas_proteger_columnas`, `SECURITY INVOKER`, para todos los
+      roles y antes de `citas_validar_cancelacion`; **no** se crea `citas_proteger_columnas_paciente`. Verificar con `migrate up` y
+      consultando `pg_policies` y `pg_trigger` (nombre, evento y orden de los disparadores de `citas`).
 - [ ] 2.5 Escribir `tests/pgtap/71_portal_cancelacion.test.sql`: el paciente cancela su cita a 61 minutos y queda `cancelada` con
       `cancelada_por` = su perfil; a 59 minutos falla con `P0001`; **no** cancela la cita de otro paciente (cero filas) ni una ya
       cancelada o atendida; **no** cambia `inicio`, `medico_id`, `paciente_id`, `motivo` ni `origen` (`42501`); **no** pone

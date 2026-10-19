@@ -358,7 +358,7 @@ no puede vivir en la aplicación.
 
 ## Migration Plan
 
-1. Rama de trabajo con commits por grupo de tareas; las cinco migraciones se aplican en orden a un branch de desarrollo y
+1. Rama de trabajo con commits por grupo de tareas; las seis migraciones se aplican en orden a un branch de desarrollo y
    luego al branch efímero del PR (`neon-branch-pr.yml` corre `migrate up`, pgTAP y concurrencia).
 2. Comprobar antes los solapes de `disponibilidades` (tarea 1.2) y que la suite completa sigue en verde con datos de demostración.
 3. Merge: `migrar-produccion.yml` aplica las migraciones (aditivas: funciones, vista, una restricción y dos disparadores) y

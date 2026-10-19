@@ -178,7 +178,7 @@ empieza cuando H2b está aplicado.
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y
       acceso a historias clínicas vía confirmación). Verificar que no quedan hallazgos críticos abiertos y que los corregidos
       tienen su prueba pgTAP.
-      Avance (sin marcar: hay hallazgos medios abiertos que necesitan decisión): revisión de solo lectura con el agente `code-review`
+      Avance (sin marcar: el (1) se corrigió; quedan abiertos el (2), el (3) y el (4)): revisión de solo lectura con el agente `code-review`
       (2026-10-18; no ejecutó pgTAP). **Sin hallazgos críticos:** no hay filtración de historias clínicas ni función `SECURITY DEFINER`
       mal acotada (`search_path` vacío, `EXECUTE` solo a `authenticated`, la interna a nadie); las funciones `INVOKER` verifican
       `rol_actual()` antes de sondear citas; la vista `citas_por_reasignar` es `security_invoker` y no une `pacientes`; reprogramar
@@ -196,6 +196,21 @@ empieza cuando H2b está aplicado.
       de editarlas. Propuesta para decidir: un disparador `BEFORE UPDATE` (también para el administrativo) que rechace cambios fuera
       de `estado`, `cancelada_en` y `cancelada_por`, y una comprobación `BEFORE INSERT` con `horario_en_agenda`; encaja con
       `citas_proteger_columnas_paciente` de H4 (D4), que quedaría subsumido.
+      **(1) corregido (2026-10-18)** con la migración `1792342500000_proteger-columnas-y-malla-de-citas`, aceptada la propuesta por el usuario:
+      `citas_proteger_columnas` (`BEFORE UPDATE`, `SECURITY INVOKER`, solo actúa sobre `authenticated`) rechaza con `42501` todo `UPDATE` que cambie
+      algo distinto de `estado` (`cancelada_en` y `cancelada_por` solo cambian en el `UPDATE` que cancela, que es cuando `validar_cancelacion` los
+      fija), y `citas_validar_horario` (`BEFORE INSERT`) exige una hora futura que sea un hueco exacto de la agenda (`horario_en_agenda`, `UC001`) y
+      da `42501` a los roles que no crean citas (un `BEFORE INSERT` corre antes que el `WITH CHECK` de la RLS; sin esa guarda, un médico recibiría
+      «horario no disponible»). La comparación es de la fila entera menos `estado`, `cancelada_en`, `cancelada_por` y `rango` (generada), no una lista
+      de columnas: una columna que se añada a `citas` queda protegida por defecto (con prueba). Prueba nueva `62_proteger_citas` (53) y ajustes a
+      `32_citas_rls` y `61_transiciones_de_cita`: sus datos necesitaban
+      una malla; la prueba del «pasado» apaga el disparador nuevo para seguir probando la política sola; y alargar `fin` ahora da `42501` (antes
+      `UC004`; se conserva una prueba de que sin la barrera nueva también se rechaza). pgTAP completo: 792 pruebas, 0 fallos (antes 738); agenda 179,
+      integración 44 y concurrencia 10, en verde. Mutaciones (cambios temporales sobre el branch de pruebas, restaurados): quitar la comparación de
+      `creada_en` o de `inicio`, la regla de `cancelada_*` (dos variantes), la guarda del dueño, el chequeo del pasado, `horario_en_agenda` o la guarda
+      de rol hacen fallar la 62 en la prueba que corresponde; dos mutantes que sobrevivieron a la primera versión de la prueba (confirmar fijando
+      `cancelada_por`, y el «pasado» que solo pasaba por caer en domingo) llevaron a añadir esas pruebas. Subsume `citas_proteger_columnas_paciente`
+      de H4 (ver portal-del-paciente D4 y 2.4).
       (2) MEDIA-BAJA: un bloqueo sin fecha de fin (`tstzrange(x, null)`) hace que `citas_por_reasignar` no devuelva ninguna cita
       (`upper(b.rango) > now()` es nulo), aunque `validar_cancelacion` sí le aplica la excepción; solo la Zod exige el fin. Arreglo:
       `CHECK (not upper_inf(rango))` en `bloqueos_agenda` o `upper_inf(b.rango) or …` en la vista.
@@ -428,6 +443,6 @@ empieza cuando H2b está aplicado.
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las cinco migraciones, que el deployment de producción está
+- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las seis migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.

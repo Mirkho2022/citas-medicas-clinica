@@ -156,11 +156,13 @@ with check ((select public.rol_actual()) = 'paciente' and paciente_id = (select 
 ```
 
 RLS no filtra por columna, y `authenticated` es un rol compartido por los cuatro roles de aplicación, así que tampoco sirve
-un privilegio de columna. Por eso un disparador `BEFORE UPDATE` **`SECURITY INVOKER`** (`citas_proteger_columnas_paciente`)
-compara `to_jsonb(NEW) - '{estado,cancelada_en,cancelada_por}'` con el de `OLD` cuando `rol_actual() = 'paciente'` y lanza
-`42501` si difieren. Su nombre ordena antes de `citas_validar_cancelacion`, de modo que corre primero; `validar_cancelacion()`
-sigue siendo quien aplica la ventana y quien fija `cancelada_en` y `cancelada_por = perfil_actual()`. Sin la política, un
-`UPDATE` del paciente afecta cero filas; sin el disparador, podría mover la cita de médico u horario.
+un privilegio de columna. Por eso hace falta un disparador `BEFORE UPDATE` **`SECURITY INVOKER`**. *Actualización (H3, tarea 6.4):*
+ya existe y vale para todos los roles, no solo para el paciente: `citas_proteger_columnas` (migración
+`1792342500000_proteger-columnas-y-malla-de-citas`) rechaza con `42501` cualquier `UPDATE` de un usuario de la aplicación que cambie
+algo distinto de `estado`, y deja cambiar `cancelada_en` y `cancelada_por` solo en el `UPDATE` que cancela. Su nombre ordena antes de
+`citas_validar_cancelacion`, de modo que corre primero; `validar_cancelacion()` sigue siendo quien aplica la ventana y quien fija
+`cancelada_en` y `cancelada_por = perfil_actual()`. H4 **no** crea `citas_proteger_columnas_paciente`: solo añade la política. Sin la
+política, un `UPDATE` del paciente afecta cero filas; sin el disparador, podría mover la cita de médico u horario.
 *Alternativa:* `cancelar_cita_propia()` como `SECURITY DEFINER`. Es más corta, pero el dueño tiene `BYPASSRLS`: la autoridad
 pasaría del motor al código de la función, contra el invariante del proyecto y sin la prueba negativa «cero filas» por política.
 
