@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Portal del paciente: inicio</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="clinica.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+a { text-decoration: none; }
+</style>
+</helmet>
+<div class="pantalla" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F7F7; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+<header style="height: 60px; flex: none; background: #FFFFFF; border-bottom: 1px solid #CBD6D9; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+<div style="display: flex; align-items: center; gap: 8px">
+<span class="marca">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.5-6.6 5 5 0 0 1 7.5 6.6Z"/><path d="M3.5 12h4l1.5-3 3 6 1.5-3h4"/></svg>
+Citas Médicas
+</span>
+<span class="demo-tag">DEMO</span>
+</div>
+<span class="avatar" role="img" aria-label="Rosa Ejemplo, paciente">RE</span>
+</header>
+
+<main style="flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px">
+
+<div class="entra i0" style="display: flex; flex-direction: column; gap: 8px">
+<p class="t-body-lg muted" style="margin: 0">Buenos días, Rosa</p>
+<h1 class="t-display-lg" style="margin: 0">Reserve su cita en minutos</h1>
+<p class="t-body-lg muted" style="margin: 0">Elija el horario que le convenga, sin llamar a la clínica.</p>
+</div>
+
+<a class="btn btn-primary btn-portal btn-bloque entra i1" href="Portal-Reservar.dc.html">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M12 13v6M9 16h6"/></svg>
+Reservar cita
+</a>
+
+<section class="card entra i2" style="display: flex; flex-direction: column; gap: 12px; padding: 20px" aria-labelledby="prox-titulo">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h2 id="prox-titulo" class="t-label-md muted" style="margin: 0">SU PRÓXIMA CITA</h2>
+<span class="badge b-reservada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Reservada</span>
+</div>
+<div>
+<div class="t-title-md">Medicina general</div>
+<div class="t-body-lg muted">Dra. Lucía Ejemplo Vargas</div>
+</div>
+<div class="t-body-lg num" style="display: flex; align-items: center; gap: 8px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+Mié 14/10/2026 · 14:30
+</div>
+<p class="t-body-md muted" style="margin: 0">Puede cancelarla hasta 1 hora antes, a las 13:30.</p>
+<a class="btn btn-secondary btn-portal btn-bloque" href="Portal-MisCitas.dc.html">Ver mis citas</a>
+</section>
+
+<div class="alerta alerta-info entra i3">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
+<div>Llegue 10 minutos antes y traiga su documento de identidad.</div>
+</div>
+
+</main>
+
+<nav class="nav-inferior" style="flex: none" aria-label="Principal">
+<a class="nav-i activo" href="Portal-Inicio.dc.html" aria-current="page">
+<span class="pill"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg></span>Inicio
+</a>
+<a class="nav-i" href="Portal-MisCitas.dc.html">
+<span class="pill"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Mis citas
+</a>
+<a class="nav-i" href="Portal-Reservar.dc.html">
+<span class="pill"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M12 13v6M9 16h6"/></svg></span>Reservar
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

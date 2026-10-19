@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Médico: atención</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="clinica.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+a { text-decoration: none; }
+a.enlace { color: #0B5C55; text-decoration: underline; }
+.dato { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #CBD6D9; }
+.dato:last-child { border-bottom: 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #E6F4F1; color: #0B5C55; font: 600 14px/18px "Inter", system-ui, sans-serif; }
+.chip button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.chip button:focus-visible { outline: none; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #0F766E; }
+.sugerencia { display: flex; gap: 12px; width: 100%; text-align: left; padding: 8px 12px; border: 0; border-bottom: 1px solid #CBD6D9; background: #FFFFFF; cursor: pointer; font: 400 14px/20px "Inter", system-ui, sans-serif; color: #14262B; transition: background-color calc(120ms * var(--mult)) ease; }
+.sugerencia:last-child { border-bottom: 0; }
+.sugerencia:focus-visible { outline: none; box-shadow: inset 0 0 0 2px #0F766E; }
+@media (hover: hover) and (pointer: fine) { .sugerencia:hover { background: #E6F4F1; } }
+</style>
+</helmet>
+<div class="pantalla" style="width: 1280px; height: 980px; box-sizing: border-box; background: #F4F7F7; display: flex">
+
+<aside class="lateral">
+<div style="display: flex; align-items: center; gap: 8px; padding: 4px 8px 16px">
+<span class="marca">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.5-6.6 5 5 0 0 1 7.5 6.6Z"/><path d="M3.5 12h4l1.5-3 3 6 1.5-3h4"/></svg>
+Citas Médicas
+</span>
+<span class="demo-tag">DEMO</span>
+</div>
+<nav aria-label="Principal" style="display: flex; flex-direction: column; gap: 4px">
+<span class="lat-i activo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Mi jornada</span>
+<span class="lat-i" style="opacity: 0.7"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Mis pacientes<span class="t-label-sm muted" style="margin-left: auto">Próximamente</span></span>
+</nav>
+<div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 8px; border-top: 1px solid #CBD6D9">
+<span class="avatar" aria-hidden="true">LE</span>
+<div><div class="t-label-md">Dra. Lucía Ejemplo</div><div class="t-body-sm muted">Médico · Medicina general</div></div>
+</div>
+</aside>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+
+<div style="flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+<div>
+<p class="t-body-sm muted" style="margin: 0 0 4px">Mi jornada › Atención</p>
+<h1 class="t-headline-lg" style="margin: 0">Atención de Rosa Ejemplo Quispe</h1>
+<p class="t-body-sm muted num" style="margin: 2px 0 0">Cita de las 10:00 · Medicina general · hoy 10/10/2026</p>
+</div>
+<span class="badge b-confirmada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Confirmada</span>
+</div>
+
+<sc-if value="{{hayResumen}}" hint-placeholder-val="{{false}}">
+<div id="resumen-errores" class="alerta alerta-error aparece" role="alert" tabindex="-1">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+<div>
+<strong>No se guardó la atención: revise {{cantidadErrores}} campos.</strong>
+<ul style="margin: 6px 0 0; padding-left: 18px">
+<sc-for list="{{listaErrores}}" as="x" hint-placeholder-count="3"><li><a class="enlace" style="color: #B42318" href="{{x.ancla}}">{{x.texto}}</a></li></sc-for>
+</ul>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; gap: 24px; align-items: flex-start">
+
+<aside style="width: 340px; flex: none; display: flex; flex-direction: column; gap: 16px">
+<section class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h2 class="t-title-md" style="margin: 0">Ficha del paciente</h2>
+<span class="solo-lectura" style="display: inline-flex; align-items: center; gap: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Solo lectura</span>
+</div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 4px 12px">
+<div class="dato t-body-sm"><span class="muted">Historia</span><span class="num t-label-md">HC-000123</span></div>
+<div class="dato t-body-sm"><span class="muted">Documento</span><span class="num t-label-md">DNI 99000001</span></div>
+<div class="dato t-body-sm"><span class="muted">Nacimiento</span><span class="num t-label-md">17/05/1990 · 36 años</span></div>
+<div class="dato t-body-sm"><span class="muted">Sexo</span><span class="t-label-md">F</span></div>
+<div class="dato t-body-sm"><span class="muted">Teléfono</span><span class="num t-label-md">999 000 001</span></div>
+</div>
+</section>
+
+<section class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h2 class="t-title-md" style="margin: 0">Triaje de hoy</h2>
+<span class="t-body-sm muted num">Enfermería · 09:45</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">PRESIÓN ARTERIAL</div><div class="t-label-lg num">120/80 mmHg</div></div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">FREC. CARDIACA</div><div class="t-label-lg num">72 lpm</div></div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">TEMPERATURA</div><div class="t-label-lg num">36,6 °C</div></div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">SATURACIÓN</div><div class="t-label-lg num">98 %</div></div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">PESO · TALLA</div><div class="t-label-lg num">62 kg · 1,60 m</div></div>
+<div style="background: #EAF0F0; border-radius: 10px; padding: 8px 12px"><div class="t-label-sm muted">IMC</div><div class="t-label-lg num">24,2</div></div>
+</div>
+</section>
+
+<section class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 class="t-title-md" style="margin: 0">Antecedentes y diagnósticos activos</h2>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="t-body-md">Alergia a la penicilina</span><span class="badge b-no-asistio">Alergia</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="t-body-md">Hipertensión esencial <span class="num muted">(I10)</span></span><span class="badge b-reservada">Activo</span></div>
+</div>
+</section>
+</aside>
+
+<section class="card" style="flex: 1; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+
+<sc-if value="{{firmada}}" hint-placeholder-val="{{false}}">
+<div class="aparece" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 class="t-headline-md" style="margin: 0">Atención registrada</h2>
+<span class="badge b-firmada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Firmada</span>
+</div>
+<div class="alerta alerta-success" role="status" style="padding: 12px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>
+<div class="t-body-md">Atención firmada por la Dra. Lucía Ejemplo Vargas el <span class="num">10/10/2026 a las 10:24</span>. Ya no se puede editar: para corregirla, agregue una addenda.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; background: #EAF0F0; border-radius: 10px; padding: 16px">
+<div><div class="t-label-sm muted">MOTIVO DE CONSULTA</div><div class="t-body-md">{{motivo}}</div></div>
+<div><div class="t-label-sm muted">EXAMEN FÍSICO</div><div class="t-body-md">{{examen}}</div></div>
+<div><div class="t-label-sm muted">DIAGNÓSTICOS</div><div class="t-body-md">{{dxResumen}}</div></div>
+<div><div class="t-label-sm muted">PLAN Y TRATAMIENTO</div><div class="t-body-md">{{plan}}</div></div>
+</div>
+<sc-for list="{{addendas}}" as="a" hint-placeholder-count="0">
+<div class="aparece" style="border-left: 0; background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 10px; padding: 12px 16px">
+<div class="t-label-sm muted num">ADDENDA · {{a.hora}} · Dra. Lucía Ejemplo Vargas</div>
+<div class="t-body-md">{{a.texto}}</div>
+</div>
+</sc-for>
+<sc-if value="{{addendaAbierta}}" hint-placeholder-val="{{false}}">
+<div class="campo aparece">
+<label for="addenda">Addenda (no modifica la atención firmada)</label>
+<textarea id="addenda" class="input" style="min-height: 84px; resize: vertical" onInput="{{alAddenda}}">{{addendaTexto}}</textarea>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<button type="button" class="btn btn-ghost btn-compacto" onClick="{{cancelarAddenda}}">Cancelar</button>
+<button type="button" class="btn btn-primary btn-compacto" disabled="{{addendaVacia}}" onClick="{{guardarAddenda}}">Guardar addenda</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{puedeAddenda}}" hint-placeholder-val="{{false}}">
+<div><button type="button" class="btn btn-secondary btn-compacto" onClick="{{abrirAddenda}}">Agregar addenda</button></div>
+</sc-if>
+<div><a class="btn btn-ghost btn-compacto" href="Medico-Atencion.dc.html">Atender al siguiente paciente</a></div>
+</div>
+</sc-if>
+
+<sc-if value="{{editando}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 class="t-headline-md" style="margin: 0">Registrar atención</h2>
+<span class="t-body-sm muted num">Borrador · 10:12</span>
+</div>
+
+<div class="campo">
+<label for="h-motivo">Motivo de consulta <span class="solo-lectura">· Obligatorio</span></label>
+<textarea id="h-motivo" class="{{claseMotivo}}" style="min-height: 72px; resize: vertical" onInput="{{alMotivo}}" aria-describedby="e-motivo">{{motivo}}</textarea>
+<span id="e-motivo" class="msg-error" role="alert">{{errMotivo}}</span>
+</div>
+
+<div class="campo">
+<label for="h-actual">Enfermedad actual</label>
+<textarea id="h-actual" class="input" style="min-height: 72px; resize: vertical" onInput="{{alActual}}">{{actual}}</textarea>
+</div>
+
+<div class="campo">
+<label for="h-examen">Examen físico <span class="solo-lectura">· Obligatorio</span></label>
+<textarea id="h-examen" class="{{claseExamen}}" style="min-height: 72px; resize: vertical" onInput="{{alExamen}}" aria-describedby="e-examen">{{examen}}</textarea>
+<span id="e-examen" class="msg-error" role="alert">{{errExamen}}</span>
+</div>
+
+<div class="campo">
+<label for="h-dx">Diagnóstico (CIE-10) <span class="solo-lectura">· Obligatorio</span></label>
+<div style="display: flex; gap: 8px; flex-wrap: wrap" aria-live="polite">
+<sc-for list="{{dxElegidos}}" as="d" hint-placeholder-count="0">
+<span class="chip"><span class="num">{{d.codigo}}</span> {{d.nombre}}<button type="button" aria-label="{{d.quitarEtiqueta}}" onClick="{{d.quitar}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+</sc-for>
+</div>
+<input id="h-dx" class="{{claseDx}}" type="text" value="{{dxConsulta}}" placeholder="Busque por código o nombre, por ejemplo: J06 o faringitis" onInput="{{alDx}}" aria-describedby="e-dx" autocomplete="off">
+<span id="e-dx" class="msg-error" role="alert">{{errDx}}</span>
+<sc-if value="{{haySugerencias}}" hint-placeholder-val="{{false}}">
+<div class="tabla-marco aparece" style="border-radius: 10px" role="listbox" aria-label="Sugerencias CIE-10">
+<sc-for list="{{sugerencias}}" as="g" hint-placeholder-count="3">
+<button type="button" class="sugerencia" role="option" aria-selected="false" onClick="{{g.elegir}}"><span class="num t-label-md" style="width: 56px; flex: none">{{g.codigo}}</span><span>{{g.nombre}}</span></button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div class="campo">
+<label for="h-plan">Plan y tratamiento <span class="solo-lectura">· Obligatorio</span></label>
+<textarea id="h-plan" class="{{clasePlan}}" style="min-height: 72px; resize: vertical" onInput="{{alPlan}}" aria-describedby="e-plan">{{plan}}</textarea>
+<span id="e-plan" class="msg-error" role="alert">{{errPlan}}</span>
+</div>
+</div>
+</sc-if>
+</section>
+</div>
+</div>
+
+<sc-if value="{{editando}}" hint-placeholder-val="{{true}}">
+<footer style="flex: none; background: #FFFFFF; border-top: 1px solid #CBD6D9; padding: 12px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+<span class="t-body-sm muted">La atención firmada no se puede editar; se corrige con una addenda.</span>
+<div style="display: flex; gap: 12px; align-items: center">
+<button type="button" class="btn btn-secondary btn-compacto" onClick="{{guardarBorrador}}">Guardar borrador</button>
+<sc-if value="{{firmando}}" hint-placeholder-val="{{false}}"><button type="button" class="btn btn-primary btn-compacto is-loading" disabled="{{true}}"><span class="giro"></span>Firmando…</button></sc-if>
+<sc-if value="{{noFirmando}}" hint-placeholder-val="{{true}}"><button type="button" class="btn btn-primary btn-compacto" onClick="{{guardar}}">Guardar atención</button></sc-if>
+</div>
+</footer>
+</sc-if>
+
+</div>
+
+<div class="{{claseAviso}}" role="status" style="left: auto; right: 24px; bottom: 80px; width: 360px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>
+{{textoAviso}}
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      motivo: '', actual: '', examen: '', plan: '', dxConsulta: '', dx: [],
+      intentado: false, firmando: false, firmada: false,
+      addendaAbierta: false, addendaTexto: '', addendas: [],
+      aviso: false, textoAviso: ''
+    };
+    this.temporizadores = [];
+  }
+
+  componentWillUnmount() { this.temporizadores.forEach((t) => clearTimeout(t)); }
+  luego(fn, ms) { this.temporizadores.push(setTimeout(fn, ms)); }
+
+  avisar(texto) {
+    this.setState({ aviso: true, textoAviso: texto });
+    this.luego(() => this.setState({ aviso: false }), 3000);
+  }
+
+  catalogo() {
+    return [
+      { codigo: 'J00', nombre: 'Rinofaringitis aguda (resfriado común)' },
+      { codigo: 'J02.9', nombre: 'Faringitis aguda, no especificada' },
+      { codigo: 'J06.9', nombre: 'Infección aguda de las vías respiratorias superiores, no especificada' },
+      { codigo: 'J20.9', nombre: 'Bronquitis aguda, no especificada' },
+      { codigo: 'I10', nombre: 'Hipertensión esencial (primaria)' },
+      { codigo: 'K29.7', nombre: 'Gastritis, no especificada' },
+      { codigo: 'M54.5', nombre: 'Lumbago no especificado' },
+      { codigo: 'R51', nombre: 'Cefalea' }
+    ];
+  }
+
+  errores(s) {
+    const e = [];
+    if (!s.motivo.trim()) e.push({ campo: 'motivo', ancla: '#h-motivo', texto: 'Motivo de consulta: ingrese el motivo', msg: 'Ingrese el motivo de consulta' });
+    if (!s.examen.trim()) e.push({ campo: 'examen', ancla: '#h-examen', texto: 'Examen físico: ingrese los hallazgos', msg: 'Ingrese los hallazgos del examen físico' });
+    if (s.dx.length === 0) e.push({ campo: 'dx', ancla: '#h-dx', texto: 'Diagnóstico: agregue al menos uno (CIE-10)', msg: 'Agregue al menos un diagnóstico CIE-10' });
+    if (!s.plan.trim()) e.push({ campo: 'plan', ancla: '#h-plan', texto: 'Plan y tratamiento: ingréselo', msg: 'Ingrese el plan y tratamiento' });
+    return e;
+  }
+
+  guardar = () => {
+    const s = this.state;
+    const e = this.errores(s);
+    this.setState({ intentado: true });
+    if (e.length > 0) return;
+    this.setState({ firmando: true });
+    this.luego(() => this.setState({ firmando: false, firmada: true, intentado: false }), 1000);
+  };
+
+  guardarAddenda = () => {
+    const s = this.state;
+    if (!s.addendaTexto.trim()) return;
+    this.setState({ addendas: s.addendas.concat([{ hora: '10:31', texto: s.addendaTexto.trim() }]), addendaAbierta: false, addendaTexto: '' });
+    this.avisar('Addenda guardada. La atención firmada no cambió.');
+  };
+
+  renderVals() {
+    const s = this.state;
+    const errores = this.errores(s);
+    const mostrar = s.intentado;
+    const msg = (campo) => {
+      const x = errores.filter((y) => y.campo === campo)[0];
+      return mostrar && x ? x.msg : '';
+    };
+    const clase = (campo) => (mostrar && errores.some((y) => y.campo === campo) ? 'input is-error' : 'input');
+    const q = s.dxConsulta.trim().toLowerCase();
+    const elegidos = s.dx.map((c) => c.codigo);
+    const sugerencias = q
+      ? this.catalogo().filter((c) => elegidos.indexOf(c.codigo) < 0 && (c.codigo.toLowerCase().indexOf(q) === 0 || c.nombre.toLowerCase().indexOf(q) >= 0)).slice(0, 5)
+      : [];
+    return {
+      hayResumen: mostrar && errores.length > 0 && !s.firmada,
+      cantidadErrores: errores.length,
+      listaErrores: errores,
+      firmada: s.firmada,
+      editando: !s.firmada,
+      motivo: s.motivo, actual: s.actual, examen: s.examen, plan: s.plan,
+      alMotivo: (ev) => this.setState({ motivo: ev.target.value }),
+      alActual: (ev) => this.setState({ actual: ev.target.value }),
+      alExamen: (ev) => this.setState({ examen: ev.target.value }),
+      alPlan: (ev) => this.setState({ plan: ev.target.value }),
+      claseMotivo: clase('motivo'), claseExamen: clase('examen'), clasePlan: clase('plan'), claseDx: clase('dx') + ' num',
+      errMotivo: msg('motivo'), errExamen: msg('examen'), errPlan: msg('plan'), errDx: msg('dx'),
+      dxConsulta: s.dxConsulta,
+      alDx: (ev) => this.setState({ dxConsulta: ev.target.value }),
+      dxElegidos: s.dx.map((c) => ({
+        codigo: c.codigo,
+        nombre: c.nombre,
+        quitarEtiqueta: 'Quitar diagnóstico ' + c.codigo,
+        quitar: () => this.setState({ dx: this.state.dx.filter((x) => x.codigo !== c.codigo) })
+      })),
+      haySugerencias: sugerencias.length > 0,
+      sugerencias: sugerencias.map((c) => ({
+        codigo: c.codigo,
+        nombre: c.nombre,
+        elegir: () => this.setState({ dx: this.state.dx.concat([c]), dxConsulta: '' })
+      })),
+      dxResumen: s.dx.map((c) => c.codigo + ' ' + c.nombre).join(' · '),
+      guardarBorrador: () => this.avisar('Borrador guardado a las 10:12.'),
+      firmando: s.firmando,
+      noFirmando: !s.firmando,
+      guardar: this.guardar,
+      addendas: s.addendas,
+      puedeAddenda: s.firmada && !s.addendaAbierta,
+      addendaAbierta: s.addendaAbierta,
+      abrirAddenda: () => this.setState({ addendaAbierta: true }),
+      cancelarAddenda: () => this.setState({ addendaAbierta: false, addendaTexto: '' }),
+      addendaTexto: s.addendaTexto,
+      addendaVacia: !s.addendaTexto.trim(),
+      alAddenda: (ev) => this.setState({ addendaTexto: ev.target.value }),
+      guardarAddenda: this.guardarAddenda,
+      claseAviso: s.aviso ? 'aviso abierto' : 'aviso',
+      textoAviso: s.textoAviso
+    };
+  }
+}
+</script>
+</body>
+</html>
