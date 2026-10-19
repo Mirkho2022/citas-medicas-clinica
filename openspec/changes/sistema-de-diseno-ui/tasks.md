@@ -118,10 +118,13 @@ instalan o ejecutan con la autorización del usuario.
       en rojo cuando se quita a propósito la etiqueta de un campo en un cambio temporal revertido.
 - [x] 7.2 Corregir las violaciones que axe encuentre en componentes y estructuras. Verificar que la prueba de 7.1 queda en
       verde y que cada corrección tiene su explicación en el mensaje del commit.
-- [ ] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
+- [x] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
       de pantalla, 200 % de zoom, objetivos táctiles) y ejecutarla una vez sobre el preview anotando el resultado en el
       PR; las pantallas de Clerk se revisan a mano y los hallazgos de su propio marcado se anotan ahí. Verificar que el
-      documento tiene la lista y que el PR trae el resultado de cada ítem.
+      documento tiene la lista y que el PR trae el resultado de cada ítem. *Evidencia: la lista está en
+      `docs/pruebas-e2e.md`; el usuario la ejecutó sobre el preview y dio su conformidad el 2026-10-18 («listo»), sin
+      hallazgos. No dio el resultado por ítem: el lector de pantalla (NVDA) no consta aparte y se vuelve a revisar con las
+      pantallas de H3 (13.3).*
 
 ## 8. Documentación y coherencia
 
