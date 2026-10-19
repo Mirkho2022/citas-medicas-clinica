@@ -138,9 +138,10 @@ instalan o ejecutan con la autorización del usuario.
 - [x] 9.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:tema`,
       `npm run tema:comprobar` y la suite E2E completa; verificar que todo pasa y que el PR trae el cuadro de cada
       requisito de la spec con la prueba que lo cubre.
-- [ ] 9.2 Revisar visualmente en el preview de Vercel la galería, las cuatro áreas y las pantallas de autenticación a 390 px
+- [x] 9.2 Revisar visualmente en el preview de Vercel la galería, las cuatro áreas y las pantallas de autenticación a 390 px
       y a 1280 px, y mostrar las capturas al usuario; verificar que el usuario da su visto bueno o lista los ajustes (que se
-      hacen antes del merge).
+      hacen antes del merge). *Evidencia: el usuario revisó el preview directamente (sin capturas de Claude, porque el
+      preview exige sesión) y dio su visto bueno el 2026-10-18 con «el preview se ve bien», sin ajustes.*
 - [ ] 9.3 Tras el merge, comprobar que el despliegue de producción está en estado READY y que `/iniciar-sesion` se ve en
       español y con la marca; verificar con la URL pública. La carga de datos de demostración y cualquier pantalla con datos
       reales **no** forman parte de este change.
