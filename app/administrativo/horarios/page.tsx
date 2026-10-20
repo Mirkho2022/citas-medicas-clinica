@@ -33,10 +33,10 @@ export default async function PaginaHorarios() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead scope="col">Médico</TableHead>
-                <TableHead scope="col">Servicio</TableHead>
+                <TableHead scope="col" className="hidden md:table-cell">Servicio</TableHead>
                 <TableHead scope="col" className="text-right">Horarios semanales</TableHead>
                 <TableHead scope="col" className="text-right">Ausencias vigentes</TableHead>
-                <TableHead scope="col">Estado</TableHead>
+                <TableHead scope="col" className="hidden md:table-cell">Estado</TableHead>
                 <TableHead scope="col">
                   <span className="sr-only">Acciones</span>
                 </TableHead>
@@ -46,10 +46,10 @@ export default async function PaginaHorarios() {
               {medicos.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className="whitespace-normal font-semibold">{m.nombre}</TableCell>
-                  <TableCell className="whitespace-normal">{m.especialidad}</TableCell>
+                  <TableCell className="hidden md:table-cell whitespace-normal">{m.especialidad}</TableCell>
                   <TableCell className="text-right tabular-nums">{m.tramos}</TableCell>
                   <TableCell className="text-right tabular-nums">{m.ausencias}</TableCell>
-                  <TableCell className={m.activo ? undefined : "text-muted-foreground"}>{m.activo ? "Activo" : "De baja"}</TableCell>
+                  <TableCell className={m.activo ? "hidden md:table-cell" : "hidden md:table-cell text-muted-foreground"}>{m.activo ? "Activo" : "De baja"}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/administrativo/horarios/${m.id}`}>

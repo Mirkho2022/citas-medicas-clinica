@@ -72,10 +72,10 @@ export function TablaDelDia({ filas, titulo }: { filas: FilaVista[]; titulo: str
             <TableRow className="hover:bg-transparent">
               <TableHead scope="col" className="w-20">Hora</TableHead>
               <TableHead scope="col">Paciente</TableHead>
-              <TableHead scope="col" className="w-36">Documento</TableHead>
-              <TableHead scope="col">Médico y servicio</TableHead>
-              <TableHead scope="col" className="w-36">Estado</TableHead>
-              <TableHead scope="col" className="w-[22rem] text-right">Acciones</TableHead>
+              <TableHead scope="col" className="w-36 hidden md:table-cell">Documento</TableHead>
+              <TableHead scope="col" className="hidden md:table-cell">Médico y servicio</TableHead>
+              <TableHead scope="col" className="md:w-36">Estado</TableHead>
+              <TableHead scope="col" className="text-right md:w-[22rem]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,8 +84,8 @@ export function TablaDelDia({ filas, titulo }: { filas: FilaVista[]; titulo: str
                 <TableRow key={`hueco-${fila.medicoId}-${fila.inicio}`} className="bg-canvas">
                   <TableCell className="tabular-nums font-semibold">{horaLima(fila.inicio)}</TableCell>
                   <TableCell className="text-muted-foreground">—</TableCell>
-                  <TableCell />
-                  <TableCell className="whitespace-normal text-muted-foreground">
+                  <TableCell className="hidden md:table-cell" />
+                  <TableCell className="hidden md:table-cell whitespace-normal text-muted-foreground">
                     {fila.medico} · {fila.servicio}
                   </TableCell>
                   <TableCell className="text-muted-foreground">Libre</TableCell>
@@ -99,10 +99,10 @@ export function TablaDelDia({ filas, titulo }: { filas: FilaVista[]; titulo: str
                 <TableRow key={fila.id} className={cn(fila.estado === "cancelada" && "text-muted-foreground")}>
                   <TableCell className="tabular-nums font-semibold">{horaLima(fila.inicio)}</TableCell>
                   <TableCell className="whitespace-normal">{nombre(fila)}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="hidden md:table-cell tabular-nums">
                     {fila.paciente.tipoDocumento} {fila.paciente.documento}
                   </TableCell>
-                  <TableCell className="whitespace-normal">
+                  <TableCell className="hidden md:table-cell whitespace-normal">
                     {fila.medico} · {fila.servicio}
                   </TableCell>
                   <TableCell>

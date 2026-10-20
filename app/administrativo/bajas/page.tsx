@@ -39,8 +39,8 @@ export default async function PaginaBajas() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead scope="col">Médico</TableHead>
-                <TableHead scope="col">Periodo (hora de Lima)</TableHead>
-                <TableHead scope="col">Motivo</TableHead>
+                <TableHead scope="col" className="hidden md:table-cell">Periodo (hora de Lima)</TableHead>
+                <TableHead scope="col" className="hidden md:table-cell">Motivo</TableHead>
                 <TableHead scope="col" className="text-right">Por reasignar</TableHead>
                 <TableHead scope="col" className="text-right">Por contactar</TableHead>
                 <TableHead scope="col">
@@ -55,10 +55,10 @@ export default async function PaginaBajas() {
                     <span className="font-semibold">{b.medico}</span>
                     <span className="block text-muted-foreground">{b.especialidad}</span>
                   </TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell className="hidden md:table-cell tabular-nums">
                     {fechaHoraLima(b.desde)} → {fechaHoraLima(b.hasta)}
                   </TableCell>
-                  <TableCell className="whitespace-normal">{b.motivo}</TableCell>
+                  <TableCell className="hidden md:table-cell whitespace-normal">{b.motivo}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.porReasignar - b.porContactar}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.porContactar}</TableCell>
                   <TableCell className="text-right">
