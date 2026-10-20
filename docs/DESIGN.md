@@ -99,6 +99,25 @@ shadows:
   shadow-popover: "0 8px 24px rgb(20 38 43 / 12%)"
   shadow-dialog: "0 16px 40px rgb(20 38 43 / 18%)"
   focus-ring: "0 0 0 2px {colors.surface}, 0 0 0 4px {colors.primary}"
+motion:
+  ease-salida-rapida: "cubic-bezier(0.23, 1, 0.32, 1)"
+  ease-cajon: "cubic-bezier(0.32, 0.72, 0, 1)"
+  press: 120ms
+  toast-in: 240ms
+  toast-out: 140ms
+  popover-in: 180ms
+  popover-out: 120ms
+  sheet-in: 320ms
+  sheet-out: 220ms
+  dialog-in: 220ms
+  dialog-out: 140ms
+  backdrop-in: 200ms
+  backdrop-out: 140ms
+  step-in: 220ms
+  list-in: 260ms
+  list-stagger: 40ms
+  skeleton: 1400ms
+  reduced: 150ms
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -189,6 +208,12 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.md}"
     padding: 16px
+  toast:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.surface}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.md}"
+    padding: 12px 16px
 ---
 
 ## Overview
@@ -304,6 +329,37 @@ Plano por defecto: la jerarquía la dan el color de fondo y el borde, no la somb
 | 2 | Menús desplegables, selectores de fecha | `0 8px 24px rgb(20 38 43 / 12%)` |
 | 3 | Diálogos | `0 16px 40px rgb(20 38 43 / 18%)` con velo `rgb(20 38 43 / 40%)` |
 
+## Motion
+
+Aprobado el 2026-10-18 en la revisión visual ([BRIEF-DISENO.md](diseno/BRIEF-DISENO.md), sección 6) y fijado aquí el
+2026-10-19. Es una herramienta de trabajo: el movimiento es corto, responde de inmediato y solo explica un cambio de estado.
+**Solo se animan `transform` y `opacity`.** Los valores de la cabecera (`motion`) son normativos; `npm run tema` los expone
+como `--ease-*` (las curvas, que Tailwind usa como `ease-salida-rapida` y `ease-cajon`) y `--motion-*` (las duraciones).
+
+| Elemento | Entra | Sale | Curva | Propiedades | Token |
+|---|---|---|---|---|---|
+| Pulsar botón, horario, día | 120 ms | 120 ms | salida rápida | escala 0,97 y color | `press` |
+| Aviso temporal | 240 ms | 140 ms | salida rápida | traslación de 8 px y opacidad | `toast-in` / `toast-out` |
+| Calendario flotante (escritorio) | 180 ms | 120 ms | salida rápida, origen en el campo | escala desde 0,96 y opacidad | `popover-in` / `popover-out` |
+| Hoja inferior (móvil) | 320 ms | 220 ms | cajón | traslación vertical | `sheet-in` / `sheet-out` |
+| Diálogo de confirmación | 220 ms | 140 ms | salida rápida, centrado | escala desde 0,96 y opacidad | `dialog-in` / `dialog-out` |
+| Velo del diálogo | 200 ms | 140 ms | salida rápida | opacidad | `backdrop-in` / `backdrop-out` |
+| Cambio de paso | 220 ms | — | salida rápida | traslación de 16 px y opacidad | `step-in` |
+| Lista (al aparecer) | 260 ms + 40 ms por fila (máximo 6) | — | salida rápida | traslación de 8 px y opacidad | `list-in`, `list-stagger` |
+| Esqueleto de carga | ciclo de 1,4 s | — | lineal | opacidad (pulso) | `skeleton` |
+
+Curvas: **salida rápida** `cubic-bezier(0.23, 1, 0.32, 1)` y **cajón** `cubic-bezier(0.32, 0.72, 0, 1)`.
+
+- Nada dura más de **320 ms** (salvo el ciclo del esqueleto, que es un bucle) y **salir es más rápido que entrar**. Las dos
+  reglas las comprueba `npm run tema:comprobar` (también en CI).
+- Las acciones repetidas con teclado no se animan; las animaciones que siguen al cursor solo existen con puntero.
+- Las transiciones son interrumpibles (se reorientan al estado nuevo), no secuencias fijas.
+- **Reducir movimiento** (`prefers-reduced-motion`): se eliminan traslaciones y escalas y queda un fundido de `reduced`
+  (150 ms). Los componentes aplican `transform` solo con `motion-safe:`; además, `app/globals.css` acota por defecto toda
+  animación y transición a esos 150 ms y detiene los bucles.
+- El esqueleto de carga **pulsa en opacidad** en vez de recorrerse con un brillo en degradado: así cumple «solo `transform` y
+  `opacity`», no añade un recurso visual nuevo y se detiene limpio con «Reducir movimiento».
+
 ## Shapes
 
 Esquinas redondeadas y amables, sin exagerar: `sm 6` (insignias de tabla, chips compactos), `md 10` (botones, campos,
@@ -348,10 +404,12 @@ Reglas de los componentes principales:
 - **Selector de horario (portal):** botones de hora de 48 px en cuadrícula; el horario ocupado se ve deshabilitado **y** con
   texto «No disponible». Al elegir uno aparece la advertencia de cancelación de 1 hora antes de confirmar.
 - **Alertas:** `alert-warning` (advertencia de cancelación), `alert-error` (rechazos, con `role="alert"`), siempre con icono
-  y texto; las confirmaciones usan un aviso temporal con `role="status"` y no robar el foco.
+  y texto; las confirmaciones usan un aviso temporal (`toast`: fondo `ink`, texto `surface`, contraste 15,65 : 1) con
+  `role="status"` que no roba el foco, y se mueve como indica «Motion».
 - **Atención firmada:** bloque con etiqueta «Firmada» y candado, fecha y autor; sin botón de editar. «Agregar addenda» es
   la única acción de corrección.
-- **Estados vacíos y de carga:** esqueletos con la forma del contenido, no un indicador giratorio a pantalla completa.
+- **Estados vacíos y de carga:** esqueletos con la forma del contenido (pulsan en opacidad, ver «Motion»), no un indicador
+  giratorio a pantalla completa.
 
 ## Do's and Don'ts
 
@@ -395,6 +453,7 @@ de software; sin referentes de salud).
 2. Para generar el tema de Tailwind v4 (`@theme` en `app/globals.css`) y comprobar el contraste, la especificación ofrece
    `npx @google/design.md export --format css-tailwind docs/DESIGN.md` y `npx @google/design.md lint docs/DESIGN.md`.
 3. Cualquier cambio de color o tipografía se hace aquí primero y se propaga al código con `npm run tema`; no al revés.
-   El grupo `shadows` de la cabecera (menú, diálogo y anillo de foco) no está definido por el formato alpha: el
-   generador del tema lo lee igualmente y `npm run tema:comprobar` falla si el CSS se separa de este archivo.
+   Los grupos `shadows` (menú, diálogo y anillo de foco) y `motion` (curvas y duraciones) de la cabecera no están definidos
+   por el formato alpha: el generador del tema los lee igualmente y `npm run tema:comprobar` falla si el CSS se separa de este
+   archivo o si el movimiento rompe sus reglas (máximo 320 ms; salir más rápido que entrar).
 4. Los valores `px` de la tipografía son de referencia; el código usa `rem` para respetar el tamaño de texto del usuario.

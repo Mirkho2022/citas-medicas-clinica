@@ -76,11 +76,14 @@ Para crear en H3 y H4 (con `components/clinica/` y shadcn/ui; el diálogo con el
 6. **Chip de diagnóstico** removible y lista de sugerencias CIE-10.
 7. **Etiqueta DEMO** (provisional).
 
-Detalles que conviene confirmar al implementar (el lienzo los resolvió así por rapidez; DESIGN.md no los cubre):
+Detalles que el lienzo resolvió por rapidez y que DESIGN.md no cubría (resueltos el 2026-10-19 al fijar el movimiento):
 
-- El esqueleto usa un brillo en degradado; DESIGN.md dice «sin gradientes». Recomendación: pulso de opacidad en su lugar.
-- El aviso temporal usa fondo `ink` con texto blanco (15,65:1); hay que añadirlo a DESIGN.md como componente.
-- «Próximamente» en la navegación de la consola para Horarios y Bajas médicas hasta que existan.
+- **Esqueleto:** el lienzo usa un brillo en degradado. DESIGN.md no prohíbe los gradientes con esas palabras (pide un sistema
+  plano y sin ornamento), pero el principio aprobado es «solo `transform` y `opacity`»: el esqueleto **pulsa en opacidad**
+  (ciclo de 1,4 s). Es la única diferencia con el lienzo aprobado; si el propietario prefiere el brillo, se cambia en DESIGN.md.
+- **Aviso temporal:** fondo `ink` con texto `surface` (15,65:1), ya añadido a DESIGN.md como componente `toast`.
+- «Próximamente» en la navegación de la consola para Horarios y Bajas médicas hasta que existan (sigue pendiente; se resuelve
+  en H3 al construir esas rutas).
 
 ## 6. Movimiento aprobado
 
@@ -102,9 +105,11 @@ Reglas: nada dura más de 320 ms y salir es más rápido que entrar; las accione
 «Reducir movimiento» se eliminan desplazamientos y escalas y queda un fundido de 150 ms; las animaciones de cursor solo en
 dispositivos con puntero; las transiciones son interrumpibles (no secuencias fijas).
 
-Estado: **aprobado, aún no implementado.** No está en [DESIGN.md](../DESIGN.md) ni en `app/tema.generado.css`. Al implementarlo
-se añade una sección «Motion» a DESIGN.md y las curvas y duraciones al generador del tema (`npm run tema`), después de que se
-fusione H2b.
+Estado: **aprobado y fijado en el sistema (2026-10-19).** Las curvas y duraciones son el grupo `motion` de la cabecera de
+[DESIGN.md](../DESIGN.md) (con su sección «Motion»), `npm run tema` las expone como `--ease-*` y `--motion-*` en
+`app/tema.generado.css`, `npm run tema:comprobar` falla si algo pasa de 320 ms o si salir no es más rápido que entrar, y
+`app/globals.css` acota todo a un fundido de 150 ms con «Reducir movimiento». **Lo que sigue pendiente** es aplicar el movimiento
+en cada componente cuando se construya en H3 y H4 (la tabla de arriba dice con qué token).
 
 ## 7. Pendiente de diseñar
 
