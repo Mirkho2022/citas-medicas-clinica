@@ -91,24 +91,26 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 
 ## 3. Esquemas, textos y guarda de acciones
 
-- [ ] 3.1 Crear `lib/schemas/paciente-portal.ts` componiendo `lib/schemas/documento.ts` (documento, nombres, apellidos, fecha de
+- [x] 3.1 Crear `lib/schemas/paciente-portal.ts` componiendo `lib/schemas/documento.ts` (documento, nombres, apellidos, fecha de
       nacimiento no futura ni de más de 120 años, sexo M/F/X, teléfono opcional de 7 a 15 dígitos, dirección opcional; claves
       desconocidas descartadas), añadir el script `test:portal` (`node --test "tests/portal/*.test.ts"`) y el paso al job
       `typecheck-lint-build` de `ci.yml` (archivo con CRLF: conservarlos). Verificar con `tests/portal/esquemas.test.ts` por tabla de
       casos (DNI de 7, 8 y 9 dígitos y con letra; CE de 8, 9, 12 y 13 caracteres, con símbolo y en minúsculas; campos vacíos o con
       espacios; fecha futura; teléfono con letras; claves `rol` y `perfil_id` descartadas) y que `npm run test:portal` falla al cambiar
       a propósito un valor esperado.
-- [ ] 3.2 Crear `lib/portal/mensajes.ts` con todos los textos del portal en trato de usted (errores de campo, mensaje genérico de
+      Resultado (2026-10-20): `lib/schemas/paciente-portal.ts`, script `test:portal` y paso en `ci.yml` (CRLF conservado); `tests/portal/esquemas.test.ts` cubre DNI de 7, 8 y 9 dígitos y con letra, CE de 8, 9, 12 y 13 caracteres, con símbolo y en minúsculas, campos vacíos, fecha futura y de más de 120 años (con el día de Lima), teléfono con letras y las claves `rol` y `perfil_id` descartadas. Cambiar a propósito el límite de años y el mínimo del teléfono hace fallar dos casos.
+- [x] 3.2 Crear `lib/portal/mensajes.ts` con todos los textos del portal en trato de usted (errores de campo, mensaje genérico de
       registro rechazado, ventana de cancelación, sesión vencida, demasiados intentos, error inesperado) y reexportar
       `MENSAJE_DOBLE_RESERVA` de H3. Verificar con `tests/portal/mensajes.test.ts`: el literal coincide carácter a carácter con
       `Registro de cita ya agendado`, ningún texto contiene formas de tuteo ni códigos de error o `SQLSTATE`, y todos terminan en
       una indicación de qué hacer cuando es un error.
-- [ ] 3.3 Crear `lib/auth/accion-paciente.ts` (`exigirPaciente()` devuelve `NO_AUTORIZADO` en vez de redirigir; opción de límite de
+      Resultado (2026-10-20): `lib/portal/mensajes.ts` y `tests/portal/mensajes.test.ts`: el literal coincide con `Registro de cita ya agendado`, ningún texto tutea (el detector se prueba a sí mismo) ni muestra códigos, y todo error termina con una indicación de qué hacer.
+- [x] 3.3 Crear `lib/auth/accion-paciente.ts` (`exigirPaciente()` devuelve `NO_AUTORIZADO` en vez de redirigir; opción de límite de
       peticiones y de verificación anti-bots que completan los grupos 4 y 5) y `exigirPacienteRegistrado()` para las páginas (redirige a
       `/completar-registro` si no hay ficha). Verificar con `tests/portal/accion-paciente.test.ts` con dobles de Clerk y de la base:
       sin sesión, con rol distinto de `paciente` y sin ficha producen el resultado o la redirección esperados, y la identidad del
       paciente nunca se toma del argumento de la acción.
-
+      Resultado (2026-10-20): `lib/auth/accion-paciente.ts` con `exigirPaciente()` (devuelve `SESION_VENCIDA` o `NO_AUTORIZADO`, nunca redirige) y `exigirPacienteRegistrado()` (sin rol o sin ficha va a `/completar-registro`; el personal, a su área). Para poder probarla sin Clerk se extrajo `lib/auth/rutas.ts` (`rol.ts` lo reexporta) y se añadieron a `CodigoError` los códigos `SESION_VENCIDA`, `REGISTRO_RECHAZADO`, `CUENTA_YA_REGISTRADA` y `DEMASIADOS_INTENTOS`. Las opciones de límite de peticiones y anti-bots se conectan en la tarea 4.4, cuando existan sus módulos.
 ## 4. Controles de borde (ADR-0026)
 
 - [ ] 4.1 Confirmar con la documentación vigente de Vercel BotID su API, el modo disponible en el plan Hobby y el tratamiento del

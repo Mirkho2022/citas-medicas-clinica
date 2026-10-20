@@ -1,22 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-export type Rol = "administrativo" | "medico" | "enfermera" | "paciente";
+import { rutaParaRol, type Rol } from "./rutas.ts";
 
-const RUTA_POR_ROL: Record<Rol, string> = {
-  administrativo: "/administrativo",
-  medico: "/medico",
-  enfermera: "/enfermera",
-  paciente: "/paciente",
-};
+export { rutaParaRol, type Rol };
 
 export async function obtenerRolSesion(): Promise<Rol | null> {
   const { sessionClaims } = await auth();
   return sessionClaims?.publicMetadata?.rol ?? null;
-}
-
-export function rutaParaRol(rol: Rol): string {
-  return RUTA_POR_ROL[rol];
 }
 
 // Autorización por rol a nivel de página. `auth.protect()` solo prueba que hay
