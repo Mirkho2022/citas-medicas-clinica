@@ -300,9 +300,20 @@ no puede vivir en la aplicación.
 - **UI mínima** en la agenda del día: «Confirmar» (acción secundaria, aviso `role="status"` sin robar el foco) en las citas
   `reservada` que no terminaron y «No asistió» (con diálogo de confirmación) en las `confirmada` cuya hora ya empezó; antes de
   esa hora el botón no se ofrece. No hay botón «Atendida» en la consola administrativa.
-- **Consecuencia aceptada:** una cita `reservada` cuya hora pasó sin que nadie la confirmara no tiene transición de cierre
-  (confirmar ya no procede, cancelar lo impide la ventana y `reservada → no_asistio` no está permitida). Queda visible en la
-  agenda como `reservada` vencida (ver Open Questions).
+- **Cita `reservada` que terminó sin confirmarse (decisión del cliente, 2026-10-20): se cierra sola como «No asistió».** Sin
+  esto no tenía salida (confirmar ya no procede, cancelar lo impide la ventana y `reservada → no_asistio` no existe para el
+  usuario) y el médico seguía leyendo los datos del paciente por una cita muerta. Lo hace `public.cerrar_citas_vencidas()`
+  (`SECURITY DEFINER`, `search_path` vacío): pasa a `no_asistio` toda `reservada` con `fin <= now()` (el mismo límite con que se
+  rechaza confirmar), cambia solo `estado`, es idempotente, devuelve cuántas cerró y deja auditoría con actor nulo (el sistema).
+  No toca `confirmada` (la cierra la recepción con «No asistió» o el médico con «Atendida»), ni la `reservada` en curso o
+  futura. Al ser una operación del sistema, `validar_transicion_estado` sigue rechazando `reservada → no_asistio` a cualquier
+  usuario, administrativo incluido: no hay botón ni camino manual. **`EXECUTE` no se concede a ningún rol de la aplicación**
+  (ni `public`, `anonymous` ni `authenticated`); quien la invoque por tiempo recibe el permiso en su propia migración (ver
+  contrato con H5). Hasta que ese cron exista las vencidas siguen como `reservada`; la función se puede invocar como dueño
+  (siembra, CI, una corrida manual). *Alternativas descartadas:* (a) permitir a la recepción `reservada → no_asistio`
+  (la propuesta original): deja el cierre a la memoria de una persona y la cita muerta sigue dando acceso al médico; (b) darle
+  `EXECUTE` a `cron_notificaciones` aquí: amplía el rol más sensible, que H5 y ADR-0020 quieren sin privilegios nuevos;
+  (c) cerrar al leer la agenda: una lectura no debe escribir ni depender de que alguien abra la pantalla.
 
 ## Contratos hacia H4, H5, H6 y H7
 
@@ -313,7 +324,11 @@ no puede vivir en la aplicación.
   la consola).
 - **H5 (notificaciones):** implementar `notificarEventoCita` (el único cambio necesario en las acciones de H3); decidir el tipo
   `reprogramacion` y quién inserta en `notificaciones`; no incluir `citas.motivo` en ningún correo (es texto libre); el motivo
-  `baja_medica` distingue la reasignación; la cadena `reprogramada_de` lleva de la cita nueva a la original.
+  `baja_medica` distingue la reasignación; la cadena `reprogramada_de` lleva de la cita nueva a la original. **El cron
+  diario debe invocar `public.cerrar_citas_vencidas()`** (cierre automático de las `reservada` vencidas como «No asistió»,
+  D13): la función no tiene `EXECUTE` para nadie de la aplicación, así que H5 decide el rol (`cron_notificaciones` u otro) y
+  lo concede en su migración con su prueba pgTAP (el rol solo gana ese `EXECUTE`, no lectura ni escritura sobre `citas`).
+  Con el cron diario de ADR-0028 (13:00 UTC) una cita que terminó hoy se cierra al día siguiente; no emite `EventoCita`.
 - **H6 (historias clínicas):** el acceso del médico a la historia nace cuando la **recepción** confirma la cita
   (`reservada → confirmada`, ADR-0016); H6 no construye otra vía de confirmación y debe tratar una cita solo `reservada` como
   «sin acceso todavía» (aviso, no error). La excepción de cobertura sigue siendo `asignarPacienteAMedico`, de H6.
@@ -358,7 +373,7 @@ no puede vivir en la aplicación.
 
 ## Migration Plan
 
-1. Rama de trabajo con commits por grupo de tareas; las siete migraciones se aplican en orden a un branch de desarrollo y
+1. Rama de trabajo con commits por grupo de tareas; las ocho migraciones se aplican en orden a un branch de desarrollo y
    luego al branch efímero del PR (`neon-branch-pr.yml` corre `migrate up`, pgTAP y concurrencia).
 2. Comprobar antes los solapes de `disponibilidades` (tarea 1.2) y que la suite completa sigue en verde con datos de demostración.
 3. Merge: `migrar-produccion.yml` aplica las migraciones (aditivas: funciones, vista, una restricción y dos disparadores) y
@@ -371,10 +386,8 @@ no puede vivir en la aplicación.
 
 Se pueden responder después sin cambiar las specs ni el desglose de tareas; los valores por defecto elegidos están entre paréntesis.
 
-1. **Cita `reservada` cuya hora pasó sin confirmarse** (no hay check-in ni llamada): con las transiciones decididas por el
-   cliente no puede confirmarse (terminó), cancelarse (ventana) ni marcarse «No asistió» (exige `confirmada`), y se acumula
-   como `reservada` vencida. Propuesta a validar con el cliente: permitir a la recepción `reservada → no_asistio` una vez
-   terminada la cita. No se implementa sin esa respuesta; H7 puede mostrar estas citas como «sin cierre».
+1. ~~**Cita `reservada` cuya hora pasó sin confirmarse**~~ **Resuelta (2026-10-20):** el cliente decidió que se cierra sola
+   como «No asistió»; ver D13 (`cerrar_citas_vencidas()`). Queda pendiente solo que el cron de H5 la invoque.
 2. **Criterio de «horario equivalente» en la reasignación** (mismo día primero, luego hasta 7 días hacia adelante, mismo
    horario antes que el más cercano). Validar con la clínica; `días` y `máx` son parámetros de la función.
 3. **Baja sin fecha de término** (licencia indefinida): H3 exige fecha de fin. Un rango abierto ampliaría el alcance de la

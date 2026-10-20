@@ -174,11 +174,11 @@ empieza cuando H2b está aplicado.
       `now() >= old.fin` fallan «confirmar una cita que ya terminó» (17) y «alargar el fin en el mismo UPDATE» (33). Ambas restauradas.
 - [x] 6.3 Completar `docs/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
       no actúa sobre el dueño de la base. Verificar que los comandos del documento corren tal como están escritos.
-- [ ] 6.4 Revisar el SQL de las cinco migraciones con el agente `code-review` (funciones `SECURITY DEFINER`, `search_path`,
+- [x] 6.4 Revisar el SQL de las cinco migraciones con el agente `code-review` (funciones `SECURITY DEFINER`, `search_path`,
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y
       acceso a historias clínicas vía confirmación). Verificar que no quedan hallazgos críticos abiertos y que los corregidos
       tienen su prueba pgTAP.
-      Avance (sin marcar: el (1) se corrigió; quedan abiertos el (2), el (3) y el (4)): revisión de solo lectura con el agente `code-review`
+      Avance (marcada el 2026-10-20: los cuatro hallazgos están corregidos con su prueba pgTAP): revisión de solo lectura con el agente `code-review`
       (2026-10-18; no ejecutó pgTAP). **Sin hallazgos críticos:** no hay filtración de historias clínicas ni función `SECURITY DEFINER`
       mal acotada (`search_path` vacío, `EXECUTE` solo a `authenticated`, la interna a nadie); las funciones `INVOKER` verifican
       `rol_actual()` antes de sondear citas; la vista `citas_por_reasignar` es `security_invoker` y no une `pacientes`; reprogramar
@@ -217,8 +217,8 @@ empieza cuando H2b está aplicado.
       (3) BAJA-MEDIA, **corregido (ver abajo)**: `propuestas_reasignacion` ordena por cita pero sin desempate por candidato; no garantiza que el «mismo horario» vaya
       primero con muchas citas en orden físico desordenado (la prueba 38 usa 3 citas ya ordenadas). Arreglo: `row_number()` dentro del
       lateral y `order by a.inicio, a.cita_id, t.orden`.
-      (4) BAJA: una cita `reservada` cuya hora pasó no tiene salida (`reservada → no_asistio` no existe) y el médico conserva la lectura
-      de `pacientes` mientras siga vigente; depende de la pregunta abierta 1 de design.md.
+      (4) BAJA, **corregido (ver 6.5)**: una cita `reservada` cuya hora pasó no tiene salida (`reservada → no_asistio` no existe) y el médico
+      conserva la lectura de `pacientes` mientras siga vigente; dependía de la pregunta abierta 1 de design.md, que el cliente respondió el 2026-10-20.
       **(2) y (3) corregidos (2026-10-20)** con la migración `1792343400000_ajustes-de-reasignacion` y la prueba `63_ajustes_de_reasignacion` (4 pruebas):
       (2) la vista `citas_por_reasignar` filtra `upper_inf(b.rango) or upper(b.rango) > now()`, así que una baja sin fecha de regreso sí devuelve las citas
       futuras del médico (se eligió la vista y no un `CHECK (not upper_inf(rango))`: la base admite hoy el rango abierto, la Zod pide el fin solo en la
@@ -226,12 +226,23 @@ empieza cuando H2b está aplicado.
       `row_number() over ()` sobre el flujo ya ordenado y filtrado (antes del `LIMIT`) y la salida ordena por `a.inicio, a.cita_id, t.orden`; el defecto era
       real y se reprodujo en el branch `h3/pruebas` con cinco citas insertadas en orden inverso: dentro de cada cita las propuestas salían desordenadas
       (`08:20>08:40, 08:20>08:00, 08:20>08:20*`), no solo «dependía del plan». La prueba 63 falla sobre la migración anterior (1, 2 y 4) y pasa con la nueva.
-      pgTAP completo 796 pruebas, 0 fallos; agenda 206, integración 61 y concurrencia 10, en verde.
-      **Sigue abierto solo el (4)** (una `reservada` vencida sin salida): depende de la pregunta abierta 1 de `design.md`, decisión del usuario; por eso 6.4 no se marca.
+      pgTAP completo 796 pruebas, 0 fallos tras (2) y (3); agenda 206, integración 61 y concurrencia 10, en verde.
       Notas: el paciente puede distinguir «ausencia» de «cita ocupada» combinando `horario_en_agenda` y `slots_disponibles` (sin
       motivos ni identidades); la excepción de la ventana también llega por `reprogramar_cita` y por `UPDATE` directo (D9 es más fuerte
       que la realidad); el disparador de transiciones solo actúa sobre `authenticated`, así que toda función `SECURITY DEFINER`
       futura que escriba en `citas` (H4, H5, H7) debe validarse sola, como `marcar_cita_atendida`.
+
+- [x] 6.5 Cierre automático de las citas `reservada` vencidas (decisión del cliente, 2026-10-20: «que se cancele sola, indicando que no asistió»;
+      cierra el hallazgo 6.4 (4) y la pregunta abierta 1 de `design.md`). Migración `1792344000000_cierre-de-citas-vencidas` con
+      `public.cerrar_citas_vencidas()` (`SECURITY DEFINER`, `search_path` vacío, `EXECUTE` a nadie de la aplicación): pasa a `no_asistio` toda
+      `reservada` con `fin <= now()`, solo cambia `estado`, es idempotente, devuelve cuántas cerró y deja la auditoría con actor nulo. Prueba
+      `64_cierre_citas_vencidas` (16): estados tras el cierre (en curso, futura, confirmada, cancelada y atendida intactas), idempotencia, columnas
+      sin cambios, auditoría sin actor, el médico deja de leer al paciente cuya única cita era la vencida (y sigue leyendo al que conserva
+      vigentes), el administrativo no puede cerrar a mano (`UC004`), ningún rol de la aplicación la ejecuta (`42501`, sin `EXECUTE`). Mutaciones
+      (temporales sobre `h3/pruebas`, restauradas): `inicio` en vez de `fin`, sin filtrar por `reservada`, `EXECUTE` a `authenticated` y sin
+      `SECURITY DEFINER`, todas detectadas. pgTAP completo: 812 pruebas, 0 fallos. **Pendiente de H5:** el cron diario debe invocarla y
+      recibir su `EXECUTE` en su propia migración (contrato en `design.md`, «Contratos hacia H5»); hasta entonces las vencidas siguen como
+      `reservada` y la función se invoca como dueño. No hay botón ni acción en la aplicación.
 
 ## 7. Fundamentos de la aplicación
 
@@ -452,6 +463,6 @@ empieza cuando H2b está aplicado.
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las siete migraciones, que el deployment de producción está
+- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las ocho migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.

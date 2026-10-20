@@ -299,7 +299,9 @@ una cita: `reservada → confirmada`, `confirmada → no_asistio`, `confirmada �
 cancelada` (esta última sujeta a la ventana de 1 hora). Cualquier otra transición SHALL rechazarse sin cambiar la cita, en
 particular: desde `cancelada`, `atendida` o `no_asistio` (estados finales), `reservada → atendida`, `reservada → no_asistio`,
 `confirmada → reservada` y cualquier regreso a `reservada`. Una cita insertada por un usuario SHALL nacer `reservada`. El
-mensaje de rechazo SHALL estar en español y decir qué estado se esperaba.
+mensaje de rechazo SHALL estar en español y decir qué estado se esperaba. La única transición que no hace un usuario es
+`reservada → no_asistio`, que ejecuta el sistema al cerrar las citas vencidas (requisito «Una cita reservada que terminó sin
+confirmarse se cierra sola como «No asistió»»).
 
 #### Scenario: Una cita cancelada no se confirma (negativo)
 - **WHEN** se intenta confirmar una cita `cancelada`
@@ -371,6 +373,37 @@ hora, o sobre una cita que no esté `confirmada`, la operación SHALL rechazarse
 #### Scenario: Otros roles no marcan «No asistió» (negativo)
 - **WHEN** un paciente, un médico, una enfermera o una sesión sin rol intenta marcar «No asistió» una cita
 - **THEN** la operación se rechaza o no afecta ninguna fila, y la cita sigue `confirmada`
+
+### Requirement: Una cita reservada que terminó sin confirmarse se cierra sola como «No asistió»
+La base de datos SHALL ofrecer una operación del sistema que pase a `no_asistio` toda cita `reservada` cuya hora de fin ya
+llegó (`fin <= now()`), cambiando únicamente su estado, de forma idempotente, devolviendo cuántas citas cerró y dejando la
+auditoría con el sistema como actor (sin usuario). NO SHALL tocar las citas `confirmada`, `cancelada` ni `atendida`, ni las
+`reservada` en curso o futuras. Ningún rol de la aplicación (administrativo, médico, enfermera, paciente ni anónimo) SHALL poder
+ejecutarla, y ningún usuario SHALL poder pasar por su cuenta una cita `reservada` a `no_asistio`. Una cita así cerrada SHALL
+dejar de dar al médico la lectura de los datos del paciente que daba mientras estaba `reservada`.
+
+#### Scenario: La cita reservada que terminó se cierra como «No asistió»
+- **WHEN** el sistema ejecuta el cierre y existe una cita `reservada` cuyo fin fue hace 2 horas y 40 minutos
+- **THEN** la cita pasa a `no_asistio`, no cambia ningún otro dato y queda un registro de auditoría sin actor
+
+#### Scenario: Lo que no terminó o no está reservada no se toca
+- **WHEN** el sistema ejecuta el cierre y hay una cita `reservada` en curso, otra `reservada` futura, una `confirmada` que ya
+  terminó, una `cancelada` y una `atendida`
+- **THEN** ninguna de las cinco cambia de estado
+
+#### Scenario: El cierre es idempotente
+- **WHEN** el sistema ejecuta el cierre dos veces seguidas sin citas nuevas vencidas
+- **THEN** la segunda ejecución devuelve 0 y no cambia ninguna cita
+
+#### Scenario: Nadie de la aplicación lo ejecuta ni lo hace a mano (negativo)
+- **WHEN** un administrativo, un médico o un paciente intenta ejecutar el cierre, o el administrativo intenta pasar una cita
+  `reservada` a `no_asistio` con una actualización directa
+- **THEN** la operación se rechaza y la cita no cambia
+
+#### Scenario: El médico pierde la lectura del paciente de una cita muerta
+- **WHEN** el médico A leía a un paciente solo por una cita `reservada` que terminó, y el sistema ejecuta el cierre
+- **THEN** el médico A deja de ver los datos de ese paciente, y sigue viendo a los que conservan citas `reservada` o `confirmada`
+  vigentes con él
 
 ### Requirement: Solo el médico dueño de la cita la marca «Atendida», mediante una operación acotada
 Solo el médico activo dueño de una cita SHALL poder marcarla `atendida`, y solo cuando está `confirmada` y su hora de inicio ya
