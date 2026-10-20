@@ -74,17 +74,20 @@ export function FormularioPaciente({ hoy }: { hoy: string }) {
               </Link>
             ) : hayCampos ? (
               <ul className="list-disc pl-5">
-                {Object.entries(campos).map(([campo, mensaje]) => (
-                  <li key={campo}>
-                    {IDS[campo] ? (
-                      <a className="underline underline-offset-2" href={`#${IDS[campo]}`}>
-                        {mensaje}
-                      </a>
-                    ) : (
-                      mensaje
-                    )}
-                  </li>
-                ))}
+                {/* En el orden del formulario (no en el que los devuelve la validación). */}
+                {Object.entries(campos)
+                  .sort(([a], [b]) => Object.keys(IDS).indexOf(a) - Object.keys(IDS).indexOf(b))
+                  .map(([campo, mensaje]) => (
+                    <li key={campo}>
+                      {IDS[campo] ? (
+                        <a className="underline underline-offset-2" href={`#${IDS[campo]}`}>
+                          {mensaje}
+                        </a>
+                      ) : (
+                        mensaje
+                      )}
+                    </li>
+                  ))}
               </ul>
             ) : (
               fallo.mensaje

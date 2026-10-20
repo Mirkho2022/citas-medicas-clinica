@@ -37,7 +37,7 @@ export function FiltroMedico({
           if (e.target.value) consulta.set("medico", e.target.value);
           router.push(`${ruta}?${consulta.toString()}`);
         }}
-        className="h-9 w-full min-w-0 rounded-md border border-input bg-surface px-3 text-body-sm text-foreground sm:w-[16.25rem]"
+        className="h-9 w-full min-w-0 rounded-md border border-input bg-surface px-3 text-body-sm text-foreground sm:w-[21rem]"
       >
         {todos ? <option value="">Todos los médicos</option> : <option value="">Elija un médico</option>}
         {medicos.map((m) => (

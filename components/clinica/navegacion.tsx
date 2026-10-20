@@ -76,8 +76,9 @@ export function NavegacionLateral({ rol }: { rol: Rol }) {
             <>
               <Icono className="size-5 shrink-0" aria-hidden="true" />
               <span className="whitespace-nowrap">{destino.etiqueta}</span>
+              {/* «Próximamente» va debajo de la etiqueta: con nombres largos («Notificaciones») no cabe al lado en 240 px. */}
               {destino.disponible ? null : (
-                <span className="ml-auto whitespace-nowrap text-label-sm font-normal">Próximamente</span>
+                <span className="basis-full whitespace-nowrap pl-7 text-label-sm font-normal">Próximamente</span>
               )}
             </>
           );
@@ -97,7 +98,7 @@ export function NavegacionLateral({ rol }: { rol: Rol }) {
               ) : (
                 <span
                   aria-disabled="true"
-                  className="flex min-h-9 items-center gap-2 rounded-md px-3 py-2 text-label-md text-ink-muted opacity-70"
+                  className="flex min-h-9 flex-wrap items-center gap-x-2 rounded-md px-3 py-2 text-label-md text-ink-muted opacity-70"
                 >
                   {contenido}
                 </span>
