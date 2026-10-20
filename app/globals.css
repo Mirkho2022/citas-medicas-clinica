@@ -35,8 +35,8 @@
   }
 
   /* «Reducir movimiento» (DESIGN.md, «Motion»): toda animación y transición se acota al fundido de `reduced` (150 ms) y los
-     bucles (como el pulso del esqueleto) se detienen. Las traslaciones y escalas de los componentes van además con
-     `motion-safe:`, así que aquí solo queda el fundido. */
+     bucles se detienen. Las traslaciones y escalas de los componentes van además con `motion-safe:`, así que aquí solo
+     queda el fundido. El brillo del esqueleto (abajo) se oculta del todo. */
   @media (prefers-reduced-motion: reduce) {
     *,
     ::before,
@@ -46,5 +46,42 @@
       transition-duration: var(--motion-reduced) !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* Esqueleto de carga (DESIGN.md, «Motion»): un bloque de `surface-muted` que un brillo de `canvas` recorre de izquierda a
+   derecha cada `--motion-skeleton`. El brillo es un degradado que se desplaza con `transform`: no se anima `background-position`
+   (solo `transform` y `opacity`; `npm run tema:comprobar` lo vigila). El redondeo lo pone cada uso. Con «Reducir movimiento» el
+   brillo no se muestra y queda el bloque fijo. */
+@layer components {
+  .esqueleto {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--color-surface-muted);
+  }
+
+  .esqueleto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent, var(--color-canvas), transparent);
+    transform: translateX(-100%);
+    animation: brillo var(--motion-skeleton) linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .esqueleto::after {
+      display: none;
+    }
+  }
+}
+
+@keyframes brillo {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
   }
 }
