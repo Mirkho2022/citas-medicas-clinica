@@ -546,6 +546,11 @@ empieza cuando H2b está aplicado.
       en dos líneas y «Ver horarios» se muestra como «Ver») y anotado en `docs/DESIGN.md`. El escritorio no cambia. Verificado en el preview (2026-10-20):
       a 390 px las tres tablas caben sin desplazarse por dentro (se midió el ancho de cada una contra su caja) y a 1280 px conservan todas sus columnas;
       el E2E del CI sigue en verde; hay capturas de las tres. Los puntos (1) y (2) ya estaban corregidos; las sugerencias de (4) quedan a criterio del cliente.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está
+- [x] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.
+      Resultado (2026-10-20): PR #13 fusionado (2be0cc7); la corrida 39503502769 de `migrar-produccion.yml` terminó en `success` y aplicó
+      las nueve (1792340114067 … 1792344600000; `pgmigrations` cuenta 9); el deployment de producción 7211946302 está en `success`; y en
+      el branch principal de Neon existen las trece funciones de H3 (`reservar_cita`, `reprogramar_cita`, `slots_disponibles`, `slots_agenda`,
+      `reasignar_cita_por_baja`, `propuestas_reasignacion`, `cerrar_citas_vencidas`, `cerrar_citas_vencidas_como_personal`, `marcar_cita_atendida`,
+      `validar_transicion_estado`, `validar_horario_cita`, `horario_en_agenda`, `proteger_columnas_cita`).
