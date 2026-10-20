@@ -37,6 +37,10 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Herramientas locales de Claude Code, no código del proyecto: las skills instaladas (librerías de terceros ya
+      // compiladas) y las copias de trabajo `git worktree` en .claude/worktrees, cada una con su propio `.next`. Los patrones
+      // de arriba solo ignoran la raíz, así que sin esta línea ESLint lee todo eso y da miles de avisos que no son del código.
+      ".claude/**",
     ],
   },
 ];

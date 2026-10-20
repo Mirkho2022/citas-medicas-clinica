@@ -33,7 +33,8 @@ El servidor SHALL validar la atención antes de tocar la base de datos, con inde
 navegador. El motivo de consulta, la anamnesis, el examen físico y el plan de tratamiento SHALL tener contenido real: un
 texto vacío, de solo espacios, tabuladores o saltos de línea, o de solo caracteres invisibles (como el espacio de ancho
 cero), SHALL rechazarse. SHALL exigirse al menos un diagnóstico, y los textos SHALL respetar longitudes máximas y no
-contener caracteres que la base no pueda guardar. Los errores SHALL indicarse por campo y en español.
+contener caracteres que la base no pueda guardar. Los errores SHALL indicarse por campo y en español. Cuando la atención lleve una plantilla de especialidad, sus campos
+SHALL validarse además según la capacidad `plantillas-clinicas-por-especialidad`.
 
 #### Scenario: Campo vacío
 - **WHEN** se envía una atención con la anamnesis vacía

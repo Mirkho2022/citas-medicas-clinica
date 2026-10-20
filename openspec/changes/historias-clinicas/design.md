@@ -2,7 +2,7 @@
 
 ## Context
 
-Motivación y alcance en [proposal.md](proposal.md); requisitos en `specs/` (nueve capacidades). Estado de partida,
+Motivación y alcance en [proposal.md](proposal.md); requisitos en `specs/` (diez capacidades). Estado de partida,
 verificado en el repositorio (no supuesto):
 
 - **Base de datos (H2, ya migrada):** `historias_clinicas`, `atenciones`, `addendas`, `antecedentes`, `cie10`,
@@ -24,6 +24,10 @@ verificado en el repositorio (no supuesto):
   `schema-only`; nota en `neon-branch-pr.yml`). Con datos reales, cada PR y cada preview los heredaría.
 - **Documentos:** TECH-DESIGN dibuja las rutas como `(personal)/pacientes/[id]/historia/`; el repositorio usa áreas
   (`app/medico`, `app/administrativo`), así que este change sigue las áreas reales (D8).
+- **Especialidades (dato del usuario, 2026-10-10):** la clínica atiende Medicina general, Odontología, Fisioterapia,
+  Psicología y Podología; no atiende Estética y Capilar. Pediatría, Cardiología y Ginecología de los datos de
+  demostración de H2 son solo sintéticos. `especialidades` y `medicos.especialidad_id` ya existen; `atenciones` no
+  tiene dónde guardar datos propios de una especialidad (D15).
 
 ## Goals / Non-Goals
 
@@ -33,6 +37,8 @@ verificado en el repositorio (no supuesto):
 - Que ninguna lectura de contenido clínico pueda omitir su registro de acceso (falla cerrada).
 - Que mientras P-1 siga abierta el sistema **no pueda** recibir datos clínicos reales, sin impedir la demostración.
 - Que el médico cargue una atención en pocos minutos, sin errores y sin perder lo escrito.
+- Que una especialidad pueda aportar campos propios a la atención **sin tocar** la estructura de `atenciones`, sin
+  debilitar «sin campos vacíos» ni la inmutabilidad de lo firmado (D15).
 
 **Non-Goals:**
 - Resolver P-1, P-5, P-10 o el hosting; declarar validez legal de la firma lógica; levantar el bloqueo de datos reales.
@@ -40,6 +46,8 @@ verificado en el repositorio (no supuesto):
   órdenes de laboratorio, acceso del paciente a su historia, y migración de datos reales de papel (H8).
 - Modificar agenda, portal, notificaciones o turnos, ni dar al médico permisos de `UPDATE` sobre `citas`.
 - Pantalla para el indicador de digitalización (solo la función; presentación a decidir en H7/H8).
+- Recetas y triaje (los pidió el usuario: serán changes propios), plantillas de Odontología, Fisioterapia, Psicología y
+  Podología, y cualquier cambio de roles para profesionales que no son médicos (D15, «Cuestión abierta»).
 
 ## Decisions
 
@@ -154,7 +162,7 @@ errores (D10), que nunca deja pasar el error crudo. El esquema Zod devuelve `{ o
 `creado_en`). Migración nueva:
 
 - Columnas `atenciones.firma_metodo` (`'logica'`) y `atenciones.firma_huella` (`'v1:' ||` SHA-256 hex del `jsonb` canónico de
-  identidad y contenido — `id`, `historia_id`, `paciente_id`, `cita_id`, `medico_id`, los cuatro textos, `diagnosticos`,
+  identidad y contenido — `id`, `historia_id`, `paciente_id`, `cita_id`, `medico_id`, los cuatro textos, `diagnosticos`, `plantilla_id`, `datos_especialidad`,
   `firmada_en` — con `sha256()` nativo de PostgreSQL ≥ 11; no hace falta `pgcrypto`). Función `huella_atencion(uuid)`.
   `CHECK … NOT VALID` impone «firmada ⇒ método y huella» solo a filas nuevas (las firmadas antes, p. ej. datos de
   demostración, no se pueden actualizar para rellenar la huella).
@@ -188,6 +196,7 @@ errores (D10), que nunca deja pasar el error crudo. El esquema Zod devuelve `{ o
 | H10 | El administrativo no puede leer `historias_clinicas.numero` (dato no clínico) | H8 podría necesitarlo para cotejar carpetas de papel | Sin cambio; aviso a H8 |
 | H11 | Las pruebas pgTAP dependen de que `R51` exista y de `columns_are` exacto | Romper la suite al cargar el catálogo o añadir columnas | Catálogo antes del disparador; `47` se actualiza a propósito |
 | H12 | Los branches efímeros copian datos de `production` | Previews con datos clínicos reales | Condición para levantar el bloqueo (D1, punto 5) |
+| H13 | `atenciones` es una nota genérica: no hay dónde guardar campos propios de una especialidad | Retrofitar después de firmar, de la huella y de las pruebas de RLS cuesta mucho más | D15: `plantillas_clinicas` y `datos_especialidad` |
 
 ### D7. Adjuntos: la fila RLS decide; subida directa a Blob; descarga por el servidor
 
@@ -320,7 +329,7 @@ sobre `citas`.
 ### D14. Pruebas y verificación
 
 - **pgTAP** nuevas (numeración sugerida): `48` CIE-10 y validación, `49` sello y huella, `54` adjuntos, `55` modo y
-  `configuracion_clinica`, `56` tipo de acceso, `57` asignaciones manuales, `58` indicador, y una prueba de
+  `configuracion_clinica`, `56` tipo de acceso, `57` asignaciones manuales, `58` indicador, `62` plantillas y datos de especialidad, y una prueba de
   `medico_tiene_paciente()` con perfil inactivo. Cada una incluye el caso negativo de **cada** rol (administrativo, paciente,
   enfermera, otro médico, sin rol, `anonymous`, `cron_notificaciones`, `sync_identidad`) y `has_table_privilege` de lo que no se
   concede. No asumen tablas vacías. `47` se actualiza a propósito.
@@ -334,6 +343,64 @@ sobre `citas`.
   addenda posible; administrativo/paciente/enfermera → sin acceso; aviso de demostración visible. **axe** sobre las pantallas.
 - Antes de cerrar: agente `code-review` sobre todo el diff (acceso a historias, RLS, migraciones, Server Actions, Route
   Handlers de adjuntos), con la lectura más estricta, y corrección de sus hallazgos.
+
+### D15. Datos clínicos por especialidad: plantillas versionadas y `datos_especialidad` validados en la base
+
+**Contexto.** La clínica atiende Medicina general, Odontología, Fisioterapia, Psicología y Podología (dato del usuario;
+Estética y Capilar queda fuera) y `atenciones` es una nota genérica (motivo, anamnesis, examen físico, diagnósticos, plan).
+Añadir campos después de la firma, la huella y las pruebas de RLS obliga a tocar políticas, disparadores y la prueba `47`
+con datos ya firmados; prepararlo ahora cuesta una tabla y dos columnas. La decisión completa está en
+[ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) (Aceptado el 2026-10-10).
+
+**Decisión.**
+- **Catálogo `plantillas_clinicas`** (tabla nueva, RLS activada): `id`, `especialidad_id` → `especialidades`, `version`
+  (entero ≥ 1), `nombre`, `campos` (`jsonb`: arreglo de definiciones `{clave, etiqueta, tipo, obligatorio, …}` con `tipo` en
+  `texto`, `entero`, `decimal`, `opcion`, `si_no` y `fecha`, y sus límites `min`, `max`, `largo_max`, `opciones` y `unidad`),
+  `vigente` y `creado_en`; `unique (especialidad_id, version)`. **Una versión es una fila inmutable**: cambiar una plantilla
+  es insertar la versión siguiente y marcar la anterior como no vigente. Lectura: solo el médico. Ningún rol de usuario
+  inserta, actualiza ni borra: **se gestiona por migración**, revisada como el resto del SQL clínico. El administrativo, la
+  enfermera, el paciente, `anonymous`, `cron_notificaciones` y `sync_identidad` no la leen.
+- **Columnas nuevas en `atenciones`:** `plantilla_id uuid null references plantillas_clinicas(id)` y `datos_especialidad
+  jsonb not null default '{}'` con `CHECK (jsonb_typeof(datos_especialidad) = 'object')`. No hace falta `plantilla_version`:
+  la fila de la plantilla **es** la versión, así que `plantilla_id` fija la plantilla exacta con la que se llenó la
+  atención. Las atenciones existentes quedan con `plantilla_id` nulo y `{}`. Ambas columnas se añaden a los `GRANT` de
+  `INSERT` y `UPDATE` de `authenticated`.
+- **Validación en la base (segunda barrera, como `diagnosticos`).** Disparador `atenciones_validar_datos_especialidad`
+  (`BEFORE INSERT OR UPDATE OF plantilla_id, datos_especialidad`, `SECURITY DEFINER`, `search_path` vacío, SQLSTATE propio
+  `HC005`). Con `plantilla_id` nulo exige `datos_especialidad = '{}'`. Con plantilla, esta debe existir, **estar vigente al
+  insertar** (un borrador conserva su plantilla aunque luego aparezca otra versión) y ser **de la especialidad del médico
+  autor**. **Reconstruye** el objeto con solo las claves definidas y exige cada campo obligatorio con contenido (mismo
+  criterio que `texto_con_contenido()`), el tipo, el rango, el largo y la pertenencia a `opciones`; un valor de otro tipo se
+  rechaza, no se convierte. Su nombre ordena después de `atenciones_inmutables`, así que una atención firmada se rechaza
+  antes de validar.
+- **Inmutabilidad y huella.** Los datos son parte de la fila: al firmar quedan inmutables sin código adicional, y
+  `plantilla_id` y `datos_especialidad` entran en la huella canónica de D5 desde su primera versión (`v1`). **Por eso la
+  migración de D15 va antes que `sello-y-huella-de-atenciones`** (Migration Plan): introducir los campos después obligaría a
+  una huella `v2` y a dos algoritmos de verificación.
+- **Aplicación.** `lib/schemas/plantilla.ts` construye el esquema Zod (`.strict()`) a partir de la definición de campos, con
+  mensajes en español y la misma regla de texto con contenido de D3. `FormularioAtencion` dibuja los campos con `Campo` (H2b),
+  con errores por campo y sin vaciar lo escrito. El servidor **vuelve a leer** la plantilla vigente de la especialidad del
+  médico bajo RLS y valida contra ella, nunca contra lo que diga el cliente. Una especialidad sin plantilla registra la
+  atención con los campos genéricos y `plantilla_id` nulo.
+- **Primera plantilla: Medicina general**, por migración de datos idempotente. Campos propuestos de la primera consulta de la
+  NTS 139, numeral 5.2.1 (a validar con el personal médico, tarea 0.6): `tiempo_enfermedad` (obligatorio),
+  `funciones_biologicas`, `examenes_auxiliares`, `referencia` y `proxima_cita`. **Sin signos vitales ni receta**: pertenecen
+  a los seguimientos de triaje y recetas, que no se construyen aquí.
+
+*Alternativas descartadas:* (a) **una tabla por especialidad** (`atencion_odontologia`…): tipado fuerte, pero una migración,
+una política RLS, una prueba negativa por rol y un cambio en `47` por cada especialidad, y ver «todas las atenciones de un
+paciente» obliga a unir tablas; (b) **EAV** (`atencion_campos(atencion_id, clave, valor)`): validación y consultas pesadas y
+una tabla clínica más que blindar; (c) **`jsonb` sin plantilla**: sin catálogo no hay contrato que validar y cualquier clave
+pasaría; (d) **JSON Schema completo en la base** (extensión `pg_jsonschema`): obliga a sumar una extensión a Neon y el
+subconjunto de tipos de arriba cubre lo necesario.
+
+**Cuestión abierta (no se resuelve aquí).** Odontología, Fisioterapia, Psicología y Podología las atienden profesionales
+colegiados que **no son médicos**, y el esquema de H2 asume «médico» (`medicos`, `atenciones.medico_id`,
+`medico_tiene_paciente()`, `asignaciones_paciente_medico` y el rol `medico`). Generalizar a «profesional de salud» toca el
+esquema ya en producción y la regla de roles de `CLAUDE.md`: exige decisión explícita del usuario, actualizar el PRD con la
+skill `generar-prd-conversacional` y revisión con `code-review`. D15 no lo prejuzga: `plantillas_clinicas` cuelga de
+`especialidades`, no de `medicos`, y la regla «plantilla de la especialidad del autor» se reescribe cuando exista el
+concepto de profesional.
 
 ## Risks / Trade-offs
 
@@ -358,14 +425,21 @@ sobre `citas`.
   archivado] → Este change los refina (no los contradice). Al archivar, la guía de `config.yaml` exige comprobar que no se
   contradigan; si el solapamiento se vuelve un conflicto de nombres de requisito se renombra aquí.
 - [El número de las ADR nuevas puede chocar con las de otros changes en paralelo] → Se asigna el siguiente libre al crearlas
-  (0029 al escribir esto); no se fijan en los textos.
+  (la 0029 ya la ocupa la ADR de datos por especialidad; las demás, el siguiente libre); no se fijan en los textos.
 - [Los datos de Clerk (identidad) y la región de Neon quedan fuera del bloqueo técnico] → Van en la consulta legal de P-1.
+- [La definición de campos de una plantilla es un `jsonb` y su validador en SQL es código que mantener] → Subconjunto mínimo
+  de tipos (D15), probado con pgTAP por tipo y por rol y revisado con `code-review`; una plantilla nueva es siempre una
+  migración, nunca un dato que un usuario pueda editar.
+- [Un médico podría necesitar la plantilla de otra especialidad (interconsulta, cobertura)] → La regla «plantilla de la
+  especialidad del autor» es estricta a propósito; se relaja con una migración si el personal médico lo pide.
+- [Los campos de la plantilla de Medicina general se proponen desde la NTS 139 sin validación clínica] → Tarea 0.6: validar
+  con el personal médico antes de fijar la migración; sin acceso, queda como supuesto escrito.
 
 ## Migration Plan
 
 1. Grupo 0: ADR, verificación de Blob, fuente CIE-10 y revisión con el personal médico; decisiones documentadas antes de código.
 2. Migraciones nuevas en este orden (cada una con su prueba): modo de datos clínicos → carga de `cie10` → validación de
-   diagnósticos → sello, huella y coherencia de cita → `medico_tiene_paciente()` con perfil activo → tipo de acceso →
+   diagnósticos → plantillas clínicas y datos de especialidad (D15; antes de la huella, que los cubre) → sello, huella y coherencia de cita → `medico_tiene_paciente()` con perfil activo → tipo de acceso →
    asignaciones manuales → `adjuntos_historia` → indicador. Nunca se edita una migración aplicada.
 3. Suite pgTAP, concurrencia e integración completas en un branch de desarrollo; PR con branch efímero y los mismos pasos.
 4. Aplicación: primero lógica y repositorio, luego pantallas cuando H2b esté aplicado.
@@ -393,3 +467,10 @@ Ninguna cambia las especificaciones, el enfoque ni el desglose de tareas; se pue
   conservación de huellas:** dependen de P-1 y se llevan a la consulta legal; el PRD hoy excluye el acceso del paciente.
 - **Lista de problemas CIE-10 con estado** para historias migradas (D12) y **presentación del indicador** de digitalización (H7/H8).
 - **Límites numéricos** de D3 y del adjunto, y si la categoría CIE-10 de 3 caracteres con subdivisiones puede elegirse.
+- **Profesionales que no son médicos** (D15): Odontología, Fisioterapia, Psicología y Podología. ¿Se generaliza `medicos` a
+  «profesional de salud» (con colegiatura y tipo)? Toca producción, la regla de roles y el PRD: decisión del usuario y del
+  cliente antes de cualquier plantilla de esas especialidades.
+- **Campos de la plantilla de Medicina general** y **qué otras plantillas** hacen falta (D15): validar con el personal médico
+  (tarea 0.6). También, qué hacer en una interconsulta con la regla «plantilla de la especialidad del autor».
+- **Recetas y triaje** (seguimientos pedidos por el usuario): cada uno es un change propio; el triaje amplía el permiso de la
+  enfermera y reabre la regla de roles. Ver `proposal.md`, «Impact».

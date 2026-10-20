@@ -25,7 +25,7 @@ Convenciones de todo el change (leer antes de empezar):
       migraciones en un branch de desarrollo de Neon y correr `npm run test:pgtap`. Verificar que la línea base está en verde
       y anotar el número de pruebas en el PR.
 - [ ] 0.2 Con la skill `architecture`, crear la ADR «Modo de datos clínicos: demostración y real» (siguiente número libre en
-      `docs/adrs/`; 0029 al proponerse) que recoja `design.md` D1 sin decidir P-1, enlazarla en la tabla de ADR de
+      `docs/adrs/`; la 0029 la ocupa la ADR de datos por especialidad, así que 0030 o la siguiente libre) que recoja `design.md` D1 sin decidir P-1, enlazarla en la tabla de ADR de
       TECH-DESIGN y dejarla en estado «Propuesto» hasta que el usuario la acepte. Verificar que el archivo existe, que los
       enlaces relativos resuelven y que el estado no es «Aceptado».
 - [ ] 0.3 Con la misma skill, crear la ADR «Sello de tiempo y huella de la firma lógica» (D5), que aclara que no resuelve
@@ -40,7 +40,7 @@ Convenciones de todo el change (leer antes de empezar):
       contiene fuente, versión, fecha y condiciones de uso.
 - [ ] 0.6 Revisar con el personal médico (o, si no hay acceso, dejarlo escrito como supuesto sin validar y avisar al usuario)
       los tipos de diagnóstico (`presuntivo`, `definitivo`, `repetitivo`), las cinco categorías de antecedentes (ADR-0015),
-      el tamaño máximo de adjunto y si se admiten imágenes además de PDF. Verificar que las respuestas o el supuesto constan en
+      el tamaño máximo de adjunto, si se admiten imágenes además de PDF, los campos de la plantilla de Medicina general (D15) y qué otras plantillas se necesitan. Verificar que las respuestas o el supuesto constan en
       `design.md` (Preguntas abiertas).
 - [ ] 0.7 Coordinar con los changes en paralelo: de H2b, los nombres exactos de `AtencionFirmada`, `Campo`, `Alerta`,
       `ConsolaLayout` y `lib/ui/formato.ts`; de H3 (dueña de las transiciones de la cita: recepción confirma y marca «no
@@ -48,6 +48,10 @@ Convenciones de todo el change (leer antes de empezar):
       secundario de 8.3 (D13), y que la confirmación de recepción es lo que crea la asignación automática; y los archivos
       compartidos (`lib/ui/navegacion.ts`, `package.json`, `.env.example`). Verificar que el contrato de la acción y las
       decisiones constan en `design.md`, D13, y que este change no añade ninguna política ni función sobre `citas`.
+
+- [x] 0.8 El usuario aceptó la [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) el 2026-10-10 (estado
+      «Aceptado»), sabiendo que Odontología, Fisioterapia, Psicología y Podología quedan sin plantilla hasta resolver quién las
+      atiende (D15, «Cuestión abierta»). Verificado: la ADR dice «Aceptado» y las tareas 2.8 a 2.13 ya pueden empezar.
 
 ## 1. Bloqueo de datos clínicos reales (P-1)
 
@@ -84,7 +88,7 @@ Convenciones de todo el change (leer antes de empezar):
       vacío, `REVOKE ... FROM PUBLIC`, ausencia de `GRANT` en la tabla). Verificar que cada hallazgo se corrige o se justifica
       por escrito en el PR.
 
-## 2. Catálogo CIE-10 y validación de diagnósticos
+## 2. Contenido estructurado de la atención: CIE-10 y plantillas por especialidad
 
 - [ ] 2.1 `scripts/preparar-cie10.ts`: convierte la fuente elegida en 0.5 a un CSV determinista
       `datos/cie10/<fuente>-<versión>.csv` con `codigo,descripcion,capitulo`, su huella SHA-256 y un `LEEME.md` con fuente,
@@ -112,11 +116,38 @@ Convenciones de todo el change (leer antes de empezar):
       `docs/pruebas-sql.md` las pruebas nuevas. Verificar que los enlaces relativos resuelven.
 - [ ] 2.7 Revisión con el agente `code-review` del disparador de diagnósticos (reescritura de `jsonb`, `SECURITY DEFINER`) y
       de la ruta de búsqueda. Verificar que los hallazgos quedan resueltos o justificados.
+- [ ] 2.8 Migración `plantillas-clinicas` (**antes** de `sello-y-huella-de-atenciones`, 3.1; ver D15 y el plan de migración):
+      tabla `plantillas_clinicas` (`especialidad_id`, `version`, `nombre`, `campos` `jsonb`, `vigente`, `unique
+      (especialidad_id, version)` y `CHECK` de la forma del arreglo de campos), RLS activada, `SELECT` solo para el rol médico y
+      **sin** `INSERT`, `UPDATE` ni `DELETE` para ningún rol de usuario; columnas `plantilla_id` y `datos_especialidad` en
+      `atenciones` (`CHECK` de objeto, valor por defecto `'{}'`), ampliación del `GRANT` de columnas de `authenticated` y
+      disparador `atenciones_validar_datos_especialidad` (`SECURITY DEFINER`, `search_path` vacío, `HC005`). Verificar con
+      `npm run migrate -- up` en un branch de desarrollo, con `relrowsecurity` de la tabla nueva y con que las pruebas 40 a 47
+      siguen en verde salvo `47`, que se actualiza en 3.5.
+- [ ] 2.9 Migración de datos `plantilla-medicina-general` (idempotente, `on conflict (especialidad_id, version) do nothing`) con
+      los campos de D15 y la especialidad «Medicina general» (la crea si falta, como hace la siembra). Verificar que aplicarla
+      dos veces no duplica filas y que su arreglo `campos` pasa el `CHECK` de forma de 2.8.
+- [ ] 2.10 Prueba pgTAP **negativa** `tests/pgtap/62_plantillas_clinicas.test.sql`: RLS activada; el médico lee las plantillas;
+      administrativo, enfermera, paciente y sin rol no leen (cero filas); ningún rol de usuario inserta, actualiza ni borra
+      (`has_table_privilege` falso también para `anonymous`, `cron_notificaciones` y `sync_identidad`); y, de la validación:
+      campo obligatorio ausente o solo con espacios o invisibles, tipo equivocado, fuera de rango, opción no listada, clave
+      ajena descartada, `datos_especialidad` no vacío sin plantilla, plantilla inexistente o no vigente al insertar (un
+      borrador existente conserva la suya), plantilla de otra especialidad que la del médico autor, y que firmar deja los
+      datos inmutables. No asume tablas vacías. Verificar que pasa y que `99_rls_en_todas_las_tablas` sigue en verde.
+- [ ] 2.11 `lib/schemas/plantilla.ts` (esquema Zod `.strict()` derivado de la definición de campos, mensajes en español, misma
+      regla de texto con contenido de D3) y `tests/historias/plantilla.test.ts` con `node:test`: un caso por tipo de campo y
+      por regla, y una clave ajena rechazada. Verificar que pasan y que fallan al relajar una regla a propósito.
+- [ ] 2.12 Documentar: TECH-DESIGN («Modelo de datos»: `plantillas_clinicas` y las columnas nuevas de `atenciones`, y la matriz
+      de acceso), `docs/pruebas-sql.md` (prueba 62) y el enlace a la ADR-0029 en su tabla de ADR. Verificar que los enlaces
+      relativos resuelven y que los textos no contradicen a `CLAUDE.md`.
+- [ ] 2.13 Revisión con el agente `code-review` de la migración, de la política de la tabla y del disparador de validación
+      (`jsonb` reescrito, `SECURITY DEFINER`, regla de especialidad). Verificar que los hallazgos quedan resueltos o
+      justificados.
 
 ## 3. Integridad en la base de datos: sello, huella, cita y perfil activo
 
 - [ ] 3.1 Migración `sello-y-huella-de-atenciones`: columnas `firma_metodo` y `firma_huella` en `atenciones`, función
-      `huella_atencion(uuid)` (`'v1:'` + SHA-256 del `jsonb` canónico de D5), `CHECK ... NOT VALID` «firmada ⇒ método y
+      `huella_atencion(uuid)` (`'v1:'` + SHA-256 del `jsonb` canónico de D5, que ya incluye `plantilla_id` y `datos_especialidad` de 2.8), `CHECK ... NOT VALID` «firmada ⇒ método y
       huella», y disparadores `BEFORE INSERT/UPDATE` que, solo si `current_user = 'authenticated'`, fijan `creado_en` (en
       `atenciones`, `addendas` y `antecedentes`) y `firmada_en` al firmar, y que para cualquier rol calculan método y huella
       cuando la fila nace o queda firmada. Verificar que se aplica y que el disparador `atenciones_inmutables` sigue
@@ -125,7 +156,7 @@ Convenciones de todo el change (leer antes de empezar):
       la misma `paciente_id` y `medico_id`. Verificar que se aplica.
 - [ ] 3.3 Prueba pgTAP `tests/pgtap/49_sello_y_huella.test.sql`: una `firmada_en` o `creado_en` enviada por el médico se
       sobrescribe con la hora del servidor (atenciones, addendas, antecedentes); el dueño (siembra) conserva sus valores pero
-      obtiene huella; la huella coincide con su recálculo y deja de coincidir si se altera el contenido (deshabilitando el
+      obtiene huella; la huella coincide con su recálculo y deja de coincidir si se altera el contenido, también `datos_especialidad` y `plantilla_id` (deshabilitando el
       disparador de inmutabilidad solo dentro de la transacción de prueba, que se revierte); `HC003` con cita de otro médico y
       de otro paciente, cita nula admitida, segunda atención de la misma cita `23505` y firmar una atención vinculada no modifica el estado de su cita; y negativos: otro médico, administrativo,
       paciente y enfermera no firman. Verificar que pasa y que 44 y 53 no se modificaron.
@@ -134,7 +165,7 @@ Convenciones de todo el change (leer antes de empezar):
       desactivado pierde el acceso a atenciones, historias, antecedentes y accesos aunque su asignación esté vigente y su
       `medicos.activo` sea verdadero; al reactivarlo lo recupera. Verificar que pasa y que las pruebas 42, 43, 45, 46 y 52
       siguen en verde sin editarse.
-- [ ] 3.5 Actualizar `tests/pgtap/47_estructura_historia.test.sql` con las dos columnas nuevas de `atenciones` (a propósito:
+- [ ] 3.5 Actualizar `tests/pgtap/47_estructura_historia.test.sql` con las cuatro columnas nuevas de `atenciones` (`firma_metodo`, `firma_huella`, `plantilla_id` y `datos_especialidad`; a propósito:
       la prueba existe para que añadir columnas obligue a revisarla). Verificar que 47 pasa y que toda la suite pgTAP completa
       pasa.
 - [ ] 3.6 Prueba de concurrencia `tests/concurrencia/20_firma_edicion.test.ts` (dos sesiones `pg`): un `UPDATE` del contenido
@@ -212,7 +243,7 @@ Convenciones de todo el change (leer antes de empezar):
 ## 7. Registro de atención
 
 - [ ] 7.1 `lib/schemas/historia-clinica.ts` (Zod 3, `.strict()`, texto con contenido que rechaza también invisibles y `U+0000`,
-      NFC, límites iniciales de D3, 1 a 10 diagnósticos únicos con `cie10` y `tipo`) y `tests/historias/esquemas.test.ts` con los
+      NFC, límites iniciales de D3, 1 a 10 diagnósticos únicos con `cie10` y `tipo`, y `plantilla_id` con `datos_especialidad` validados con el esquema de 2.11) y `tests/historias/esquemas.test.ts` con los
       casos de la especificación (vacío, espacios, tabulador y salto de línea, ancho cero, NUL, longitud máxima, sin
       diagnósticos, repetido, tipo inválido, clave ajena). Verificar que pasan y que fallan al relajar una regla a propósito.
 - [ ] 7.2 `lib/historias/errores.ts` con el mapeo de D10 (`HC001` a `HC004`, `42501` con y sin «Atención firmada», `23505`,
@@ -223,9 +254,9 @@ Convenciones de todo el change (leer antes de empezar):
       una clave ajena se rechaza y ningún error crudo escapa.
 - [ ] 7.4 Componentes `FichaPaciente`, `SelectorDiagnostico` (combobox accesible, teclado, 200 ms) y `FormularioAtencion`
       (`react-hook-form` con el mismo esquema, barra fija, errores por campo sin vaciar lo escrito, aviso al abandonar, sin
-      almacenamiento del navegador, motivo prellenado desde la cita) y las páginas `atenciones/nueva` y
+      almacenamiento del navegador, motivo prellenado desde la cita, y los campos de la plantilla de la especialidad del médico dibujados con `Campo`, D15) y las páginas `atenciones/nueva` y
       `atenciones/[atencionId]` (editar borrador). Verificar con `npm run typecheck`, `npm run lint` y recorrido manual.
-- [ ] 7.5 E2E `e2e/historias-registro.spec.ts`: guardar con campos vacíos muestra errores y no guarda; diagnóstico repetido;
+- [ ] 7.5 E2E `e2e/historias-registro.spec.ts`: guardar con campos vacíos muestra errores y no guarda; un campo obligatorio de la plantilla vacío o fuera de rango también; diagnóstico repetido;
       un diagnóstico buscado por teclado; otro médico no edita el borrador; no hay controles editables de datos del paciente;
       `localStorage` y `sessionStorage` no contienen texto clínico; axe. Verificar que pasan.
 - [ ] 7.6 Documentar la tabla de Server Actions de TECH-DESIGN (`actualizarBorrador` y las demás nuevas) y la regla de
@@ -305,7 +336,7 @@ Convenciones de todo el change (leer antes de empezar):
 
 - [ ] 11.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:historias`,
       `npm run test:pgtap`, `npm run test:concurrencia`, `npm run test:integracion` y la suite E2E completa. Verificar que todo
-      pasa y que el PR trae el cuadro de cada requisito de las nueve especificaciones con la prueba que lo cubre.
+      pasa y que el PR trae el cuadro de cada requisito de las diez especificaciones con la prueba que lo cubre.
 - [ ] 11.2 Verificación por mutación (D14): en un branch de desarrollo, debilitar a propósito cada política y disparador nuevo
       (p. ej. quitar `medico_tiene_paciente` de la política de `adjuntos_historia`, quitar la guarda de modo, no sellar
       `firmada_en`, aceptar `cita:` en asignaciones) y comprobar que al menos una prueba negativa falla; revertir. Verificar

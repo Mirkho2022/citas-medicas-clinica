@@ -10,6 +10,7 @@ export interface Design {
   rounded: Record<string, string>;
   spacing: Record<string, string>;
   shadows: Record<string, string>;
+  motion: Record<string, string>;
   components: Record<string, Record<string, string>>;
   // El front matter completo, ya parseado, para resolver referencias `{colors.x}`.
   raiz: Tokens;
@@ -24,6 +25,7 @@ const CLAVES_CONOCIDAS = [
   "rounded",
   "spacing",
   "shadows",
+  "motion",
   "components",
 ];
 const CLAVES_TEXTO = ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing"];
@@ -131,6 +133,7 @@ export function leerDesign(md: string): { design: Design; avisos: string[] } {
       rounded: resolverGrupo(raiz.rounded, raiz),
       spacing: resolverGrupo(raiz.spacing, raiz),
       shadows: resolverGrupo(raiz.shadows, raiz),
+      motion: resolverGrupo(raiz.motion, raiz),
       components,
       raiz,
     },
@@ -183,6 +186,11 @@ export function generarTema(md: string): { css: string; avisos: string[] } {
   const sombras = Object.entries(design.shadows).map(
     ([n, v]) => `--shadow-${n.replace(/^shadow-/, "")}: ${v};`,
   );
+  // Las curvas (`ease-*`) caen en el espacio `--ease-*` de Tailwind y generan la utilidad `ease-<nombre>`; las duraciones y
+  // demás medidas de tiempo se exponen como `--motion-<nombre>`. Los nombres de DESIGN.md no pisan los de Tailwind (`ease-out`).
+  const movimiento = Object.entries(design.motion).map(([n, v]) =>
+    n.startsWith("ease-") ? `--${n}: ${v};` : `--motion-${n}: ${v};`,
+  );
 
   for (const [, token] of SHADCN) {
     if (!(token in design.colors)) throw new Error(`El color «${token}» que usa la capa de shadcn/ui no está en DESIGN.md`);
@@ -198,7 +206,10 @@ export function generarTema(md: string): { css: string; avisos: string[] } {
     "   No editar a mano: cambie DESIGN.md y ejecute `npm run tema`. */",
     "",
     "@theme static {",
-    bloque([...colores, "", ...fuentes, "", ...textos, "", ...espacios, "", ...radios, "", ...sombras]),
+    bloque([
+      ...colores, "", ...fuentes, "", ...textos, "", ...espacios, "", ...radios, "", ...sombras,
+      ...(movimiento.length > 0 ? ["", ...movimiento] : []),
+    ]),
     "}",
     "",
     "/* Capa de correspondencia con shadcn/ui (tabla «Components» de DESIGN.md). */",
@@ -213,4 +224,68 @@ export function generarTema(md: string): { css: string; avisos: string[] } {
   ].join("\n");
 
   return { css, avisos };
+}
+
+// Reglas del movimiento aprobado (docs/diseno/BRIEF-DISENO.md, sección 6) que comprueba `npm run tema:comprobar`:
+//  - una curva es `cubic-bezier(a, b, c, d)` y toda otra medida de tiempo, un entero en milisegundos;
+//  - nada dura más de 320 ms, salvo el ciclo del esqueleto de carga (`skeleton`), que es un bucle y no una transición;
+//  - salir es más rápido que entrar: cada `<x>-out` dura menos que su `<x>-in`.
+export const DURACION_MAXIMA_MS = 320;
+const CICLOS = ["skeleton"];
+const CURVA = /^cubic-bezier\(\s*-?\d*\.?\d+(\s*,\s*-?\d*\.?\d+){3}\s*\)$/;
+
+// «Solo se animan `transform` y `opacity`»: cada declaración de un `@keyframes` debe ser una de esas dos. Quita los comentarios
+// antes de leer y recorre las llaves a mano porque un `@keyframes` anida un bloque por cada paso (`from`, `50%`, `to`).
+const PROPIEDADES_ANIMABLES = ["transform", "opacity"];
+export function validarKeyframes(css: string, archivo: string): string[] {
+  const texto = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const problemas: string[] = [];
+  for (const inicio of texto.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    const desde = inicio.index + inicio[0].length;
+    let nivel = 1;
+    let fin = desde;
+    while (fin < texto.length && nivel > 0) {
+      const c = texto[fin++];
+      if (c === "{") nivel++;
+      else if (c === "}") nivel--;
+    }
+    for (const paso of texto.slice(desde, fin - 1).matchAll(/\{([^{}]*)\}/g)) {
+      for (const declaracion of paso[1].split(";")) {
+        const propiedad = declaracion.split(":")[0].trim().toLowerCase();
+        if (propiedad && !PROPIEDADES_ANIMABLES.includes(propiedad)) {
+          problemas.push(`${archivo}: @keyframes ${inicio[1]} anima «${propiedad}»; solo se animan transform y opacity`);
+        }
+      }
+    }
+  }
+  return problemas;
+}
+
+export function validarMovimiento(motion: Record<string, string>): string[] {
+  const problemas: string[] = [];
+  const ms = (nombre: string): number | null => {
+    const m = /^(\d+)ms$/.exec(String(motion[nombre]));
+    return m ? Number(m[1]) : null;
+  };
+  for (const [nombre, valor] of Object.entries(motion)) {
+    if (nombre.startsWith("ease-")) {
+      if (!CURVA.test(String(valor))) problemas.push(`motion.${nombre}: «${valor}» no es una curva cubic-bezier(a, b, c, d)`);
+      continue;
+    }
+    const duracion = ms(nombre);
+    if (duracion === null) {
+      problemas.push(`motion.${nombre}: «${valor}» no es una duración en milisegundos (por ejemplo 120ms)`);
+    } else if (!CICLOS.includes(nombre) && duracion > DURACION_MAXIMA_MS) {
+      problemas.push(`motion.${nombre}: ${duracion} ms supera el máximo de ${DURACION_MAXIMA_MS} ms`);
+    }
+  }
+  for (const entrada of Object.keys(motion).filter((n) => n.endsWith("-in"))) {
+    const salida = entrada.replace(/-in$/, "-out");
+    const entra = ms(entrada);
+    const sale = ms(salida);
+    if (entra !== null && sale !== null && sale >= entra) {
+      problemas.push(`motion.${salida}: ${sale} ms no es más rápido que ${entrada} (${entra} ms): salir debe ser más rápido que entrar`);
+    }
+  }
+  return problemas;
 }

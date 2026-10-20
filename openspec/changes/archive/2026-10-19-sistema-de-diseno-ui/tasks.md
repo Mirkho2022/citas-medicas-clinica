@@ -27,7 +27,7 @@ instalan o ejecutan con la autorización del usuario.
       una lista de pares adicionales (4,5:1 texto; 3:1 controles y foco). Verificar que pasa hoy y que falla en tres
       cambios temporales revertidos: editar DESIGN.md sin regenerar, añadir `#fff` en un archivo de `app/` y bajar el
       contraste de `ink-muted`.
-- [ ] 1.5 Añadir `npm run tema:comprobar` y `npm run test:tema` al job `typecheck-lint-build` de
+- [x] 1.5 Añadir `npm run tema:comprobar` y `npm run test:tema` al job `typecheck-lint-build` de
       `.github/workflows/ci.yml` (archivo con CRLF: conservarlos). Verificar en el PR que los pasos aparecen y pasan.
 
 ## 2. Base de interfaz: tipografía, tema claro y shadcn/ui
@@ -118,10 +118,13 @@ instalan o ejecutan con la autorización del usuario.
       en rojo cuando se quita a propósito la etiqueta de un campo en un cambio temporal revertido.
 - [x] 7.2 Corregir las violaciones que axe encuentre en componentes y estructuras. Verificar que la prueba de 7.1 queda en
       verde y que cada corrección tiene su explicación en el mensaje del commit.
-- [ ] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
+- [x] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
       de pantalla, 200 % de zoom, objetivos táctiles) y ejecutarla una vez sobre el preview anotando el resultado en el
       PR; las pantallas de Clerk se revisan a mano y los hallazgos de su propio marcado se anotan ahí. Verificar que el
-      documento tiene la lista y que el PR trae el resultado de cada ítem.
+      documento tiene la lista y que el PR trae el resultado de cada ítem. *Evidencia: la lista está en
+      `docs/pruebas-e2e.md`; el usuario la ejecutó sobre el preview y dio su conformidad el 2026-10-18 («listo»), sin
+      hallazgos. No dio el resultado por ítem: el lector de pantalla (NVDA) no consta aparte y se vuelve a revisar con las
+      pantallas de H3 (13.3).*
 
 ## 8. Documentación y coherencia
 
@@ -135,12 +138,16 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 9. Verificación integral en el PR
 
-- [ ] 9.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:tema`,
+- [x] 9.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:tema`,
       `npm run tema:comprobar` y la suite E2E completa; verificar que todo pasa y que el PR trae el cuadro de cada
       requisito de la spec con la prueba que lo cubre.
-- [ ] 9.2 Revisar visualmente en el preview de Vercel la galería, las cuatro áreas y las pantallas de autenticación a 390 px
+- [x] 9.2 Revisar visualmente en el preview de Vercel la galería, las cuatro áreas y las pantallas de autenticación a 390 px
       y a 1280 px, y mostrar las capturas al usuario; verificar que el usuario da su visto bueno o lista los ajustes (que se
-      hacen antes del merge).
-- [ ] 9.3 Tras el merge, comprobar que el despliegue de producción está en estado READY y que `/iniciar-sesion` se ve en
+      hacen antes del merge). *Evidencia: el usuario revisó el preview directamente (sin capturas de Claude, porque el
+      preview exige sesión) y dio su visto bueno el 2026-10-18 con «el preview se ve bien», sin ajustes.*
+- [x] 9.3 Tras el merge, comprobar que el despliegue de producción está en estado READY y que `/iniciar-sesion` se ve en
       español y con la marca; verificar con la URL pública. La carga de datos de demostración y cualquier pantalla con datos
-      reales **no** forman parte de este change.
+      reales **no** forman parte de este change. *Evidencia (2026-10-19, merge `b1f2a90`): el despliegue de producción de Vercel está
+      en `success`, `Migrar producción` terminó en `success`, y `/iniciar-sesion` en la URL pública, vista con un navegador limpio
+      a 1280 y a 390 px, está en español y con la marca «Citas Médicas». Sigue lo ya documentado de Clerk: el subtítulo
+      «citas-clinicas» y el pie «Development mode» (la instancia de producción es de desarrollo; se cambia en el panel de Clerk).*
