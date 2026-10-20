@@ -16,9 +16,9 @@
 -- una cita en curso todavía puede confirmarse y no se toca. Las `confirmada` vencidas no entran: las cierra la recepción
 -- con «No asistió» o el médico con «Atendida», como hasta ahora.
 --
--- EXECUTE: nadie de la aplicación (ni public, ni anonymous, ni authenticated). Quien la invoque por tiempo (el cron de H5)
--- necesita un permiso explícito en su propia migración: dárselo desde aquí ampliaría el rol `cron_notificaciones`, que H5 y
--- ADR-0020 quieren sin privilegios nuevos.
+-- EXECUTE: nadie de la aplicación (ni public, ni anonymous, ni authenticated). Se invoca sin cron: la aplicación entra por
+-- `cerrar_citas_vencidas_como_personal()` (migración 1792344600000), que exige administrativo o médico y delega en esta; así el rol
+-- `cron_notificaciones` no gana ningún permiso (H5 y ADR-0020 lo quieren sin privilegios nuevos).
 create function public.cerrar_citas_vencidas()
 returns integer
 language plpgsql security definer set search_path = ''

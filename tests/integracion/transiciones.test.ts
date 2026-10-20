@@ -1,7 +1,9 @@
-// Ciclo de estados de la cita (H3, tareas 10.4 y 10.5; design.md, D13): `lib/citas/transiciones.ts` ejecutado COMO `authenticated`
+// Ciclo de estados de la cita (H3, tareas 10.4, 10.5 y 6.5; design.md, D13): `lib/citas/transiciones.ts` ejecutado COMO `authenticated`
 // con la identidad y el rol de cada usuario, sobre un branch de pruebas (el disparador de transiciones, la función
 // `marcar_cita_atendida`, la RLS y la auditoría son los reales). Complementa a tests/agenda/transiciones.test.ts (doble del
 // ejecutor) y a pgTAP 61.
+// Las pruebas del cierre automático (6.5) van aquí y no en otro archivo a propósito: `cerrar_citas_vencidas_como_personal()` cierra TODAS las
+// reservadas vencidas de la base y estas pruebas dejan reservadas ya terminadas como datos; archivos distintos corren en paralelo y se pisarían.
 // Las citas de prueba se preparan como dueño de la base de datos (el disparador no actúa sobre él), con horas relativas a `now()`.
 // Las filas llevan marcas propias (documentos `7360…`, perfiles `user_it_…`, CMP `CMP-IT-…`) y se borran al empezar y al terminar;
 // la auditoría es de solo agregar y conserva su rastro (por eso corre contra un branch de pruebas, nunca production).
@@ -9,6 +11,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type pg from "pg";
 import { MENSAJE_CITA_NO_VIGENTE, MENSAJE_TRANSICION } from "../../lib/citas/errores.ts";
+import { cerrarCitasVencidas } from "../../lib/citas/cierre.ts";
 import { confirmarCita, marcarAtendida, marcarNoAsistio } from "../../lib/citas/transiciones.ts";
 import { MENSAJE_NO_AUTORIZADO } from "../../lib/acciones/resultado.ts";
 import { conectar } from "../concurrencia/_conexion.ts";
@@ -29,7 +32,7 @@ let medico1: string;
 let pacienteA: string; // sin cuenta de portal
 let pacienteB: string; // con la cuenta de portal PACIENTE
 
-type Estado = "reservada" | "confirmada" | "atendida" | "no_asistio";
+type Estado = "reservada" | "confirmada" | "atendida" | "no_asistio" | "cancelada";
 
 // Una franja única por cita (el médico no puede tener dos vigentes solapadas): cada una vive en su propio día.
 //  - futura: dentro de más de 30 días; - empezada: su hora de inicio ya pasó (y también terminó); - terminada: igual que
@@ -221,4 +224,64 @@ test("el médico, la enfermera, el paciente y una sesión sin rol no confirman n
   }
   assert.equal(await estadoDe(reservada), "reservada");
   assert.equal(await estadoDe(confirmadaEmpezada), "confirmada");
+});
+
+// ---- Cierre automático de las reservadas vencidas (6.5): se dispara al usar el sistema, sin cron ----
+
+test("la enfermera, el paciente y una sesión sin rol no cierran citas vencidas (negativo) y no cambia ninguna", async () => {
+  const vencida = await nuevaCita("reservada", "terminada", pacienteB);
+  for (const identidad of [ENFERMERA, PACIENTE, SIN_ROL]) {
+    const r = await como(identidad, (e) => cerrarCitasVencidas(e));
+    assert.deepEqual(r, { ok: false, codigo: "NO_AUTORIZADO", mensaje: MENSAJE_NO_AUTORIZADO }, identidad.sub);
+  }
+  assert.equal(await estadoDe(vencida), "reservada", "ninguna la cerró");
+});
+
+test("el administrativo cierra las reservadas que terminaron como «No asistió» y no toca las demás; repetirlo no cambia nada", async () => {
+  const vencida = await nuevaCita("reservada", "terminada", pacienteA);
+  const otraVencida = await nuevaCita("reservada", "terminada", pacienteB);
+  const enCurso = await nuevaCita("reservada", "enCurso", pacienteA);
+  const futura = await nuevaCita("reservada", "futura", pacienteB);
+  const confirmadaVencida = await nuevaCita("confirmada", "terminada", pacienteA);
+  const atendida = await nuevaCita("atendida", "terminada", pacienteB);
+  const cancelada = await nuevaCita("cancelada", "terminada", pacienteA);
+
+  const r = await como(ADMIN, (e) => cerrarCitasVencidas(e));
+  assert.equal(r.ok, true);
+  assert.equal(typeof (r.ok && r.datos.cerradas), "number");
+  assert.ok(r.ok && r.datos.cerradas >= 2, "al menos las dos vencidas de esta prueba (también cierra las que dejaron otras pruebas)");
+
+  assert.equal(await estadoDe(vencida), "no_asistio");
+  assert.equal(await estadoDe(otraVencida), "no_asistio");
+  assert.equal(await estadoDe(enCurso), "reservada", "la que está en curso aún puede confirmarse");
+  assert.equal(await estadoDe(futura), "reservada");
+  assert.equal(await estadoDe(confirmadaVencida), "confirmada", "la confirmada la cierra la recepción o el médico, no el cierre automático");
+  assert.equal(await estadoDe(atendida), "atendida");
+  assert.equal(await estadoDe(cancelada), "cancelada");
+
+  const segunda = await como(ADMIN, (e) => cerrarCitasVencidas(e));
+  assert.equal(segunda.ok, true);
+  assert.equal(await estadoDe(vencida), "no_asistio", "repetir no cambia lo ya cerrado");
+});
+
+test("el médico también dispara el cierre, y la cita cerrada deja constancia en la auditoría con él como actor", async () => {
+  const vencida = await nuevaCita("reservada", "terminada", pacienteA);
+  const r = await como(MEDICO, (e) => cerrarCitasVencidas(e));
+  assert.equal(r.ok, true);
+  assert.equal(await estadoDe(vencida), "no_asistio");
+  const auditoria = await comoDueno(async (c) =>
+    (await c.query(
+      `select a.actor_rol::text as rol, a.datos_antes ->> 'estado' as antes, a.datos_despues ->> 'estado' as despues
+         from public.auditoria a where a.tabla = 'citas' and a.accion = 'UPDATE' and a.registro_id = $1`,
+      [vencida],
+    )).rows,
+  );
+  assert.deepEqual(auditoria, [{ rol: "medico", antes: "reservada", despues: "no_asistio" }]);
+});
+
+test("el administrativo no puede cerrar a mano una reservada vencida: la regla es del sistema", async () => {
+  const vencida = await nuevaCita("reservada", "terminada", pacienteA);
+  const r = await como(ADMIN, (e) => marcarNoAsistio(e, { cita_id: vencida }));
+  assert.deepEqual(r, { ok: false, codigo: "TRANSICION_INVALIDA", mensaje: MENSAJE_TRANSICION.no_asistio });
+  assert.equal(await estadoDe(vencida), "reservada");
 });

@@ -5,6 +5,7 @@ import { SelectorFecha } from "@/components/clinica/selector-fecha";
 import { Button } from "@/components/ui/button";
 import { exigirPaginaAdministrativo } from "@/lib/auth/pagina-personal";
 import { accionesVisibles } from "@/lib/citas/acciones-visibles";
+import { cerrarCitasVencidas } from "@/lib/citas/cierre";
 import { agendaDelDia, listarMedicos, parametrosAgenda } from "@/lib/citas/consultas";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
 import { hoyLima } from "@/lib/fechas/lima";
@@ -30,6 +31,9 @@ export default async function PaginaAgenda({
 
   const hoy = hoyLima();
   const { fecha, medicoId } = parametrosAgenda(await searchParams, hoy);
+  // Antes de leer se cierran las citas reservadas que ya terminaron sin confirmarse (design.md, D13): la lista las muestra como «No
+  // asistió». Es idempotente y barata; si falla, la agenda se muestra igual (el error inesperado ya lo registra `traducirError`).
+  await cerrarCitasVencidas(ejecutorAutenticado);
   const [medicos, agenda] = await Promise.all([
     listarMedicos(ejecutorAutenticado),
     agendaDelDia(ejecutorAutenticado, fecha, medicoId),

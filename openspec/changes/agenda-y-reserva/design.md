@@ -302,18 +302,29 @@ no puede vivir en la aplicación.
   esa hora el botón no se ofrece. No hay botón «Atendida» en la consola administrativa.
 - **Cita `reservada` que terminó sin confirmarse (decisión del cliente, 2026-10-20): se cierra sola como «No asistió».** Sin
   esto no tenía salida (confirmar ya no procede, cancelar lo impide la ventana y `reservada → no_asistio` no existe para el
-  usuario) y el médico seguía leyendo los datos del paciente por una cita muerta. Lo hace `public.cerrar_citas_vencidas()`
-  (`SECURITY DEFINER`, `search_path` vacío): pasa a `no_asistio` toda `reservada` con `fin <= now()` (el mismo límite con que se
-  rechaza confirmar), cambia solo `estado`, es idempotente, devuelve cuántas cerró y deja auditoría con actor nulo (el sistema).
-  No toca `confirmada` (la cierra la recepción con «No asistió» o el médico con «Atendida»), ni la `reservada` en curso o
-  futura. Al ser una operación del sistema, `validar_transicion_estado` sigue rechazando `reservada → no_asistio` a cualquier
-  usuario, administrativo incluido: no hay botón ni camino manual. **`EXECUTE` no se concede a ningún rol de la aplicación**
-  (ni `public`, `anonymous` ni `authenticated`); quien la invoque por tiempo recibe el permiso en su propia migración (ver
-  contrato con H5). Hasta que ese cron exista las vencidas siguen como `reservada`; la función se puede invocar como dueño
-  (siembra, CI, una corrida manual). *Alternativas descartadas:* (a) permitir a la recepción `reservada → no_asistio`
-  (la propuesta original): deja el cierre a la memoria de una persona y la cita muerta sigue dando acceso al médico; (b) darle
-  `EXECUTE` a `cron_notificaciones` aquí: amplía el rol más sensible, que H5 y ADR-0020 quieren sin privilegios nuevos;
-  (c) cerrar al leer la agenda: una lectura no debe escribir ni depender de que alguien abra la pantalla.
+  usuario) y el médico seguía leyendo los datos del paciente por una cita muerta. **Sin cron** (el cliente lo prefirió: evita una
+  credencial de servicio, una variable de entorno y el único cron diario del plan Hobby, ADR-0028): lo dispara la aplicación cuando el
+  personal usa el sistema. Son dos funciones, ambas `SECURITY DEFINER` con `search_path` vacío:
+  - `public.cerrar_citas_vencidas()` (interna) pasa a `no_asistio` toda `reservada` con `fin <= now()` (el mismo límite con que se
+    rechaza confirmar; se añade `inicio < now()`, implícito porque la tabla exige `fin > inicio`, para usar `citas_estado_inicio_idx`:
+    con 100 000 citas pasó de recorrer la tabla a un recorrido por índice), cambia solo `estado`, es idempotente y devuelve cuántas
+    cerró. **`EXECUTE` no se concede a ningún rol de la aplicación** (ni `public`, `anonymous` ni `authenticated`): solo el dueño
+    (siembra, CI, una corrida manual) y, por dentro, la puerta. Con el dueño la auditoría queda con actor nulo.
+  - `public.cerrar_citas_vencidas_como_personal()` es la puerta de la aplicación (`EXECUTE` a `authenticated`): exige administrativo o
+    médico (`42501` a paciente, enfermera y sesión sin rol), no recibe parámetros y delega en la interna. Es DEFINER para poder
+    llamarla y para que `validar_transicion_estado` (que solo mira `authenticated`) no actúe. Por ella la auditoría lleva como
+    actor a quien tenía la sesión. La aplicación la llama con `lib/citas/cierre.ts` (`cerrarCitasVencidas`) **al abrir la agenda del
+    administrativo, antes de leer**, para que la lista ya muestre las citas como «No asistió»; nunca lanza y, si falla, la agenda
+    se muestra igual. La jornada del médico de H7 debe hacer lo mismo (contrato abajo).
+  No toca `confirmada` (la cierra la recepción con «No asistió» o el médico con «Atendida»), ni la `reservada` en curso o futura.
+  `validar_transicion_estado` sigue rechazando `reservada → no_asistio` a cualquier usuario, administrativo incluido: no hay botón ni
+  camino manual. *Consecuencia aceptada:* si nadie del personal abre la agenda, la cita sigue `reservada` hasta que alguien lo haga.
+  *Alternativas descartadas:* (a) permitir a la recepción `reservada → no_asistio` (la propuesta original): deja el cierre a la
+  memoria de una persona y la cita muerta sigue dando acceso al médico; (b) un cron (Vercel, `pg_cron` o un workflow programado):
+  descartado por el cliente; además `pg_cron` de Neon solo corre con la base activa, no la despierta; darle `EXECUTE` a
+  `cron_notificaciones` habría ampliado el rol más sensible, que H5 y ADR-0020 quieren sin privilegios nuevos; (c) estado derivado
+  (mostrar «No asistió» sin escribirlo y cortar el acceso del médico en la política de `pacientes`): deja la columna sin la verdad y
+  obliga a todo reporte de H7 a usar una vista; toca una política de acceso a datos de pacientes.
 
 ## Contratos hacia H4, H5, H6 y H7
 
@@ -324,11 +335,9 @@ no puede vivir en la aplicación.
   la consola).
 - **H5 (notificaciones):** implementar `notificarEventoCita` (el único cambio necesario en las acciones de H3); decidir el tipo
   `reprogramacion` y quién inserta en `notificaciones`; no incluir `citas.motivo` en ningún correo (es texto libre); el motivo
-  `baja_medica` distingue la reasignación; la cadena `reprogramada_de` lleva de la cita nueva a la original. **El cron
-  diario debe invocar `public.cerrar_citas_vencidas()`** (cierre automático de las `reservada` vencidas como «No asistió»,
-  D13): la función no tiene `EXECUTE` para nadie de la aplicación, así que H5 decide el rol (`cron_notificaciones` u otro) y
-  lo concede en su migración con su prueba pgTAP (el rol solo gana ese `EXECUTE`, no lectura ni escritura sobre `citas`).
-  Con el cron diario de ADR-0028 (13:00 UTC) una cita que terminó hoy se cierra al día siguiente; no emite `EventoCita`.
+  `baja_medica` distingue la reasignación; la cadena `reprogramada_de` lleva de la cita nueva a la original. El cierre de las
+  `reservada` vencidas (D13) **no depende del cron de H5**: lo dispara la aplicación al usar el sistema; el rol
+  `cron_notificaciones` no recibe ningún permiso nuevo y no emite `EventoCita`.
 - **H6 (historias clínicas):** el acceso del médico a la historia nace cuando la **recepción** confirma la cita
   (`reservada → confirmada`, ADR-0016); H6 no construye otra vía de confirmación y debe tratar una cita solo `reservada` como
   «sin acceso todavía» (aviso, no error). La excepción de cobertura sigue siendo `asignarPacienteAMedico`, de H6.
@@ -337,7 +346,9 @@ no puede vivir en la aplicación.
   empezó (la base rechaza el resto); «pacientes en espera» y «citas de mañana sin confirmar» se apoyan en los estados que
   H3 hace transitar (`confirmada` = ingresó o confirmó por teléfono; `no_asistio` lo marca la recepción); para «citas
   afectadas por una baja sin atender» usar la vista `citas_por_reasignar`; reutilizar `TablaAgenda`, `slots_disponibles()` y
-  los destinos de `navegacion.ts`. Una cita `atendida` solo es posible desde `confirmada`.
+  los destinos de `navegacion.ts`. Una cita `atendida` solo es posible desde `confirmada`. **La jornada del médico debe llamar a
+  `cerrarCitasVencidas()` (`lib/citas/cierre.ts`) antes de leer** (D13): así el médico deja de ver como vigentes las `reservada`
+  que terminaron sin confirmarse, y esas citas cuentan como `no_asistio` en «pacientes en espera» y en los conteos.
 - **H8:** debe normalizar los Carné de Extranjería a mayúsculas al migrar, igual que el registro, y cargar las citas históricas
   como dueño de la base (el disparador de transiciones no actúa sobre el dueño).
 
@@ -373,7 +384,7 @@ no puede vivir en la aplicación.
 
 ## Migration Plan
 
-1. Rama de trabajo con commits por grupo de tareas; las ocho migraciones se aplican en orden a un branch de desarrollo y
+1. Rama de trabajo con commits por grupo de tareas; las nueve migraciones se aplican en orden a un branch de desarrollo y
    luego al branch efímero del PR (`neon-branch-pr.yml` corre `migrate up`, pgTAP y concurrencia).
 2. Comprobar antes los solapes de `disponibilidades` (tarea 1.2) y que la suite completa sigue en verde con datos de demostración.
 3. Merge: `migrar-produccion.yml` aplica las migraciones (aditivas: funciones, vista, una restricción y dos disparadores) y
@@ -387,7 +398,7 @@ no puede vivir en la aplicación.
 Se pueden responder después sin cambiar las specs ni el desglose de tareas; los valores por defecto elegidos están entre paréntesis.
 
 1. ~~**Cita `reservada` cuya hora pasó sin confirmarse**~~ **Resuelta (2026-10-20):** el cliente decidió que se cierra sola
-   como «No asistió»; ver D13 (`cerrar_citas_vencidas()`). Queda pendiente solo que el cron de H5 la invoque.
+   como «No asistió», sin cron, cuando el personal usa el sistema; ver D13 (`cerrar_citas_vencidas_como_personal()`).
 2. **Criterio de «horario equivalente» en la reasignación** (mismo día primero, luego hasta 7 días hacia adelante, mismo
    horario antes que el más cercano). Validar con la clínica; `días` y `máx` son parámetros de la función.
 3. **Baja sin fecha de término** (licencia indefinida): H3 exige fecha de fin. Un rango abierto ampliaría el alcance de la

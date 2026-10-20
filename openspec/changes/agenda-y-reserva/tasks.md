@@ -232,17 +232,24 @@ empieza cuando H2b está aplicado.
       que la realidad); el disparador de transiciones solo actúa sobre `authenticated`, así que toda función `SECURITY DEFINER`
       futura que escriba en `citas` (H4, H5, H7) debe validarse sola, como `marcar_cita_atendida`.
 
-- [x] 6.5 Cierre automático de las citas `reservada` vencidas (decisión del cliente, 2026-10-20: «que se cancele sola, indicando que no asistió»;
-      cierra el hallazgo 6.4 (4) y la pregunta abierta 1 de `design.md`). Migración `1792344000000_cierre-de-citas-vencidas` con
-      `public.cerrar_citas_vencidas()` (`SECURITY DEFINER`, `search_path` vacío, `EXECUTE` a nadie de la aplicación): pasa a `no_asistio` toda
-      `reservada` con `fin <= now()`, solo cambia `estado`, es idempotente, devuelve cuántas cerró y deja la auditoría con actor nulo. Prueba
-      `64_cierre_citas_vencidas` (16): estados tras el cierre (en curso, futura, confirmada, cancelada y atendida intactas), idempotencia, columnas
-      sin cambios, auditoría sin actor, el médico deja de leer al paciente cuya única cita era la vencida (y sigue leyendo al que conserva
-      vigentes), el administrativo no puede cerrar a mano (`UC004`), ningún rol de la aplicación la ejecuta (`42501`, sin `EXECUTE`). Mutaciones
-      (temporales sobre `h3/pruebas`, restauradas): `inicio` en vez de `fin`, sin filtrar por `reservada`, `EXECUTE` a `authenticated` y sin
-      `SECURITY DEFINER`, todas detectadas. pgTAP completo: 812 pruebas, 0 fallos. **Pendiente de H5:** el cron diario debe invocarla y
-      recibir su `EXECUTE` en su propia migración (contrato en `design.md`, «Contratos hacia H5»); hasta entonces las vencidas siguen como
-      `reservada` y la función se invoca como dueño. No hay botón ni acción en la aplicación.
+- [x] 6.5 Cierre automático de las citas `reservada` vencidas, **sin cron** (decisión del cliente, 2026-10-20: «que se cancele sola, indicando que
+      no asistió», y luego sin cron; cierra el hallazgo 6.4 (4) y la pregunta abierta 1 de `design.md`). Migraciones
+      `1792344000000_cierre-de-citas-vencidas` y `1792344600000_cierre-de-vencidas-al-usar-el-sistema`: `public.cerrar_citas_vencidas()` (interna,
+      `SECURITY DEFINER`, `search_path` vacío, sin `EXECUTE` para la aplicación) pasa a `no_asistio` toda `reservada` con `fin <= now()`
+      (más `inicio < now()` para usar `citas_estado_inicio_idx`: con 100 000 citas pasó de recorrer la tabla a un recorrido por índice, 19,6 ms a
+      11,5 ms con 505 cierres), solo cambia `estado`, es idempotente y devuelve cuántas cerró; y `cerrar_citas_vencidas_como_personal()` (puerta de la
+      aplicación, `EXECUTE` a `authenticated`, exige administrativo o médico, `42501` al resto). `lib/citas/cierre.ts` (`cerrarCitasVencidas`,
+      contexto de error `cierre`) la llama desde `app/administrativo/agenda/page.tsx` **antes de leer** la agenda; si falla, la agenda se muestra
+      igual. Pruebas: pgTAP `64_cierre_citas_vencidas` (28): estados tras el cierre, idempotencia, columnas sin cambios, auditoría sin actor (dueño) y
+      con actor (puerta), el médico deja de leer al paciente de la cita muerta, el administrativo no cierra a mano (`UC004`), la interna no la ejecuta
+      ningún rol de la aplicación y la puerta rechaza a enfermera, paciente y sesión sin rol; `tests/agenda/cierre.test.ts` (5, ejecutor doble) y 4
+      pruebas nuevas en `tests/integracion/transiciones.test.ts` (con sesiones reales; van ahí porque el cierre es global y ese archivo es el
+      único con reservadas ya terminadas como datos: archivos distintos corren en paralelo y se pisarían). Mutaciones (temporales sobre `h3/pruebas`,
+      restauradas): `inicio` en vez de `fin`, sin filtrar por `reservada`, `EXECUTE` a `authenticated` en la interna, `EXECUTE` a `anonymous` en la
+      puerta, sin guarda de rol, guarda que deja pasar a la enfermera y sin `SECURITY DEFINER`, todas detectadas. pgTAP completo 824 pruebas, 0
+      fallos; agenda 211, integración 65 y concurrencia 10. **Consecuencia aceptada:** si nadie del personal abre la agenda, la cita sigue `reservada`
+      hasta que alguien lo haga; **H7** debe llamar a `cerrarCitasVencidas()` al abrir la jornada del médico (contrato en `design.md`). No hay botón ni
+      acción manual.
 
 ## 7. Fundamentos de la aplicación
 
@@ -463,6 +470,6 @@ empieza cuando H2b está aplicado.
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las ocho migraciones, que el deployment de producción está
+- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.

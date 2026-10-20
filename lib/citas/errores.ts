@@ -42,6 +42,7 @@ export const MENSAJE_TRANSICION = {
 //  - confirmar, no_asistio, atendida: transiciones de estado (UC004 con el mensaje propio de cada una).
 //  - registrar_paciente: 23505 es documento duplicado. buscar_paciente: solo 42501 y el error inesperado.
 //  - disponibilidad, bloqueo: 23P01 es solape de horarios o de ausencias.
+//  - cierre: el cierre de citas vencidas; solo 42501 (guarda de rol) y el error inesperado.
 export const CONTEXTOS_ERROR = [
   "agendar",
   "reprogramar",
@@ -54,6 +55,7 @@ export const CONTEXTOS_ERROR = [
   "buscar_paciente",
   "disponibilidad",
   "bloqueo",
+  "cierre",
 ] as const;
 export type ContextoError = (typeof CONTEXTOS_ERROR)[number];
 

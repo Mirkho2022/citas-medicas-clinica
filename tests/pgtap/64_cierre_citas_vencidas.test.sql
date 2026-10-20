@@ -1,6 +1,7 @@
--- H3, tarea 6.4 (4) (agenda-y-reserva): cerrar_citas_vencidas() cierra como «No asistió» las citas `reservada` cuya hora terminó.
+-- H3, tareas 6.4 (4) y 6.5 (agenda-y-reserva): cerrar_citas_vencidas() cierra como «No asistió» las citas `reservada` cuya hora terminó
+-- (función interna, solo el dueño) y cerrar_citas_vencidas_como_personal() es la puerta de la aplicación: administrativo o médico.
 -- Spec: gestion-de-citas («Una cita reservada que terminó sin confirmarse se cierra sola como «No asistió»»).
-select plan(16);
+select plan(28);
 
 -- Datos de prueba (dueño). Seis citas del médico A (horas relativas a now(): la transacción de la prueba lo fija):
 --   01 reservada que terminó hace horas (se cierra)      02 reservada en curso (no)        03 reservada futura (no)
@@ -92,24 +93,88 @@ select is(pg_temp.pacientes_visibles((select id from e where clave = 'pd')), 0,
 select is(pg_temp.pacientes_visibles((select id from e where clave = 'pa')), 1,
   'control: sigue leyendo a la paciente A, que conserva citas reservadas vigentes (en curso y futura)');
 
--- ---- Nadie de la aplicación la ejecuta ----
+-- ---- La función interna no la ejecuta nadie de la aplicación ----
 select tests.autenticar_como('administrativo');
-select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el administrativo no puede ejecutarla');
+select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el administrativo no puede ejecutar la función interna');
 select tests.autenticar_como('medico_a');
-select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el médico no puede ejecutarla');
+select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el médico no puede ejecutar la función interna');
 select tests.autenticar_como('paciente_a');
-select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el paciente no puede ejecutarla');
+select throws_ok($q$ select public.cerrar_citas_vencidas() $q$, '42501', null, 'el paciente no puede ejecutar la función interna');
 
 select tests.volver_a_dueno();
 select ok(
   not has_function_privilege('public', 'public.cerrar_citas_vencidas()', 'EXECUTE')
   and not has_function_privilege('anonymous', 'public.cerrar_citas_vencidas()', 'EXECUTE')
   and not has_function_privilege('authenticated', 'public.cerrar_citas_vencidas()', 'EXECUTE'),
-  'public, anonymous y authenticated no tienen EXECUTE (el cron de H5 recibirá el suyo en su propia migración)'
+  'public, anonymous y authenticated no tienen EXECUTE sobre la función interna (la aplicación entra por la del personal)'
 );
 select ok(
   (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = 'public.cerrar_citas_vencidas()'::regprocedure),
-  'es SECURITY DEFINER con search_path vacío'
+  'la interna es SECURITY DEFINER con search_path vacío'
+);
+
+-- ---- La puerta de la aplicación: cerrar_citas_vencidas_como_personal() ----
+-- Tres reservadas que ya terminaron (08, 09 y 10) las cierra el administrativo; una cuarta (11) la cierra el médico.
+insert into public.citas (id, paciente_id, medico_id, inicio, fin, origen, estado) values
+  ('00000000-0000-4000-8000-000000006408', (select id from e where clave = 'pd'), (select id from e where clave = 'm_a'), now() - interval '12 hours', now() - interval '11 hours 40 minutes', 'portal', 'reservada'),
+  ('00000000-0000-4000-8000-000000006409', (select id from e where clave = 'pd'), (select id from e where clave = 'm_a'), now() - interval '13 hours', now() - interval '12 hours 40 minutes', 'portal', 'reservada'),
+  ('00000000-0000-4000-8000-000000006410', (select id from e where clave = 'pd'), (select id from e where clave = 'm_a'), now() - interval '14 hours', now() - interval '13 hours 40 minutes', 'portal', 'reservada');
+create function pg_temp.estados_nuevas() returns text[] language sql as $$
+  select array_agg(c.estado::text order by c.id) from public.citas c
+  where c.id between '00000000-0000-4000-8000-000000006408' and '00000000-0000-4000-8000-000000006410'
+$$;
+grant execute on function pg_temp.estados_nuevas() to public;
+create temp table esperadas_3 as
+  select count(*)::int as n from public.citas where estado = 'reservada' and fin <= now();
+grant select on esperadas_3 to public;
+
+select tests.autenticar_como('enfermera');
+select throws_ok($q$ select public.cerrar_citas_vencidas_como_personal() $q$, '42501', null, 'la enfermera no puede cerrar citas vencidas');
+select tests.autenticar_como('paciente_a');
+select throws_ok($q$ select public.cerrar_citas_vencidas_como_personal() $q$, '42501', null, 'el paciente no puede cerrar citas vencidas');
+select tests.autenticar_como('sin_rol');
+select throws_ok($q$ select public.cerrar_citas_vencidas_como_personal() $q$, '42501', null, 'una sesión sin rol no puede cerrar citas vencidas');
+select tests.volver_a_dueno();
+select is(pg_temp.estados_nuevas(), array['reservada', 'reservada', 'reservada'],
+  'los intentos rechazados no cambiaron ninguna cita');
+
+select tests.autenticar_como('administrativo');
+select is(public.cerrar_citas_vencidas_como_personal(), (select n from esperadas_3),
+  'el administrativo cierra todas las vencidas (08, 09 y 10) y obtiene cuántas cerró');
+select is(pg_temp.estados_nuevas(), array['no_asistio', 'no_asistio', 'no_asistio'], 'las tres quedaron «No asistió»');
+select is(public.cerrar_citas_vencidas_como_personal(), 0, 'una segunda llamada del administrativo no encuentra nada (idempotente)');
+select tests.volver_a_dueno();
+select is(
+  (select count(*)::int from public.auditoria
+    where tabla = 'citas' and accion = 'UPDATE' and registro_id = '00000000-0000-4000-8000-000000006408'
+      and actor_id = (select id from public.perfiles where clerk_user_id = tests.sub('administrativo')) and actor_rol = 'administrativo'
+      and datos_antes ->> 'estado' = 'reservada' and datos_despues ->> 'estado' = 'no_asistio'),
+  1, 'por la puerta de la aplicación la auditoría lleva como actor a quien tenía la sesión (a diferencia de la corrida del dueño)'
+);
+
+insert into public.citas (id, paciente_id, medico_id, inicio, fin, origen, estado) values
+  ('00000000-0000-4000-8000-000000006411', (select id from e where clave = 'pd'), (select id from e where clave = 'm_a'), now() - interval '15 hours', now() - interval '14 hours 40 minutes', 'portal', 'reservada');
+create temp table esperadas_4 as
+  select count(*)::int as n from public.citas where estado = 'reservada' and fin <= now();
+grant select on esperadas_4 to public;
+select tests.autenticar_como('medico_a');
+select is(public.cerrar_citas_vencidas_como_personal(), (select n from esperadas_4), 'el médico también la dispara y cierra la 11');
+select tests.volver_a_dueno();
+select is(
+  (select count(*)::int from public.auditoria
+    where tabla = 'citas' and accion = 'UPDATE' and registro_id = '00000000-0000-4000-8000-000000006411'
+      and actor_rol = 'medico' and datos_despues ->> 'estado' = 'no_asistio'),
+  1, 'y queda auditado con el médico como actor');
+
+select ok(
+  has_function_privilege('authenticated', 'public.cerrar_citas_vencidas_como_personal()', 'EXECUTE')
+  and not has_function_privilege('anonymous', 'public.cerrar_citas_vencidas_como_personal()', 'EXECUTE')
+  and not has_function_privilege('public', 'public.cerrar_citas_vencidas_como_personal()', 'EXECUTE'),
+  'solo authenticated ejecuta la puerta de la aplicación (anonymous y public no)'
+);
+select ok(
+  (select p.prosecdef and p.proconfig = array['search_path=""'] from pg_proc p where p.oid = 'public.cerrar_citas_vencidas_como_personal()'::regprocedure),
+  'la puerta es SECURITY DEFINER con search_path vacío'
 );
 
 select * from finish();

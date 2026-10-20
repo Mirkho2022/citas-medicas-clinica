@@ -376,15 +376,26 @@ hora, o sobre una cita que no esté `confirmada`, la operación SHALL rechazarse
 
 ### Requirement: Una cita reservada que terminó sin confirmarse se cierra sola como «No asistió»
 La base de datos SHALL ofrecer una operación del sistema que pase a `no_asistio` toda cita `reservada` cuya hora de fin ya
-llegó (`fin <= now()`), cambiando únicamente su estado, de forma idempotente, devolviendo cuántas citas cerró y dejando la
-auditoría con el sistema como actor (sin usuario). NO SHALL tocar las citas `confirmada`, `cancelada` ni `atendida`, ni las
-`reservada` en curso o futuras. Ningún rol de la aplicación (administrativo, médico, enfermera, paciente ni anónimo) SHALL poder
-ejecutarla, y ningún usuario SHALL poder pasar por su cuenta una cita `reservada` a `no_asistio`. Una cita así cerrada SHALL
-dejar de dar al médico la lectura de los datos del paciente que daba mientras estaba `reservada`.
+llegó (`fin <= now()`), cambiando únicamente su estado, de forma idempotente y devolviendo cuántas citas cerró. NO SHALL tocar las
+citas `confirmada`, `cancelada` ni `atendida`, ni las `reservada` en curso o futuras. No SHALL depender de un cron: la aplicación
+SHALL invocarla cuando el personal usa el sistema (al abrir la agenda del administrativo, antes de leerla), mediante una puerta que
+exige el rol administrativo o médico y que SHALL rechazar al paciente, a la enfermera, a una sesión sin rol y a un anónimo. La
+operación interna NO SHALL poder ejecutarla ningún rol de la aplicación, y ningún usuario SHALL poder pasar por su cuenta una cita
+`reservada` a `no_asistio`. La auditoría SHALL registrar al usuario cuya sesión disparó el cierre (o sin actor si lo hizo el dueño
+de la base). Una cita así cerrada SHALL dejar de dar al médico la lectura de los datos del paciente que daba mientras estaba
+`reservada`.
 
 #### Scenario: La cita reservada que terminó se cierra como «No asistió»
 - **WHEN** el sistema ejecuta el cierre y existe una cita `reservada` cuyo fin fue hace 2 horas y 40 minutos
-- **THEN** la cita pasa a `no_asistio`, no cambia ningún otro dato y queda un registro de auditoría sin actor
+- **THEN** la cita pasa a `no_asistio`, no cambia ningún otro dato y queda un registro de auditoría
+
+#### Scenario: Abrir la agenda cierra las vencidas antes de mostrarlas
+- **WHEN** el administrativo abre la agenda del día y hay una cita `reservada` que terminó sin confirmarse
+- **THEN** la agenda la muestra como «No asistió», sin que nadie la haya marcado ni haya corrido ningún cron
+
+#### Scenario: El médico también lo dispara
+- **WHEN** un médico abre su jornada y hay `reservada` vencidas
+- **THEN** se cierran y la auditoría registra al médico como quien tenía la sesión
 
 #### Scenario: Lo que no terminó o no está reservada no se toca
 - **WHEN** el sistema ejecuta el cierre y hay una cita `reservada` en curso, otra `reservada` futura, una `confirmada` que ya
@@ -395,10 +406,10 @@ dejar de dar al médico la lectura de los datos del paciente que daba mientras e
 - **WHEN** el sistema ejecuta el cierre dos veces seguidas sin citas nuevas vencidas
 - **THEN** la segunda ejecución devuelve 0 y no cambia ninguna cita
 
-#### Scenario: Nadie de la aplicación lo ejecuta ni lo hace a mano (negativo)
-- **WHEN** un administrativo, un médico o un paciente intenta ejecutar el cierre, o el administrativo intenta pasar una cita
-  `reservada` a `no_asistio` con una actualización directa
-- **THEN** la operación se rechaza y la cita no cambia
+#### Scenario: Solo el personal lo dispara y nadie lo hace a mano (negativo)
+- **WHEN** una enfermera, un paciente o una sesión sin rol intenta cerrar las citas vencidas, o un usuario intenta ejecutar la
+  operación interna, o el administrativo intenta pasar una cita `reservada` a `no_asistio` con una actualización directa
+- **THEN** la operación se rechaza y ninguna cita cambia
 
 #### Scenario: El médico pierde la lectura del paciente de una cita muerta
 - **WHEN** el médico A leía a un paciente solo por una cita `reservada` que terminó, y el sistema ejecuta el cierre
