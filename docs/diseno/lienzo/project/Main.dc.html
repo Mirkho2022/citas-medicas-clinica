@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Fundamentos visuales</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="clinica.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+</style>
+</helmet>
+<div class="pantalla" style="width: 1280px; height: 2300px; box-sizing: border-box; padding: 56px; background: #F4F7F7; display: flex; flex-direction: column; gap: 48px">
+
+<header style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="marca">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.5-6.6 5 5 0 0 1 7.5 6.6Z"/><path d="M3.5 12h4l1.5-3 3 6 1.5-3h4"/></svg>
+Citas Médicas
+</span>
+<span class="demo-tag">DEMO</span>
+</div>
+<span class="t-body-sm muted">Versión de demostración · datos ficticios · sin marca real</span>
+</div>
+<h1 class="t-display-lg" style="margin: 0">Fundamentos visuales</h1>
+<p class="t-body-lg muted" style="margin: 0; max-width: 760px">Una sola marca, el verde azulado clínico, y color solo cuando significa algo: el estado de una cita, un aviso, un error. Esta lámina muestra los valores que se aprueban; los componentes y el movimiento están en las láminas 2 y 3.</p>
+</header>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 class="t-headline-md" style="margin: 0">Colores</h2>
+<p class="t-body-md muted" style="margin: 0">Todos los pares de texto y fondo cumplen WCAG 2.1 AA (texto 4,5:1; controles y foco 3:1).</p>
+
+<h3 class="t-label-md muted" style="margin: 8px 0 0">MARCA</h3>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{marca}}" as="c" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="height: 56px; border-radius: 10px; border: 1px solid #CBD6D9; background: {{c.hex}}"></div>
+<div class="t-label-md">{{c.token}}</div>
+<div class="t-body-sm num">{{c.hex}}</div>
+<div class="t-body-sm muted">{{c.uso}}</div>
+<div class="t-label-sm" style="color: #0B5C55">{{c.contraste}}</div>
+</div>
+</sc-for>
+</div>
+
+<h3 class="t-label-md muted" style="margin: 8px 0 0">NEUTROS</h3>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{neutros}}" as="c" hint-placeholder-count="7">
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="height: 56px; border-radius: 10px; border: 1px solid #CBD6D9; background: {{c.hex}}"></div>
+<div class="t-label-md">{{c.token}}</div>
+<div class="t-body-sm num">{{c.hex}}</div>
+<div class="t-body-sm muted">{{c.uso}}</div>
+<div class="t-label-sm" style="color: #0B5C55">{{c.contraste}}</div>
+</div>
+</sc-for>
+</div>
+
+<h3 class="t-label-md muted" style="margin: 8px 0 0">SEMÁNTICOS (siempre con texto e icono, nunca solo color)</h3>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{semanticos}}" as="c" hint-placeholder-count="5">
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; gap: 8px">
+<div style="flex: 1; height: 56px; border-radius: 10px; background: {{c.fuerte}}"></div>
+<div style="flex: 1; height: 56px; border-radius: 10px; border: 1px solid #CBD6D9; background: {{c.suave}}"></div>
+</div>
+<div class="t-label-md">{{c.token}}</div>
+<div class="t-body-sm num">{{c.fuerte}} · {{c.suave}}</div>
+<div class="t-body-sm muted">{{c.uso}}</div>
+<div class="t-label-sm" style="color: #0B5C55">{{c.contraste}}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 class="t-headline-md" style="margin: 0">Tipografía</h2>
+<p class="t-body-md muted" style="margin: 0">Plus Jakarta Sans para títulos y Inter para cuerpo, formularios y tablas. Cifras tabulares en horas, DNI y códigos. Soporte completo del español: á é í ó ú ü ñ ¿ ¡.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<div class="t-label-md muted">TÍTULOS · Plus Jakarta Sans 600 / 700</div>
+<sc-for list="{{titulos}}" as="t" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div class="t-label-sm muted">{{t.nombre}} · {{t.medida}}</div>
+<div class="{{t.clase}}">{{t.muestra}}</div>
+</div>
+</sc-for>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<div class="t-label-md muted">CUERPO Y ETIQUETAS · Inter 400 / 600</div>
+<sc-for list="{{cuerpo}}" as="t" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div class="t-label-sm muted">{{t.nombre}} · {{t.medida}}</div>
+<div class="{{t.clase}}">{{t.muestra}}</div>
+</div>
+</sc-for>
+<div style="border-top: 1px solid #CBD6D9; padding-top: 16px; display: flex; flex-direction: column; gap: 4px">
+<div class="t-label-sm muted">Cifras tabulares</div>
+<div class="t-body-md num">DNI 99000001 · 14/10/2026 14:30 · CIE-10 J06.9 · 08:00 08:20 08:40</div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 20px">
+<h2 class="t-headline-md" style="margin: 0">Formas, espaciado y profundidad</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div class="t-label-md muted">ESQUINAS</div>
+<div style="display: flex; gap: 12px; align-items: flex-end">
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 64px; height: 64px; background: #E6F4F1; border: 1.5px solid #0F766E; border-radius: 6px"></div><span class="t-body-sm">sm 6</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 64px; height: 64px; background: #E6F4F1; border: 1.5px solid #0F766E; border-radius: 10px"></div><span class="t-body-sm">md 10</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 64px; height: 64px; background: #E6F4F1; border: 1.5px solid #0F766E; border-radius: 16px"></div><span class="t-body-sm">lg 16</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 64px; height: 64px; background: #E6F4F1; border: 1.5px solid #0F766E; border-radius: 999px"></div><span class="t-body-sm">full</span></div>
+</div>
+<p class="t-body-sm muted" style="margin: 0">Botones, campos y alertas: md. Tarjetas y diálogos: lg. Insignias: full.</p>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div class="t-label-md muted">ESPACIADO · base de 4 px</div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 4px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">xs 4</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 8px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">sm 8</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 16px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">md 16 · entre campos</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 24px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">lg 24 · relleno de tarjeta</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 32px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">xl 32 · entre secciones</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 48px; height: 16px; background: #0F766E"></div><span class="t-body-sm num">2xl 48 · bloques grandes</span></div>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div class="t-label-md muted">TAMAÑOS DE CONTROL</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 120px; height: 48px; border-radius: 10px; background: #0F766E; color: #FFFFFF; display: flex; align-items: center; justify-content: center" class="t-label-lg">Portal 48</div><span class="t-body-sm muted">acción principal y horarios</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 120px; height: 44px; border-radius: 10px; background: #0F766E; color: #FFFFFF; display: flex; align-items: center; justify-content: center" class="t-label-lg">Mínimo 44</div><span class="t-body-sm muted">botones y campos</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 120px; height: 36px; border-radius: 10px; background: #0F766E; color: #FFFFFF; display: flex; align-items: center; justify-content: center" class="t-label-md">Consola 36</div><span class="t-body-sm muted">solo escritorio</span></div>
+</div>
+</div>
+
+<div style="background: #F4F7F7; border: 1px dashed #6F8087; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; grid-column: span 3">
+<div class="t-label-md muted">PROFUNDIDAD Y FOCO · plano por defecto; la sombra solo en capas que flotan</div>
+<div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap">
+<div style="width: 220px; padding: 16px; background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px"><div class="t-label-md">Nivel 1 · tarjeta</div><div class="t-body-sm muted">Borde de 1 px, sin sombra</div></div>
+<div style="width: 220px; padding: 16px; background: #FFFFFF; border: 1px solid #CBD6D9; border-radius: 16px; box-shadow: 0 8px 24px rgba(20, 38, 43, 0.12)"><div class="t-label-md">Nivel 2 · popover</div><div class="t-body-sm muted">Menús y calendario</div></div>
+<div style="width: 220px; padding: 16px; background: #FFFFFF; border-radius: 16px; box-shadow: 0 16px 40px rgba(20, 38, 43, 0.18)"><div class="t-label-md">Nivel 3 · diálogo</div><div class="t-body-sm muted">Con velo de 40 %</div></div>
+<div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start"><span class="btn btn-primary is-focus">Anillo de foco</span><span class="t-body-sm muted">2 px de marca + 2 px de separación</span></div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 16px">
+<h2 class="t-headline-md" style="margin: 0">Estados de la cita</h2>
+<div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center">
+<span class="badge b-reservada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Reservada</span>
+<span class="badge b-confirmada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Confirmada</span>
+<span class="badge b-atendida"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12l5 5L17 7M12 16l1 1L22 7"/></svg>Atendida</span>
+<span class="badge b-cancelada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Cancelada</span>
+<span class="badge b-no-asistio"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>No asistió</span>
+<span class="t-body-sm muted">Reloj · check · doble check · X · círculo tachado. El color nunca va solo.</span>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      marca: [
+        { token: 'primary', hex: '#0F766E', uso: 'Acción principal, enlaces, foco', contraste: '5,47:1 con blanco' },
+        { token: 'primary-dark', hex: '#115E59', uso: 'Hover y pulsado del primario', contraste: '7,58:1 con blanco' },
+        { token: 'primary-soft', hex: '#E6F4F1', uso: 'Navegación activa y selecciones', contraste: '6,94:1 con primary-text' },
+        { token: 'primary-text', hex: '#0B5C55', uso: 'Texto sobre primary-soft', contraste: '7,85:1 sobre blanco' }
+      ],
+      neutros: [
+        { token: 'ink', hex: '#14262B', uso: 'Texto principal', contraste: '15,65:1 sobre blanco' },
+        { token: 'ink-muted', hex: '#4A5C63', uso: 'Texto secundario y ayudas', contraste: '6,99:1 sobre blanco' },
+        { token: 'canvas', hex: '#F4F7F7', uso: 'Fondo de página', contraste: 'Fondo' },
+        { token: 'surface', hex: '#FFFFFF', uso: 'Tarjetas, tablas, formularios', contraste: 'Fondo' },
+        { token: 'surface-muted', hex: '#EAF0F0', uso: 'Cabecera de tabla, solo lectura', contraste: 'Fondo' },
+        { token: 'border', hex: '#CBD6D9', uso: 'Divisores decorativos', contraste: '1,48:1 (no para controles)' },
+        { token: 'border-control', hex: '#6F8087', uso: 'Borde de campos y selectores', contraste: '4,11:1 sobre blanco' }
+      ],
+      semanticos: [
+        { token: 'success', fuerte: '#146B32', suave: '#E3F4E8', uso: 'Confirmada, envío correcto', contraste: '5,78:1' },
+        { token: 'warning', fuerte: '#9A5B00', suave: '#FFF3D6', uso: 'No asistió, avisos', contraste: '4,92:1' },
+        { token: 'error', fuerte: '#B42318', suave: '#FDE8E6', uso: 'Errores y cancelada', contraste: '5,59:1' },
+        { token: 'info', fuerte: '#1D4ED8', suave: '#E3EBFD', uso: 'Reservada, informativos', contraste: '5,61:1' },
+        { token: 'neutral-state', fuerte: '#475467', suave: '#EAECF0', uso: 'Atendida, neutros', contraste: '6,50:1' }
+      ],
+      titulos: [
+        { nombre: 'display-lg', medida: '36 / 44 · 700', clase: 't-display-lg', muestra: 'Reserve su cita en minutos' },
+        { nombre: 'headline-lg', medida: '28 / 36 · 700', clase: 't-headline-lg', muestra: 'Mis citas' },
+        { nombre: 'headline-md', medida: '22 / 30 · 600', clase: 't-headline-md', muestra: 'Próximas citas' },
+        { nombre: 'title-md', medida: '18 / 26 · 600', clase: 't-title-md', muestra: 'Medicina general' }
+      ],
+      cuerpo: [
+        { nombre: 'body-lg (portal)', medida: '18 / 28 · 400', clase: 't-body-lg', muestra: 'Elija el horario que le convenga.' },
+        { nombre: 'body-md (formularios e historia clínica)', medida: '16 / 24 · 400', clase: 't-body-md', muestra: 'Motivo de consulta' },
+        { nombre: 'body-sm (consola)', medida: '14 / 20 · 400', clase: 't-body-sm', muestra: '08/10/2026 14:30 · Dra. Lucía Ejemplo Vargas' },
+        { nombre: 'label-lg (botones)', medida: '16 · 600', clase: 't-label-lg', muestra: 'Reservar cita' },
+        { nombre: 'label-md (etiquetas y tablas)', medida: '14 · 600', clase: 't-label-md', muestra: 'Documento de identidad' },
+        { nombre: 'label-sm (insignias)', medida: '12 · 600', clase: 't-label-sm', muestra: 'CONFIRMADA' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

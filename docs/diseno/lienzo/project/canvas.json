@@ -1,0 +1,136 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-18T22:30:00Z"
+  },
+  "title": "Verificación visual — Citas Médicas (DEMO)",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 2300,
+      "title": "1 · Colores, tipografía, formas y profundidad"
+    },
+    "Componentes.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 2400,
+      "title": "2 · Botones, campos, alertas y estados",
+      "is_interactive": true
+    },
+    "Movimiento.dc.html": {
+      "x": 2720,
+      "y": 0,
+      "w": 1280,
+      "h": 2400,
+      "title": "3 · Laboratorio de movimiento (transiciones)",
+      "is_interactive": true
+    },
+    "Portal-Inicio.dc.html": {
+      "x": 0,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Portal · Inicio",
+      "is_interactive": true
+    },
+    "Portal-Reservar.dc.html": {
+      "x": 470,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Portal · Reservar cita (con calendario)",
+      "is_interactive": true
+    },
+    "Portal-MisCitas.dc.html": {
+      "x": 940,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Portal · Mis citas y cancelar",
+      "is_interactive": true
+    },
+    "Consola-Agenda.dc.html": {
+      "x": 0,
+      "y": 4150,
+      "w": 1280,
+      "h": 860,
+      "title": "Consola · Agenda del día",
+      "is_interactive": true
+    },
+    "Consola-Pacientes.dc.html": {
+      "x": 1360,
+      "y": 4150,
+      "w": 1280,
+      "h": 860,
+      "title": "Consola · Pacientes (buscar y registrar)",
+      "is_interactive": true
+    },
+    "Medico-Atencion.dc.html": {
+      "x": 2720,
+      "y": 4150,
+      "w": 1280,
+      "h": 980,
+      "title": "Médico · Atención (historia clínica)",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Componentes.dc.html",
+    "Movimiento.dc.html",
+    "Portal-Inicio.dc.html",
+    "Portal-Reservar.dc.html",
+    "Portal-MisCitas.dc.html",
+    "Consola-Agenda.dc.html",
+    "Consola-Pacientes.dc.html",
+    "Medico-Atencion.dc.html"
+  ],
+  "notes": {
+    "titulo-1": {
+      "x": 0,
+      "y": -330,
+      "text": "Fundamentos, componentes y movimiento",
+      "kind": "title1",
+      "maxW": 4000
+    },
+    "como-revisar": {
+      "x": 0,
+      "y": -190,
+      "w": 560,
+      "maxH": 170,
+      "fill": "teal",
+      "text": "Cómo revisar: abra cada pantalla con ▶ (modo interactivo) y pruebe los controles. Deje sus comentarios sobre la pantalla. Todos los datos son ficticios (DEMO)."
+    },
+    "titulo-2": {
+      "x": 0,
+      "y": 2600,
+      "text": "Portal del paciente · móvil 390 px",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "titulo-3": {
+      "x": 0,
+      "y": 3850,
+      "text": "Consola del personal y médico · escritorio 1280 px",
+      "kind": "title1",
+      "maxW": 4000
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Sistema de diseño Clínica",
+      "namespace": "clinica",
+      "artifact": "https://claude.ai/artifact/NhH8vfU6ZdwvJVi67RByNx",
+      "version": "1792361285-4658",
+      "copiedAt": "2026-10-18T22:30:00Z"
+    }
+  ]
+}

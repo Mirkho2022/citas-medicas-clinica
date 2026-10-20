@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Laboratorio de movimiento</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="clinica.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+</style>
+</helmet>
+<div class="pantalla {{claseRaiz}}" style="width: 1280px; height: 2400px; box-sizing: border-box; padding: 56px; background: #F4F7F7; display: flex; flex-direction: column; gap: 28px">
+
+<header style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="marca">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 0 1 7.5-6.6 5 5 0 0 1 7.5 6.6Z"/><path d="M3.5 12h4l1.5-3 3 6 1.5-3h4"/></svg>
+Citas Médicas
+</span>
+<span class="demo-tag">DEMO</span>
+</div>
+<h1 class="t-headline-lg" style="margin: 0">Laboratorio de movimiento</h1>
+<p class="t-body-md muted" style="margin: 0; max-width: 860px">Propuesta de transiciones para aprobar. Principio: la interfaz es una herramienta de trabajo, así que el movimiento es corto, responde de inmediato (curvas de salida rápida) y solo explica un cambio de estado. Salir es más rápido que entrar, y solo se anima transformación y opacidad.</p>
+<div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap">
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="t-label-md">Velocidad</span>
+<div class="segmentado" role="group" aria-label="Velocidad de las animaciones">
+<button type="button" aria-pressed="{{velNormal}}" onClick="{{ponerNormal}}">Real</button>
+<button type="button" aria-pressed="{{velLenta}}" onClick="{{ponerLenta}}">Lenta ×3</button>
+<button type="button" aria-pressed="{{velMuyLenta}}" onClick="{{ponerMuyLenta}}">Muy lenta ×6</button>
+</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="t-label-md">Preferencia del sistema</span>
+<div class="segmentado" role="group" aria-label="Movimiento reducido">
+<button type="button" aria-pressed="{{movNormal}}" onClick="{{ponerMovNormal}}">Normal</button>
+<button type="button" aria-pressed="{{movReducido}}" onClick="{{ponerMovReducido}}">Reducir movimiento</button>
+</div>
+</div>
+</div>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">1 · Pulsar y elegir</h2>
+<p class="t-body-sm muted" style="margin: 0">Botón y día del calendario: escala 0,97 al pulsar, 120 ms, curva de salida. Horario: color en 160 ms. Pruebe pulsar sin soltar.</p>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 16px; background: #F4F7F7; border-radius: 10px">
+<button type="button" class="btn btn-primary">Reservar cita</button>
+<button type="button" class="btn btn-secondary">Ver mis citas</button>
+</div>
+<div class="slots" style="grid-template-columns: repeat(4, minmax(0, 1fr))">
+<sc-for list="{{horarios}}" as="h" hint-placeholder-count="4">
+<button type="button" class="{{h.clase}}" aria-pressed="{{h.presionado}}" onClick="{{h.elegir}}">{{h.hora}}</button>
+</sc-for>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">2 · Aviso temporal</h2>
+<p class="t-body-sm muted" style="margin: 0">Entra en 240 ms desde abajo (8 px y fundido); sale en 140 ms. Se anuncia con role="status" y no roba el foco. Dura 3 s.</p>
+<div style="display: flex"><button type="button" class="btn btn-secondary btn-compacto" onClick="{{mostrarAviso}}">Mostrar aviso</button></div>
+<div class="contenedor-capas" style="height: 120px; background: #F4F7F7; border-radius: 10px">
+<div class="{{claseAviso}}" role="status">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>
+Cita cancelada. El horario quedó libre.
+</div>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">3 · Calendario como menú flotante (escritorio)</h2>
+<p class="t-body-sm muted" style="margin: 0">Nace desde su campo (origen arriba a la izquierda), 180 ms con escala desde 0,96 y fundido; sale en 120 ms. Con sombra de nivel 2.</p>
+<div class="contenedor-capas" style="height: 430px; background: #F4F7F7; border-radius: 10px">
+<div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 6px; width: 344px">
+<span class="etiqueta">Fecha de la cita</span>
+<button type="button" class="input num" style="text-align: left; display: flex; align-items: center; justify-content: space-between; cursor: pointer" aria-haspopup="dialog" aria-expanded="{{popExpandido}}" onClick="{{alternarPop}}">
+<span>{{popTexto}}</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+</button>
+</div>
+<button type="button" tabindex="-1" aria-label="Cerrar calendario" style="{{estiloFondoPop}}" onClick="{{cerrarPop}}"></button>
+<div class="{{clasePop}}" style="left: 16px; top: 88px; width: 344px" role="dialog" aria-label="Elegir fecha">
+<div class="cal">
+<div class="cal-cab">
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes anterior" disabled="{{popSinAnterior}}" onClick="{{popAnterior}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+<span class="cal-mes">{{popMesTexto}}</span>
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes siguiente" disabled="{{popSinSiguiente}}" onClick="{{popSiguiente}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+</div>
+<div class="cal-sem" aria-hidden="true"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+<div class="cal-dias">
+<sc-for list="{{popCeldas}}" as="d" hint-placeholder-count="35">
+<button type="button" class="{{d.clase}}" disabled="{{d.deshabilitado}}" aria-label="{{d.etiqueta}}" onClick="{{d.elegir}}">{{d.texto}}</button>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">4 · Calendario como hoja inferior (móvil)</h2>
+<p class="t-body-sm muted" style="margin: 0">Sube en 320 ms con la curva de cajón (rápida al inicio, suave al final); baja en 220 ms. El velo aparece en 200 ms. Se cierra con el velo, el botón o al elegir.</p>
+<div style="display: flex"><button type="button" class="btn btn-secondary btn-compacto" onClick="{{abrirHoja}}">Abrir calendario</button></div>
+<div style="display: flex; justify-content: center">
+<div class="contenedor-capas" style="width: 340px; height: 470px; background: #F4F7F7; border: 1px solid #CBD6D9; border-radius: 28px">
+<div style="padding: 20px 16px; display: flex; flex-direction: column; gap: 12px">
+<div class="t-title-md">Reservar cita</div>
+<div class="campo"><span class="etiqueta">Fecha</span><div class="input input-portal num" style="display: flex; align-items: center">{{hojaTexto}}</div></div>
+<div class="t-body-sm muted">Elija la fecha para ver los horarios libres.</div>
+</div>
+<div class="{{claseVeloHoja}}"><button type="button" tabindex="-1" aria-label="Cerrar calendario" style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; cursor: default" onClick="{{cerrarHoja}}"></button></div>
+<div class="{{claseHoja}}" role="dialog" aria-label="Elegir fecha">
+<div class="asa"></div>
+<div class="cal">
+<div class="cal-cab">
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes anterior" disabled="{{hojaSinAnterior}}" onClick="{{hojaAnterior}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+<span class="cal-mes">{{hojaMesTexto}}</span>
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes siguiente" disabled="{{hojaSinSiguiente}}" onClick="{{hojaSiguiente}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+</div>
+<div class="cal-sem" aria-hidden="true"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+<div class="cal-dias">
+<sc-for list="{{hojaCeldas}}" as="d" hint-placeholder-count="35">
+<button type="button" class="{{d.clase}}" disabled="{{d.deshabilitado}}" aria-label="{{d.etiqueta}}" onClick="{{d.elegir}}">{{d.texto}}</button>
+</sc-for>
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-portal btn-bloque" style="margin-top: 12px" onClick="{{cerrarHoja}}">Listo</button>
+</div>
+</div>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">5 · Diálogo de confirmación</h2>
+<p class="t-body-sm muted" style="margin: 0">Cancelar pide confirmar. El velo entra en 200 ms; el panel crece desde 0,96 con 8 px de subida en 220 ms, siempre centrado; sale en 140 ms.</p>
+<div style="display: flex"><button type="button" class="btn btn-destructive btn-compacto" onClick="{{abrirDialogo}}">Cancelar cita</button></div>
+<div class="contenedor-capas" style="height: 330px; background: #F4F7F7; border-radius: 10px">
+<div style="padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<div class="card card-compacta" style="display: flex; justify-content: space-between; align-items: center"><div><div class="t-label-lg">Medicina general</div><div class="t-body-sm muted num">14/10/2026 · 14:30</div></div><span class="badge b-reservada">Reservada</span></div>
+<div class="card card-compacta" style="display: flex; justify-content: space-between; align-items: center"><div><div class="t-label-lg">Cardiología</div><div class="t-body-sm muted num">15/10/2026 · 09:00</div></div><span class="badge b-confirmada">Confirmada</span></div>
+</div>
+<div class="{{claseVeloDialogo}}"></div>
+<div class="{{claseDialogo}}" role="alertdialog" aria-labelledby="dlg-titulo">
+<h3 id="dlg-titulo" class="t-title-md" style="margin: 0 0 8px">¿Cancelar esta cita?</h3>
+<p class="t-body-md muted num" style="margin: 0 0 20px">Medicina general · 14/10/2026 a las 14:30 con la Dra. Lucía Ejemplo Vargas.</p>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<button type="button" class="btn btn-secondary" onClick="{{cerrarDialogo}}">Volver</button>
+<button type="button" class="btn btn-destructive" onClick="{{cerrarDialogo}}">Cancelar cita</button>
+</div>
+</div>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">6 · Cambio de paso al reservar</h2>
+<p class="t-body-sm muted" style="margin: 0">Al avanzar, el contenido nuevo entra 16 px desde la derecha con fundido (220 ms); al retroceder, desde la izquierda. Orienta sin que el paciente se pierda.</p>
+<div style="display: flex; gap: 8px; align-items: center">
+<span class="t-label-md muted">Paso {{pasoNumero}} de 3</span>
+<div style="flex: 1; height: 6px; background: #EAF0F0; border-radius: 999px; overflow: hidden"><div style="{{estiloProgreso}}"></div></div>
+</div>
+<div style="min-height: 120px; padding: 16px; background: #F4F7F7; border-radius: 10px; overflow: hidden">
+<sc-if value="{{esPaso1}}" hint-placeholder-val="{{true}}">
+<div class="{{clasePaso}}"><div class="t-title-md">Elija la especialidad</div><div class="t-body-md muted">Medicina general, Odontología, Fisioterapia, Psicología o Podología.</div></div>
+</sc-if>
+<sc-if value="{{esPaso2}}" hint-placeholder-val="{{false}}">
+<div class="{{clasePaso}}"><div class="t-title-md">Elija a su médico</div><div class="t-body-md muted">Dra. Lucía Ejemplo Vargas · próximo horario libre mañana 08:20.</div></div>
+</sc-if>
+<sc-if value="{{esPaso3}}" hint-placeholder-val="{{false}}">
+<div class="{{clasePaso}}"><div class="t-title-md">Elija fecha y horario</div><div class="t-body-md muted">Revise el resumen y la advertencia de cancelación antes de reservar.</div></div>
+</sc-if>
+</div>
+<div style="display: flex; gap: 12px; justify-content: space-between">
+<button type="button" class="btn btn-secondary btn-compacto" disabled="{{sinPasoAnterior}}" onClick="{{pasoAtras}}">Atrás</button>
+<button type="button" class="btn btn-primary btn-compacto" disabled="{{sinPasoSiguiente}}" onClick="{{pasoAdelante}}">Siguiente</button>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-title-md" style="margin: 0">7 · Carga con esqueleto y lista escalonada</h2>
+<p class="t-body-sm muted" style="margin: 0">El esqueleto tiene la forma del contenido y brilla en 1,4 s lineal. Al llegar los datos, cada fila entra con 40 ms de diferencia (máximo 6). Nunca un giro a pantalla completa.</p>
+<div style="display: flex"><button type="button" class="btn btn-secondary btn-compacto" onClick="{{recargar}}">Volver a cargar</button></div>
+<div style="display: flex; flex-direction: column; gap: 8px; min-height: 232px">
+<sc-if value="{{cargaEsqueleto}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px" aria-busy="true">
+<sc-for list="{{esqueletos}}" as="e" hint-placeholder-count="4">
+<div class="card card-compacta" style="display: flex; justify-content: space-between; gap: 12px"><div style="flex: 1; display: flex; flex-direction: column; gap: 8px"><div class="esq" style="height: 18px; width: 50%"></div><div class="esq" style="height: 14px; width: 32%"></div></div><div class="esq" style="height: 24px; width: 84px; border-radius: 999px"></div></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{cargaLista}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{filas}}" as="f" hint-placeholder-count="4">
+<div class="{{f.clase}}"><div class="card card-compacta" style="display: flex; justify-content: space-between; align-items: center"><div><div class="t-label-lg">{{f.servicio}}</div><div class="t-body-sm muted num">{{f.fecha}}</div></div><span class="{{f.badge}}">{{f.estado}}</span></div></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</section>
+
+<section class="card" style="display: flex; flex-direction: column; gap: 12px; grid-column: span 2">
+<h2 class="t-title-md" style="margin: 0">Especificación propuesta (para aprobar)</h2>
+<div class="tabla-marco">
+<table class="tabla">
+<thead><tr><th>Elemento</th><th>Entra</th><th>Sale</th><th>Curva</th><th>Propiedades</th></tr></thead>
+<tbody>
+<tr class="fila"><td>Pulsar botón, horario, día</td><td class="num">120 ms</td><td class="num">120 ms</td><td>salida rápida (0,23 · 1 · 0,32 · 1)</td><td>transform (escala 0,97) y color</td></tr>
+<tr class="fila"><td>Aviso temporal</td><td class="num">240 ms</td><td class="num">140 ms</td><td>salida rápida</td><td>transform (8 px) y opacidad</td></tr>
+<tr class="fila"><td>Calendario flotante (escritorio)</td><td class="num">180 ms</td><td class="num">120 ms</td><td>salida rápida, origen en el campo</td><td>transform (escala 0,96) y opacidad</td></tr>
+<tr class="fila"><td>Hoja inferior (móvil)</td><td class="num">320 ms</td><td class="num">220 ms</td><td>cajón (0,32 · 0,72 · 0 · 1)</td><td>transform (translateY)</td></tr>
+<tr class="fila"><td>Diálogo de confirmación</td><td class="num">220 ms</td><td class="num">140 ms</td><td>salida rápida, centrado</td><td>transform y opacidad; velo 200 / 140 ms</td></tr>
+<tr class="fila"><td>Cambio de paso</td><td class="num">220 ms</td><td>—</td><td>salida rápida</td><td>transform (16 px) y opacidad</td></tr>
+<tr class="fila"><td>Lista y esqueleto</td><td class="num">260 ms + 40 ms por fila</td><td>—</td><td>salida rápida; brillo lineal 1,4 s</td><td>transform (8 px) y opacidad</td></tr>
+</tbody>
+</table>
+</div>
+<ul class="t-body-md" style="margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px">
+<li>Nada tarda más de 320 ms; salir siempre es más rápido que entrar. Solo se animan transform y opacidad.</li>
+<li>Las acciones repetidas con teclado (moverse entre días con las flechas, Tab) no se animan.</li>
+<li>Con «Reducir movimiento» se eliminan desplazamientos y escalas; queda un fundido de 150 ms. Las animaciones de pasar el cursor solo existen en dispositivos con puntero.</li>
+<li>Las animaciones se pueden interrumpir: pulsar de nuevo a mitad de camino cambia el destino sin saltos (transiciones, no secuencias fijas).</li>
+</ul>
+</section>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2400}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      vel: '1', reducir: false, slot: '08:20',
+      aviso: false,
+      popAbierto: false, popDia: 14, popMes: 9,
+      hojaAbierta: false, hojaDia: 0, hojaMes: 9,
+      dialogo: false,
+      paso: 1, dir: 'adelante',
+      carga: 'lista'
+    };
+    this.temporizadores = [];
+  }
+
+  componentWillUnmount() { this.temporizadores.forEach((t) => clearTimeout(t)); }
+
+  luego(fn, ms) { this.temporizadores.push(setTimeout(fn, ms)); }
+
+  mostrarAviso = () => {
+    this.setState({ aviso: true });
+    this.luego(() => this.setState({ aviso: false }), 3000);
+  };
+
+  recargar = () => {
+    this.setState({ carga: 'esqueleto' });
+    this.luego(() => this.setState({ carga: 'lista' }), 1400);
+  };
+
+  nombreMes(m) { return ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][m]; }
+
+  // «Hoy» fijo de la demostración: 10/10/2026. Hay horarios de lunes a sábado desde hoy; algunos días sin horarios.
+  celdas(mes, seleccionado, alElegir) {
+    const anio = 2026;
+    const primero = (new Date(anio, mes, 1).getDay() + 6) % 7;
+    const total = new Date(anio, mes + 1, 0).getDate();
+    const sinHorarios = [16, 23, 30];
+    const celdas = [];
+    for (let i = 0; i < primero; i++) celdas.push({ texto: '', clase: 'dia vacio', deshabilitado: true, etiqueta: '', elegir: () => {} });
+    for (let d = 1; d <= total; d++) {
+      const fecha = new Date(anio, mes, d);
+      const dow = fecha.getDay();
+      const esPasado = mes === 9 && d < 10;
+      const esDomingo = dow === 0;
+      const sinH = mes === 9 && sinHorarios.indexOf(d) >= 0;
+      const deshabilitado = esPasado || esDomingo || sinH;
+      const hoy = mes === 9 && d === 10;
+      let clase = 'dia';
+      if (hoy) clase += ' hoy';
+      if (!deshabilitado) clase += ' hay';
+      if (seleccionado === d) clase += ' sel';
+      celdas.push({
+        texto: String(d),
+        clase: clase,
+        deshabilitado: deshabilitado,
+        etiqueta: d + ' de ' + this.nombreMes(mes) + ' de ' + anio + (deshabilitado ? ', sin horarios' : ''),
+        elegir: () => alElegir(d)
+      });
+    }
+    return celdas;
+  }
+
+  textoFecha(mes, dia) {
+    if (!dia) return 'Elegir fecha';
+    return String(dia).padStart(2, '0') + '/' + String(mes + 1).padStart(2, '0') + '/2026';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const esp = (v) => (v ? 'true' : 'false');
+    const horas = ['08:00', '08:20', '08:40', '09:00'];
+    const horarios = horas.map((h) => ({
+      hora: h,
+      clase: s.slot === h ? 'slot sel num' : 'slot num',
+      presionado: esp(s.slot === h),
+      elegir: () => this.setState({ slot: h })
+    }));
+    const servicios = [
+      { servicio: 'Medicina general', fecha: '14/10/2026 · 14:30', badge: 'badge b-reservada', estado: 'Reservada' },
+      { servicio: 'Cardiología', fecha: '15/10/2026 · 09:00', badge: 'badge b-confirmada', estado: 'Confirmada' },
+      { servicio: 'Fisioterapia', fecha: '08/10/2026 · 16:20', badge: 'badge b-atendida', estado: 'Atendida' },
+      { servicio: 'Psicología', fecha: '06/10/2026 · 11:00', badge: 'badge b-cancelada', estado: 'Cancelada' }
+    ];
+    const filas = servicios.map((f, i) => Object.assign({}, f, { clase: 'entra i' + i }));
+    const raiz = [s.vel === '3' ? 'vel-3' : s.vel === '6' ? 'vel-6' : '', s.reducir ? 'reducir' : ''].join(' ').trim();
+    const porcentaje = Math.round((s.paso / 3) * 100);
+    return {
+      claseRaiz: raiz,
+      velNormal: esp(s.vel === '1'), velLenta: esp(s.vel === '3'), velMuyLenta: esp(s.vel === '6'),
+      ponerNormal: () => this.setState({ vel: '1' }),
+      ponerLenta: () => this.setState({ vel: '3' }),
+      ponerMuyLenta: () => this.setState({ vel: '6' }),
+      movNormal: esp(!s.reducir), movReducido: esp(s.reducir),
+      ponerMovNormal: () => this.setState({ reducir: false }),
+      ponerMovReducido: () => this.setState({ reducir: true }),
+      horarios: horarios,
+      mostrarAviso: this.mostrarAviso,
+      claseAviso: s.aviso ? 'aviso abierto' : 'aviso',
+      popExpandido: esp(s.popAbierto),
+      popTexto: this.textoFecha(s.popMes, s.popDia),
+      alternarPop: () => this.setState({ popAbierto: !s.popAbierto }),
+      cerrarPop: () => this.setState({ popAbierto: false }),
+      estiloFondoPop: s.popAbierto ? 'position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; cursor: default; z-index: 25' : 'display: none',
+      clasePop: s.popAbierto ? 'popover abierto' : 'popover',
+      popMesTexto: this.nombreMes(s.popMes) + ' 2026',
+      popSinAnterior: s.popMes <= 9,
+      popSinSiguiente: s.popMes >= 11,
+      popAnterior: () => this.setState({ popMes: s.popMes - 1 }),
+      popSiguiente: () => this.setState({ popMes: s.popMes + 1 }),
+      popCeldas: this.celdas(s.popMes, s.popDia, (d) => this.setState({ popDia: d, popAbierto: false })),
+      abrirHoja: () => this.setState({ hojaAbierta: true }),
+      cerrarHoja: () => this.setState({ hojaAbierta: false }),
+      hojaTexto: this.textoFecha(s.hojaMes, s.hojaDia),
+      claseVeloHoja: s.hojaAbierta ? 'velo abierto' : 'velo',
+      claseHoja: s.hojaAbierta ? 'hoja abierto' : 'hoja',
+      hojaMesTexto: this.nombreMes(s.hojaMes) + ' 2026',
+      hojaSinAnterior: s.hojaMes <= 9,
+      hojaSinSiguiente: s.hojaMes >= 11,
+      hojaAnterior: () => this.setState({ hojaMes: s.hojaMes - 1 }),
+      hojaSiguiente: () => this.setState({ hojaMes: s.hojaMes + 1 }),
+      hojaCeldas: this.celdas(s.hojaMes, s.hojaDia, (d) => {
+        this.setState({ hojaDia: d });
+        this.luego(() => this.setState({ hojaAbierta: false }), 180);
+      }),
+      abrirDialogo: () => this.setState({ dialogo: true }),
+      cerrarDialogo: () => this.setState({ dialogo: false }),
+      claseVeloDialogo: s.dialogo ? 'velo abierto' : 'velo',
+      claseDialogo: s.dialogo ? 'dialogo abierto' : 'dialogo',
+      pasoNumero: s.paso,
+      estiloProgreso: 'height: 100%; width: ' + porcentaje + '%; background: #0F766E; border-radius: 999px; transition: width 220ms cubic-bezier(0.23, 1, 0.32, 1)',
+      esPaso1: s.paso === 1, esPaso2: s.paso === 2, esPaso3: s.paso === 3,
+      clasePaso: s.dir === 'adelante' ? 'paso-adelante' : 'paso-atras',
+      sinPasoAnterior: s.paso <= 1,
+      sinPasoSiguiente: s.paso >= 3,
+      pasoAtras: () => this.setState({ paso: s.paso - 1, dir: 'atras' }),
+      pasoAdelante: () => this.setState({ paso: s.paso + 1, dir: 'adelante' }),
+      recargar: this.recargar,
+      cargaEsqueleto: s.carga === 'esqueleto',
+      cargaLista: s.carga === 'lista',
+      esqueletos: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+      filas: filas
+    };
+  }
+}
+</script>
+</body>
+</html>

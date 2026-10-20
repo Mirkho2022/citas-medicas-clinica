@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Portal del paciente: reservar cita</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="clinica.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; }
+a { text-decoration: none; }
+.opcion {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 12px 16px;
+  background: #FFFFFF; border: 1.5px solid #6F8087; border-radius: 10px; font: 600 18px/24px "Inter", system-ui, sans-serif; color: #14262B; text-align: left; cursor: pointer;
+  transition: background-color calc(160ms * var(--mult)) cubic-bezier(0.23, 1, 0.32, 1), border-color calc(160ms * var(--mult)) cubic-bezier(0.23, 1, 0.32, 1), transform calc(120ms * var(--mult)) cubic-bezier(0.23, 1, 0.32, 1);
+}
+.opcion:active { transform: scale(0.98); }
+.opcion:focus-visible { outline: none; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #0F766E; }
+@media (hover: hover) and (pointer: fine) { .opcion:hover { background: #E6F4F1; border-color: #0F766E; } }
+.barra { flex: 1; height: 4px; border-radius: 2px; background: #CBD6D9; transition: background-color calc(200ms * var(--mult)) ease; }
+.barra.on { background: #0F766E; }
+</style>
+</helmet>
+<div class="pantalla contenedor-capas" style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F7F7; display: flex; flex-direction: column">
+
+<header style="flex: none; background: #FFFFFF; border-bottom: 1px solid #CBD6D9; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 4px">
+<sc-if value="{{atrasEsLink}}" hint-placeholder-val="{{true}}">
+<a class="btn btn-ghost btn-icono" href="Portal-Inicio.dc.html" aria-label="Volver al inicio"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+</sc-if>
+<sc-if value="{{atrasEsBoton}}" hint-placeholder-val="{{false}}">
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Paso anterior" onClick="{{atras}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+</sc-if>
+<h1 class="t-title-md" style="margin: 0; flex: 1">Reservar cita</h1>
+<span class="demo-tag">DEMO</span>
+</div>
+<sc-if value="{{enPasos}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 4px">
+<div style="display: flex; gap: 6px"><span class="{{barra1}}"></span><span class="{{barra2}}"></span><span class="{{barra3}}"></span></div>
+<span class="t-label-sm muted">Paso {{pasoNumero}} de 3 · {{tituloPaso}}</span>
+</div>
+</sc-if>
+</header>
+
+<main style="flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{esPaso1}}" hint-placeholder-val="{{true}}">
+<div class="{{clasePaso}}" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-headline-md" style="margin: 0">¿Qué especialidad necesita?</h2>
+<sc-for list="{{especialidades}}" as="e" hint-placeholder-count="5">
+<button type="button" class="opcion" onClick="{{e.elegir}}">{{e.nombre}}<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #4A5C63"><path d="M9 6l6 6-6 6"/></svg></button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{esPaso2}}" hint-placeholder-val="{{false}}">
+<div class="{{clasePaso}}" style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="t-headline-md" style="margin: 0">Elija a su médico</h2>
+<p class="t-body-md muted" style="margin: 0">{{espElegida}}</p>
+<sc-for list="{{medicos}}" as="m" hint-placeholder-count="2">
+<button type="button" class="opcion" onClick="{{m.elegir}}">
+<span style="display: flex; align-items: center; gap: 12px"><span class="avatar" aria-hidden="true">{{m.ini}}</span><span style="display: flex; flex-direction: column"><span>{{m.nombre}}</span><span class="t-body-sm muted" style="font-weight: 400">Próximo horario libre: mañana 08:20</span></span></span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #4A5C63; flex: none"><path d="M9 6l6 6-6 6"/></svg>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{esPaso3}}" hint-placeholder-val="{{false}}">
+<div class="{{clasePaso}}" style="display: flex; flex-direction: column; gap: 16px">
+<h2 class="t-headline-md" style="margin: 0">Elija fecha y horario</h2>
+
+<div class="card card-compacta" style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<div><div class="t-label-lg">{{espElegida}}</div><div class="t-body-md muted">{{medicoElegido}}</div></div>
+<button type="button" class="btn btn-ghost btn-compacto" onClick="{{cambiarMedico}}">Cambiar</button>
+</div>
+
+<div class="campo">
+<span class="etiqueta">Fecha de la cita</span>
+<button type="button" class="input input-portal num" style="display: flex; align-items: center; justify-content: space-between; text-align: left; cursor: pointer; font-size: 18px" aria-haspopup="dialog" onClick="{{abrirHoja}}">
+<span>{{fechaTexto}}</span>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+</button>
+</div>
+
+<sc-if value="{{hayDia}}" hint-placeholder-val="{{false}}">
+<div class="aparece" style="display: flex; flex-direction: column; gap: 10px">
+<div>
+<div class="t-label-lg">Horarios libres</div>
+<div class="t-body-md muted">{{diaLargo}} · hora de Lima</div>
+</div>
+<div class="slots">
+<sc-for list="{{horarios}}" as="h" hint-placeholder-count="9">
+<button type="button" class="{{h.clase}}" disabled="{{h.ocupado}}" aria-pressed="{{h.presionado}}" onClick="{{h.elegir}}">
+{{h.hora}}
+<sc-if value="{{h.ocupado}}" hint-placeholder-val="{{false}}"><small>No disponible</small></sc-if>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{hayError}}" hint-placeholder-val="{{false}}">
+<div class="alerta alerta-error aparece" role="alert">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+<div><strong>No se pudo reservar.</strong> Registro de cita ya agendado. Elija otro horario.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{haySlot}}" hint-placeholder-val="{{false}}">
+<div class="aparece" style="display: flex; flex-direction: column; gap: 12px">
+<div class="card card-compacta" style="display: flex; flex-direction: column; gap: 4px">
+<div class="t-label-md muted">RESUMEN DE SU CITA</div>
+<div class="t-title-md">{{espElegida}}</div>
+<div class="t-body-md">{{medicoElegido}}</div>
+<div class="t-body-md num">{{diaCorto}} · {{slotElegido}} (hora de Lima)</div>
+</div>
+<div class="alerta alerta-warning" role="status">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg>
+<div>Solo podrá cancelar esta cita hasta 1 hora antes, a las <strong class="num">{{horaLimite}}</strong>.</div>
+</div>
+</div>
+</sc-if>
+
+<button type="button" class="btn btn-ghost btn-compacto" style="align-self: flex-start; color: #4A5C63" aria-pressed="{{simularActivo}}" onClick="{{alternarSimular}}">{{textoSimular}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{esPaso4}}" hint-placeholder-val="{{false}}">
+<div class="{{clasePaso}}" style="display: flex; flex-direction: column; gap: 16px; align-items: flex-start" role="status">
+<div class="marca-ok" style="width: 72px; height: 72px; border-radius: 999px; background: #E3F4E8; color: #146B32; display: flex; align-items: center; justify-content: center">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+</div>
+<h2 class="t-headline-lg" style="margin: 0">Su cita quedó reservada</h2>
+<div class="card" style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 20px">
+<div style="display: flex; justify-content: space-between; align-items: center"><div class="t-title-md">{{espElegida}}</div><span class="badge b-reservada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Reservada</span></div>
+<div class="t-body-lg">{{medicoElegido}}</div>
+<div class="t-body-lg num">{{diaCorto}} · {{slotElegido}}</div>
+<div class="t-body-md muted">Hora de Lima</div>
+</div>
+<div class="alerta alerta-warning" style="width: 100%">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg>
+<div>Puede cancelarla hasta las <strong class="num">{{horaLimite}}</strong>. Le enviaremos un recordatorio un día antes.</div>
+</div>
+<a class="btn btn-primary btn-portal btn-bloque" href="Portal-MisCitas.dc.html">Ver mis citas</a>
+<button type="button" class="btn btn-ghost btn-portal btn-bloque" onClick="{{reiniciar}}">Reservar otra cita</button>
+</div>
+</sc-if>
+
+</main>
+
+<sc-if value="{{hayPie}}" hint-placeholder-val="{{false}}">
+<footer style="flex: none; background: #FFFFFF; border-top: 1px solid #CBD6D9; padding: 12px 16px 16px">
+<sc-if value="{{reservando}}" hint-placeholder-val="{{false}}">
+<button type="button" class="btn btn-primary btn-portal btn-bloque is-loading" disabled="{{true}}"><span class="giro"></span>Reservando…</button>
+</sc-if>
+<sc-if value="{{noReservando}}" hint-placeholder-val="{{true}}">
+<button type="button" class="btn btn-primary btn-portal btn-bloque" disabled="{{sinSlot}}" onClick="{{reservar}}">Reservar cita</button>
+</sc-if>
+</footer>
+</sc-if>
+
+<div class="{{claseVelo}}"><button type="button" tabindex="-1" aria-label="Cerrar calendario" style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; cursor: default" onClick="{{cerrarHoja}}"></button></div>
+<div class="{{claseHoja}}" role="dialog" aria-label="Elegir la fecha de la cita" style="padding-bottom: 24px">
+<div class="asa"></div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px">
+<h2 class="t-title-md" style="margin: 0">Elija la fecha</h2>
+<button type="button" class="btn btn-ghost btn-compacto" onClick="{{cerrarHoja}}">Cerrar</button>
+</div>
+<div class="cal">
+<div class="cal-cab">
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes anterior" disabled="{{sinMesAnterior}}" onClick="{{mesAnterior}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+<span class="cal-mes">{{mesTexto}}</span>
+<button type="button" class="btn btn-ghost btn-icono" aria-label="Mes siguiente" disabled="{{sinMesSiguiente}}" onClick="{{mesSiguiente}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+</div>
+<div class="cal-sem" aria-hidden="true"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+<div class="cal-dias">
+<sc-for list="{{celdas}}" as="d" hint-placeholder-count="35">
+<button type="button" class="{{d.clase}}" disabled="{{d.deshabilitado}}" aria-label="{{d.etiqueta}}" onClick="{{d.elegir}}">{{d.texto}}</button>
+</sc-for>
+</div>
+<div class="t-body-sm muted" style="display: flex; align-items: center; gap: 8px; margin-top: 8px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #0F766E; display: inline-block"></span>Días con horarios libres. Los domingos no hay atención.</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { paso: 1, dir: 'adelante', esp: '', medico: '', dia: 0, mes: 9, hoja: false, slot: '', reservando: false, simular: false, error: false, ocupadosExtra: [] };
+    this.temporizadores = [];
+  }
+
+  componentWillUnmount() { this.temporizadores.forEach((t) => clearTimeout(t)); }
+  luego(fn, ms) { this.temporizadores.push(setTimeout(fn, ms)); }
+
+  nombreMes(m) { return ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][m]; }
+  nombreDia(dow) { return ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][dow]; }
+  abreviaturaDia(dow) { return ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][dow]; }
+
+  medicosDe(esp) {
+    const tabla = {
+      'Medicina general': ['Dra. Lucía Ejemplo Vargas', 'Dr. Mario Muestra León'],
+      'Odontología': ['Dr. Sergio Prueba Rivas', 'Dra. Elena Ejemplo Cruz'],
+      'Fisioterapia': ['Lic. Paula Muestra Díaz', 'Lic. Andrés Prueba Soto'],
+      'Psicología': ['Ps. Valeria Ejemplo Núñez', 'Ps. Daniel Muestra Paz'],
+      'Podología': ['Lic. Rocío Prueba Tello', 'Lic. Martín Ejemplo Gil']
+    };
+    return tabla[esp] || [];
+  }
+
+  iniciales(nombre) {
+    const partes = nombre.split(' ').slice(1);
+    return ((partes[0] || '').charAt(0) + (partes[1] || '').charAt(0)).toUpperCase();
+  }
+
+  celdasMes(mes, seleccionado) {
+    const anio = 2026;
+    const primero = (new Date(anio, mes, 1).getDay() + 6) % 7;
+    const total = new Date(anio, mes + 1, 0).getDate();
+    const sinHorarios = [16, 23, 30];
+    const celdas = [];
+    for (let i = 0; i < primero; i++) celdas.push({ texto: '', clase: 'dia vacio', deshabilitado: true, etiqueta: '', elegir: () => {} });
+    for (let d = 1; d <= total; d++) {
+      const dow = new Date(anio, mes, d).getDay();
+      const deshabilitado = (mes === 9 && d < 10) || dow === 0 || (mes === 9 && sinHorarios.indexOf(d) >= 0);
+      let clase = 'dia';
+      if (mes === 9 && d === 10) clase += ' hoy';
+      if (!deshabilitado) clase += ' hay';
+      if (seleccionado === d && this.state.mes === mes) clase += ' sel';
+      celdas.push({
+        texto: String(d),
+        clase: clase,
+        deshabilitado: deshabilitado,
+        etiqueta: this.nombreDia(dow) + ' ' + d + ' de ' + this.nombreMes(mes) + ' de ' + anio + (deshabilitado ? ', sin horarios' : ', con horarios libres'),
+        elegir: () => {
+          this.setState({ dia: d, slot: '', error: false });
+          this.luego(() => this.setState({ hoja: false }), 160);
+        }
+      });
+    }
+    return celdas;
+  }
+
+  reservar = () => {
+    this.setState({ reservando: true, error: false });
+    this.luego(() => {
+      const s = this.state;
+      if (s.simular) {
+        this.setState({ reservando: false, error: true, simular: false, ocupadosExtra: s.ocupadosExtra.concat([s.dia + '-' + s.slot]), slot: '' });
+      } else {
+        this.setState({ reservando: false, paso: 4, dir: 'adelante' });
+      }
+    }, 1100);
+  };
+
+  renderVals() {
+    const s = this.state;
+    const esp = (v) => (v ? 'true' : 'false');
+    const pasoVisible = s.paso > 3 ? 3 : s.paso;
+    const titulos = ['Especialidad', 'Médico', 'Fecha y horario'];
+    const horasBase = ['08:00', '08:20', '08:40', '09:00', '09:20', '09:40', '10:00', '10:20', '10:40'];
+    const horarios = horasBase.map((h, i) => {
+      const ocupado = ((s.dia * 7 + i * 3) % 5 === 0) || s.ocupadosExtra.indexOf(s.dia + '-' + h) >= 0;
+      const sel = s.slot === h;
+      return {
+        hora: h,
+        ocupado: ocupado,
+        presionado: esp(sel),
+        clase: sel ? 'slot sel num' : 'slot num',
+        elegir: () => this.setState({ slot: h, error: false })
+      };
+    });
+    const dow = s.dia ? new Date(2026, s.mes, s.dia).getDay() : 0;
+    const dd = String(s.dia).padStart(2, '0') + '/' + String(s.mes + 1).padStart(2, '0') + '/2026';
+    let horaLimite = '';
+    if (s.slot) {
+      const p = s.slot.split(':');
+      const m = Number(p[0]) * 60 + Number(p[1]) - 60;
+      horaLimite = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    }
+    return {
+      atrasEsLink: s.paso === 1 || s.paso === 4,
+      atrasEsBoton: s.paso === 2 || s.paso === 3,
+      atras: () => this.setState({ paso: s.paso - 1, dir: 'atras', error: false }),
+      enPasos: s.paso <= 3,
+      barra1: pasoVisible >= 1 ? 'barra on' : 'barra',
+      barra2: pasoVisible >= 2 ? 'barra on' : 'barra',
+      barra3: pasoVisible >= 3 ? 'barra on' : 'barra',
+      pasoNumero: pasoVisible,
+      tituloPaso: titulos[pasoVisible - 1],
+      clasePaso: s.dir === 'adelante' ? 'paso-adelante' : 'paso-atras',
+      esPaso1: s.paso === 1, esPaso2: s.paso === 2, esPaso3: s.paso === 3, esPaso4: s.paso === 4,
+      especialidades: ['Medicina general', 'Odontología', 'Fisioterapia', 'Psicología', 'Podología'].map((n) => ({
+        nombre: n,
+        elegir: () => this.setState({ esp: n, medico: '', paso: 2, dir: 'adelante' })
+      })),
+      espElegida: s.esp,
+      medicos: this.medicosDe(s.esp).map((n) => ({
+        nombre: n,
+        ini: this.iniciales(n),
+        elegir: () => this.setState({ medico: n, paso: 3, dir: 'adelante', dia: 0, slot: '' })
+      })),
+      medicoElegido: s.medico,
+      cambiarMedico: () => this.setState({ paso: 2, dir: 'atras' }),
+      abrirHoja: () => this.setState({ hoja: true }),
+      cerrarHoja: () => this.setState({ hoja: false }),
+      claseVelo: s.hoja ? 'velo abierto' : 'velo',
+      claseHoja: s.hoja ? 'hoja abierto' : 'hoja',
+      mesTexto: this.nombreMes(s.mes) + ' 2026',
+      sinMesAnterior: s.mes <= 9,
+      sinMesSiguiente: s.mes >= 11,
+      mesAnterior: () => this.setState({ mes: s.mes - 1 }),
+      mesSiguiente: () => this.setState({ mes: s.mes + 1 }),
+      celdas: this.celdasMes(s.mes, s.dia),
+      hayDia: s.dia > 0,
+      fechaTexto: s.dia ? this.nombreDia(dow) + ' ' + s.dia + ' de ' + this.nombreMes(s.mes) : 'Elegir fecha',
+      diaLargo: s.dia ? this.nombreDia(dow) + ' ' + s.dia + ' de ' + this.nombreMes(s.mes) + ' de 2026' : '',
+      diaCorto: s.dia ? this.abreviaturaDia(dow) + ' ' + dd : '',
+      horarios: horarios,
+      haySlot: !!s.slot,
+      slotElegido: s.slot,
+      horaLimite: horaLimite,
+      hayError: s.error,
+      simularActivo: esp(s.simular),
+      alternarSimular: () => this.setState({ simular: !s.simular }),
+      textoSimular: s.simular ? 'DEMO activo: el próximo intento chocará con otra reserva' : 'DEMO: simular que otro paciente tomó el horario',
+      hayPie: s.paso === 3,
+      sinSlot: !s.slot,
+      reservando: s.reservando,
+      noReservando: !s.reservando,
+      reservar: this.reservar,
+      reiniciar: () => this.setState({ paso: 1, dir: 'atras', esp: '', medico: '', dia: 0, slot: '', error: false, simular: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
