@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import { ProveedorAvisos } from "@/components/clinica/aviso-temporal";
 import { Marca } from "@/components/clinica/marca";
 import { NavegacionLateral } from "@/components/clinica/navegacion";
 import type { Rol } from "@/lib/auth/rol";
@@ -19,7 +20,9 @@ export function ConsolaLayout({ rol, children }: { rol: Exclude<Rol, "paciente">
           <UserButton showName />
         </div>
       </aside>
-      <main className="mx-auto w-full max-w-[80rem] px-4 py-6 text-body-sm md:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-[80rem] px-4 py-6 text-body-sm md:px-8">
+        <ProveedorAvisos>{children}</ProveedorAvisos>
+      </main>
     </div>
   );
 }

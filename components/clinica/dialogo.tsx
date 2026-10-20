@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // atrapado, el cierre con Escape y el resto del teclado sin añadir una dependencia (decisión de H3, design.md D11). El padre
 // controla `abierto`; al cerrarse se reproduce la salida de DESIGN.md («Motion») antes de llamar a `close()`.
 // - Escape y un clic sobre el velo piden cerrar con `alCerrar`, salvo que `bloqueado` (mientras se envía una acción).
-// - Una acción destructiva usa `rol="alertdialog"` y debe poner `autoFocus` en «Volver».
+// - Una acción destructiva usa `rol="alertdialog"` y marca «Volver» con `data-foco-inicial`: el foco empieza en lo seguro.
 export function Dialogo({
   abierto,
   alCerrar,
@@ -37,7 +37,11 @@ export function Dialogo({
 
     if (abierto) {
       dialogo.removeAttribute("data-saliendo");
-      if (!dialogo.open) dialogo.showModal();
+      if (!dialogo.open) {
+        dialogo.showModal();
+        // `autoFocus` de React solo actúa al montar; el foco inicial de cada apertura se marca con `data-foco-inicial`.
+        dialogo.querySelector<HTMLElement>("[data-foco-inicial]")?.focus();
+      }
       return;
     }
     if (!dialogo.open) return;
