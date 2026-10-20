@@ -1,5 +1,5 @@
 // Pruebas de lib/citas/cierre.ts (H3, tarea 6.5; design.md, D13). Ejecutar con: npm run test:agenda. Sin base de datos: el ejecutor es
-// un doble. Lo que sí toca la base (la guarda de rol, el cierre real, la auditoría) está en pgTAP 64 y en tests/integracion/cierre.test.ts.
+// un doble. Lo que sí toca la base (la guarda de rol, el cierre real, la auditoría) está en pgTAP 64 y en tests/integracion/transiciones.test.ts.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MENSAJE_ERROR_INTERNO, MENSAJE_NO_AUTORIZADO } from "../../lib/acciones/resultado.ts";

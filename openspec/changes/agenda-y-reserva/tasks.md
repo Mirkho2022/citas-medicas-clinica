@@ -27,6 +27,9 @@ empieza cuando H2b está aplicado.
 - [ ] 1.3 Revisar con el usuario las preguntas abiertas de `design.md` que condicionan pantallas (1, 2 y 3: cita `reservada`
       vencida sin confirmar, horizonte de sustitutos y baja sin fecha de término) y anotar las respuestas en `design.md` antes
       del grupo 11. Verificar que cada pregunta queda con respuesta o con el valor por defecto aceptado por escrito.
+      Avance (2026-10-20, sin marcar): la pregunta 1 (reservada vencida) la respondió el cliente: se cierra sola como «No asistió», sin cron (D13). Faltan
+      por escrito los valores por defecto de la 2 (horizonte de sustitutos: mismo día primero y hasta 7 días) y de la 3 (baja sin fecha de término: H3 exige
+      fecha de fin en la pantalla; la base ya admite el rango abierto y la vista de citas por reasignar lo trata como vigente).
 - [x] 1.4 Verificar con un script descartable (sin commitear) contra un branch de desarrollo que el driver HTTP de Neon entrega
       `code` en el error de una violación `23P01`, de un `raise exception … using errcode = 'UC001'` y de un `40P01`
       simulado en PL/pgSQL, y si expone `constraint`. Verificar anotando los tres resultados en el PR; el traductor de errores
@@ -279,12 +282,14 @@ empieza cuando H2b está aplicado.
       `emitirTrasCommit(evento)` con `try/catch`. Pruebas en `tests/agenda/eventos-cita.test.ts`: un notificador que lanza no
       cambia el resultado; el evento solo contiene identificadores y motivo `reprogramacion` o `baja_medica`; el tipo
       `EventoCita` no incluye eventos de confirmación, «No asistió» ni «Atendida». Verificar con `npm run test:agenda`.
-- [ ] 7.6 Añadir el script `test:agenda` (`node --test "tests/agenda/*.test.ts"`) a `package.json` y como paso del job
+- [x] 7.6 Añadir el script `test:agenda` (`node --test "tests/agenda/*.test.ts"`) a `package.json` y como paso del job
       `typecheck-lint-build` de `.github/workflows/ci.yml` (archivo con CRLF: conservarlos). Verificar en el PR que el paso
       aparece y pasa, y que `npm run typecheck` y `npm run lint` siguen en verde.
       Avance: el script `test:agenda` y el paso de CI ya están añadidos (CRLF conservados); `npm run typecheck`, `npm run lint` y
       `npm run test:agenda` pasan en local, también con `TZ=UTC` y `TZ=Asia/Tokyo`. Pendiente (sin marcar): verificar en el PR que
       el paso aparece y pasa en `typecheck-lint-build`.
+      Resultado (2026-10-20): en el PR el paso `npm run test:agenda` aparece en el job `typecheck-lint-build` y pasa (211 pruebas); `npm run typecheck`
+      y `npm run lint` siguen en verde.
 
 ## 8. Pacientes: documento, búsqueda y registro
 
@@ -312,10 +317,13 @@ empieza cuando H2b está aplicado.
       administrativo y la historia del paciente recién registrado no va en `34` (que es de solapes de disponibilidad), sino en
       `41_historia_al_registrar.test.sql`, donde ya se probaba el alta por el administrativo: 10 pruebas, 0 fallos, con dos
       aserciones nuevas (no ve la historia del paciente que acaba de registrar ni ninguna otra).
-- [ ] 8.3 Crear la página `/administrativo/pacientes` (`auth.protect()`, `exigirRol`, redirección a MFA) con buscador por
+- [x] 8.3 Crear la página `/administrativo/pacientes` (`auth.protect()`, `exigirRol`, redirección a MFA) con buscador por
       documento o apellido, resultado con la tabla de H2b, formulario de registro con `CampoDocumento` y estados vacío, de
       carga y de error. Verificar a mano en `next dev` con la cuenta de administrativo: DNI de 7 dígitos muestra «El DNI debe
       tener 8 dígitos» bajo el campo, un duplicado ofrece abrir el existente, y el registro nuevo aparece al buscar.
+      Resultado: `app/administrativo/pacientes/` (`page.tsx` con `auth.protect()` y la guarda del administrativo con redirección a MFA, `formulario-paciente.tsx`
+      con `CampoDocumento`, `acciones.ts`, `loading.tsx`). La verificación a mano se hizo con `e2e/agenda.spec.ts`: un DNI de 7 dígitos muestra «El DNI debe
+      tener 8 dígitos» bajo el campo, un duplicado ofrece abrir el existente, y el paciente nuevo aparece al buscar (`tests/integracion/pacientes.test.ts`).
 
 ## 9. Horarios y bloqueos
 
@@ -335,36 +343,48 @@ empieza cuando H2b está aplicado.
       Lima, 20 minutos por defecto, ausencia con fechas de Lima (08:00 → 13:00Z), solape de ausencias (`SOLAPE`, mensaje
       propio), auditoría del alta, el cambio y el borrado con rol `administrativo`, y los cuatro roles sin permiso rechazados sin
       tocar nada. En la primera corrida una prueba cayó con `ECONNRESET` (la conexión, no el código); repetida, 8 de 8.
-- [ ] 9.2 Crear `/administrativo/horarios` (lista de médicos con especialidad) y `/administrativo/horarios/[medicoId]`
+- [x] 9.2 Crear `/administrativo/horarios` (lista de médicos con especialidad) y `/administrativo/horarios/[medicoId]`
       (plantilla semanal con alta, edición y baja de tramos; bloqueos con alta, edición y baja). Verificar a mano: alta de
       «lunes 08:00–12:00, 20 min», rechazo de uno solapado con el mensaje propio, alta de una ausencia con fechas de Lima y
       comprobación de que los slots de esa semana desaparecen en la agenda.
-- [ ] 9.3 Implementar la advertencia al eliminar o acortar una disponibilidad: contar las citas vigentes futuras que quedarían
+      Resultado: `app/administrativo/horarios/page.tsx` (médicos con especialidad, tramos y ausencias vigentes) y `horarios/[medicoId]/` (`gestor-horarios.tsx`,
+      `formulario-tramo.tsx`, `formulario-ausencia.tsx`: alta, edición y baja de tramos y de ausencias, con `<dialog>`). `e2e/horarios.spec.ts`: alta de un tramo de
+      domingo 08:00–09:00 cada 20 minutos y rechazo de uno que se cruza con el mensaje propio del solape; `e2e/bajas.spec.ts`: una ausencia con fechas de Lima
+      (06:00–14:00) y, mientras dura, la agenda del médico no ofrece huecos. Ambas en verde en el CI del PR y contra el preview.
+
+- [x] 9.3 Implementar la advertencia al eliminar o acortar una disponibilidad: contar las citas vigentes futuras que quedarían
       fuera de la nueva malla y mostrarlas sin cancelarlas. Verificar con una prueba unitaria de la función que decide si una cita
       cae fuera y a mano con una cita futura creada para el caso.
-      Avance (sin marcar: falta mostrar el aviso en la pantalla de horarios, 9.2): la función que decide si una cita cae fuera
+      Avance previo a la pantalla (entonces faltaba: falta mostrar el aviso en la pantalla de horarios, 9.2): la función que decide si una cita cae fuera
       es `citaEnLaMalla` (`lib/citas/disponibilidades.ts`), y `guardarDisponibilidad`/`eliminarDisponibilidad` devuelven
       `fueraDelHorario: { cantidad, citaIds }` calculado con la plantilla RESULTANTE en la misma transacción, sin cancelar nada.
       Pruebas: unitarias de la malla (borde del tramo, desalineada, otra duración, día, vigencia, medianoche de Lima y tramo hasta
       las 24:00; por mutación fallan al quitar el módulo de la malla, la vigencia o el día), de integración con citas futuras reales
       (acortar deja 1 fuera, eliminar deja 2, ninguna cancelada) y una comparación de ~400 horarios entre `citaEnLaMalla` y
       `horario_en_agenda` de la base de datos.
+      Resultado: el aviso «N citas vigentes fuera del horario» se muestra en `horarios/[medicoId]/page.tsx` con la lista de citas y su botón «Reprogramar», sin
+      cancelar nada. `e2e/horarios.spec.ts`: al eliminar el tramo, la cita queda fuera del horario, se muestra y sigue «Reservada» en la agenda; la función que
+      decide si una cita cae fuera está probada en unitarias, en integración y contra `horario_en_agenda` (ver el avance).
 
 ## 10. Agenda, reserva y ciclo de estados
 
-- [ ] 10.1 Crear `/administrativo/agenda` (Server Component con `searchParams`: fecha de Lima y médico o todos): citas del día
+- [x] 10.1 Crear `/administrativo/agenda` (Server Component con `searchParams`: fecha de Lima y médico o todos): citas del día
       ordenadas con `TablaAgenda`, `InsigniaEstado`, huecos libres intercalados desde `slots_disponibles`, acciones solo donde
       corresponden (según el estado y la hora, como en la spec) y botón «Agendar» por hueco; estado vacío con la acción
       siguiente. Verificar a mano con datos de demostración y, en `e2e/agenda.spec.ts` (12.1), que una cita cancelada no muestra
       acciones.
-- [ ] 10.2 Crear `/administrativo/agenda/nueva` y `reservarCita` en `app/administrativo/agenda/acciones.ts`: paciente por
+      Resultado: `app/administrativo/agenda/page.tsx` con `tabla-del-dia.tsx`, `filtro-medico.tsx` y `loading.tsx` (fecha de Lima y médico en la URL, huecos
+      libres intercalados, acciones según estado y hora con `accionesVisibles`, botón «Agendar» por hueco, estado vacío). Antes de leer, la página llama a
+      `cerrarCitasVencidas` (6.5). `e2e/agenda.spec.ts`: una cita cancelada queda «Cancelada» sin acciones.
+
+- [x] 10.2 Crear `/administrativo/agenda/nueva` y `reservarCita` en `app/administrativo/agenda/acciones.ts`: paciente por
       documento (con alta rápida), médico y fecha, `SelectorHorario` que reenvía el instante ISO del servidor, resumen con
       médico, especialidad, fecha y hora de Lima y la advertencia «Informe al paciente: la cita solo puede cancelarse hasta 1
       hora antes, a las HH:mm.» (variante si falta menos de 1 hora), botón «Reservar cita» con «Reservando…», y
       `Registro de cita ya agendado` como `Alerta` de error con la lista refrescada. Llama a `public.reservar_cita()` y emite el
       evento tras el commit. Verificar a mano con dos pestañas del mismo horario (la segunda ve el mensaje exacto) y con una
       prueba unitaria del cálculo de la hora límite.
-      Avance (sin marcar: falta la página `/administrativo/agenda/nueva`): `reservarCita` en `lib/citas/reservas.ts` (llama a
+      Avance previo a la pantalla (entonces faltaba: falta la página `/administrativo/agenda/nueva`): `reservarCita` en `lib/citas/reservas.ts` (llama a
       `public.reservar_cita()`) y su acción en `app/administrativo/agenda/acciones.ts` (`auth.protect()` + guarda + refresco +
       `cita_reservada` tras el commit, vía `lib/citas/casos-de-uso.ts`), y el cálculo de la advertencia en
       `lib/citas/advertencia.ts` (`advertenciaCancelacion`: «Informe al paciente: la cita solo puede cancelarse hasta 1 hora antes, a las
@@ -375,11 +395,15 @@ empieza cuando H2b está aplicado.
       da exactamente `Registro de cita ya agendado`; horario pasado, fuera de la malla, de otra duración, dentro de una ausencia o
       de un médico dado de baja dan el mensaje de horario no disponible sin crear la cita; el paciente reserva solo a su nombre
       (origen `portal`) y médico, enfermera y sin rol no reservan.
-- [ ] 10.3 Añadir `cancelarCita` y `reprogramarCita` (acciones y `lib/citas`) con el diálogo de confirmación basado en `<dialog>`
+      Resultado: `app/administrativo/agenda/nueva/` (`page.tsx`, `formulario-reserva.tsx`, `elegir-paciente-url.tsx`) y el diálogo `dialogo-agendar.tsx` por hueco.
+      `e2e/agenda.spec.ts`: la advertencia «Informe al paciente: la cita solo puede cancelarse hasta 1 hora antes, a las HH:mm.» con la hora límite de Lima, la
+      reserva, y la doble reserva desde un segundo contexto con el mensaje exacto «Registro de cita ya agendado».
+
+- [x] 10.3 Añadir `cancelarCita` y `reprogramarCita` (acciones y `lib/citas`) con el diálogo de confirmación basado en `<dialog>`
       nativo, el botón deshabilitado con explicación cuando falta menos de 1 hora y no hay bloqueo, y el mensaje propio de
       «reprogramar». Verificar a mano: cancelar a más de 1 hora funciona, a menos de 1 hora está deshabilitado, y reprogramar
       hacia un horario ocupado deja la original vigente; y por prueba unitaria que el evento de reprogramación es uno solo.
-      Avance (sin marcar: faltan el diálogo `<dialog>` y el botón deshabilitado con explicación en la pantalla): `cancelarCita` (una sola
+      Avance previo a la pantalla (entonces faltaba: faltan el diálogo `<dialog>` y el botón deshabilitado con explicación en la pantalla): `cancelarCita` (una sola
       sentencia, solo sobre citas vigentes) y `reprogramarCita` (`public.reprogramar_cita()`) en `lib/citas/reservas.ts`, con sus
       acciones y casos de uso. La reprogramación emite UN solo `cita_reprogramada` (prueba unitaria; no se emite además una
       cancelación ni una reserva). Integración: cancelar con más de 1 hora registra quién y cuándo, libera el horario y no borra; con
@@ -388,14 +412,18 @@ empieza cuando H2b está aplicado.
       estuviera `confirmada`) con `reprogramada_de`; un destino ocupado o inválido deja la original vigente y sin cancelar; una
       original dentro de la hora previa da el mensaje de «reprogramar». **Contrato para H4:** en H3 el paciente no tiene política de
       `UPDATE` sobre `citas` (la añade `portal-del-paciente`), así que `cancelarCita` como paciente hoy no encuentra la fila.
-- [ ] 10.4 Crear `lib/citas/transiciones.ts` y las acciones `confirmarCita` y `marcarNoAsistio` en
+      Resultado: `dialogo-confirmar-accion.tsx` (`<dialog>` nativo) en `tabla-del-dia.tsx`, y el botón de cancelar deshabilitado con explicación según
+      `accionesVisibles` (`tests/agenda/acciones-visibles.test.ts`). `e2e/agenda.spec.ts`: reprogramar (la original queda cancelada y nace una nueva
+      reservada) y cancelar con confirmación; un destino ocupado deja la original vigente en `tests/integracion/reservas.test.ts`.
+
+- [x] 10.4 Crear `lib/citas/transiciones.ts` y las acciones `confirmarCita` y `marcarNoAsistio` en
       `app/administrativo/agenda/acciones.ts` (guarda `exigirPersonal('administrativo')`, `update … set estado … returning
       estado` sin filtrar por estado en el `WHERE`, `UC004` con el mensaje de cada acción, sin eventos), y en la agenda del día
       el botón «Confirmar» (con aviso `role="status"`) en las `reservada` que no terminaron y «No asistió» (con diálogo
       `<dialog>`) en las `confirmada` cuya hora ya empezó. Verificar con las pruebas de `traducirError` de 7.1 y a mano con la
       cuenta de administrativo: confirmar una cita futura la pasa a «Confirmada», «No asistió» no se ofrece antes de la hora,
       y una cita cancelada no ofrece ninguna de las dos.
-      Avance (sin marcar: faltan los botones «Confirmar» y «No asistió» de la agenda del día, 10.1): `lib/citas/transiciones.ts`
+      Avance previo a la pantalla (entonces faltaba: faltan los botones «Confirmar» y «No asistió» de la agenda del día, 10.1): `lib/citas/transiciones.ts`
       (`confirmarCita`, `marcarNoAsistio`, `update … set estado … where id = … returning estado` sin filtrar por estado) y
       `app/administrativo/agenda/acciones.ts` con `auth.protect()` y el entorno real; la guarda, el refresco y la composición están en
       `lib/citas/casos-de-uso.ts`, que se prueba con un entorno inyectado. Ninguna emite evento. Pruebas:
@@ -404,6 +432,9 @@ empieza cuando H2b está aplicado.
       repetir) y recién entonces el médico ve la historia; confirmar una terminada, una atendida o una «No asistió» da el mensaje
       propio de confirmar (`UC004`); «No asistió» solo en una confirmada cuya hora ya empezó. Por mutación, agregar `and estado =
       'reservada'` al `WHERE` hace fallar la unitaria del SQL y las dos de integración de confirmar; restaurado.
+      Resultado: los botones «Confirmar» (con aviso `role="status"`) y «No asistió» (con diálogo) viven en `tabla-del-dia.tsx`. `e2e/agenda.spec.ts`: confirmar
+      pasa la insignia a «Confirmada» y «No asistió» aún no se ofrece; una cita cancelada no ofrece ninguna acción.
+
 - [x] 10.5 Crear `app/medico/acciones-cita.ts` con la acción `marcarAtendida` (guarda `exigirPersonal('medico')`, Zod del
       identificador, llamada a `public.marcar_cita_atendida()` mediante `lib/citas/transiciones.ts`, resultado tipado, sin
       eventos, `revalidatePath` de la jornada del médico) para que H7 solo conecte el botón. Verificar con una prueba unitaria
@@ -417,59 +448,97 @@ empieza cuando H2b está aplicado.
       «Atendida» una confirmada ya empezada, solo cambia `estado` (comparado el resto de la fila) y la auditoría lo registra como
       `medico`; una cita ajena y una inexistente dan el mismo «La cita ya no está vigente»; administrativo, enfermera, paciente y sin
       rol reciben «No tiene permiso…» sin cambiar la cita; una reservada o una futura reciben el mensaje de «Atendida».
-- [ ] 10.6 Marcar `disponible: true` los destinos de administrativo que H3 construye en `lib/ui/navegacion.ts` (Agenda,
+- [x] 10.6 Marcar `disponible: true` los destinos de administrativo que H3 construye en `lib/ui/navegacion.ts` (Agenda,
       Pacientes, Horarios, Bajas). Verificar que la barra lateral enlaza a páginas que responden 200 y que ningún destino sigue
       como «Próximamente» por error.
+      Resultado: Agenda, Pacientes, Horarios y Bajas médicas tienen `disponible: true` en `lib/ui/navegacion.ts` (Notificaciones sigue «Próximamente»: es de H5).
+      `e2e/bajas.spec.ts` comprueba que Bajas médicas y Horarios son enlaces de la navegación, y la revisión visual (13.3) recorrió las cuatro pantallas.
 
 ## 11. Reasignación por baja médica
 
-- [ ] 11.1 Crear `/administrativo/bajas` (bajas vigentes y futuras con el número de citas por reasignar y por contactar) y
+- [x] 11.1 Crear `/administrativo/bajas` (bajas vigentes y futuras con el número de citas por reasignar y por contactar) y
       `/administrativo/bajas/[bloqueoId]` (citas afectadas con paciente, horario de Lima y estado, hasta 3 propuestas por
       cita con «Mismo horario» destacado, y la marca «Contactar al paciente» con correo y teléfono cuando no hay propuestas),
       leyendo `citas_por_reasignar` y `propuestas_reasignacion`. Verificar a mano con el segundo médico sembrado en 5.4: una
       cita con propuestas y otra, de otra especialidad, con la marca de contacto manual.
-- [ ] 11.2 Crear la acción `reasignarPorBaja` (una llamada a `reasignar_cita_por_baja` por cita seleccionada, resultado por fila,
+      Resultado: `app/administrativo/bajas/page.tsx` (bajas vigentes y futuras con el número por reasignar y por contactar) y `bajas/[bloqueoId]/` (`page.tsx`,
+      `reasignacion.tsx`: citas afectadas con paciente, hora de Lima y estado, hasta 3 propuestas con «Mismo horario» destacado y la marca «Contactar al paciente»).
+      `e2e/bajas.spec.ts`: la lista cuenta las dos citas por reasignar y el detalle propone el mismo horario con el sustituto. La marca de contacto manual no se
+      puede provocar desde la interfaz sin dar de baja al sustituto: la cubre `tests/integracion/consultas.test.ts` contra la base real.
+
+- [x] 11.2 Crear la acción `reasignarPorBaja` (una llamada a `reasignar_cita_por_baja` por cita seleccionada, resultado por fila,
       `DOBLE_RESERVA` y `REASIGNACION_INVALIDA` traducidos, evento `cita_reprogramada` con motivo `baja_medica`) y el flujo de
       alta de baja que lleva del bloqueo a esta pantalla con el aviso del efecto del bloqueo. Verificar a mano: reasignar dentro
       de la hora previa funciona, tres filas con una fallida dejan dos reasignadas y la tercera vigente, y la fila fallida se
       puede reintentar con propuestas nuevas.
-      Avance (sin marcar: falta el flujo de alta de baja que lleva del bloqueo a la pantalla de reasignación): `reasignarPorBaja` en
+      Avance previo a la pantalla (entonces faltaba: falta el flujo de alta de baja que lleva del bloqueo a la pantalla de reasignación): `reasignarPorBaja` en
       `lib/citas/reservas.ts` (una llamada a `public.reasignar_cita_por_baja()` por cita, en orden, un resultado por fila, filas
       inválidas marcadas sin consultar la base de datos, máximo 50 por envío), su acción y su caso de uso, que emite un
       `cita_reprogramada` con motivo `baja_medica` por cada fila hecha y solo por ellas. Integración: con una cita reasignada y otra a un
       sustituto de otra especialidad, la primera se reasigna (original `cancelada`, nueva con `reprogramada_de` y el médico sustituto)
       y la segunda da «Esta reasignación no corresponde a la baja registrada» y queda vigente; reintentada con un sustituto válido
       se hace; una baja que no cubre la cita da el mismo mensaje. Por mutación, si una fila fallida detuviera el lote fallan 3 pruebas.
+      Resultado: el flujo completo está en pantalla: la ausencia dice cuántas citas caen dentro y enlaza a reasignarlas (`e2e/bajas.spec.ts`); reasignar solo la
+      primera deja la otra sin tocarla y la cita nueva queda con el sustituto, reservada y confirmable. Una fila fallida no detiene el lote (`tests/integracion/
+      reservas.test.ts`, `tests/agenda/reasignacion-lote.test.ts`) y la reasignación dentro de la hora previa la cubre pgTAP 38.
 
 ## 12. Pruebas E2E y accesibilidad
 
-- [ ] 12.1 Escribir `e2e/agenda.spec.ts` con el administrativo de H1 (TOTP): registrar un paciente `99…`, agendar 14 días
+- [x] 12.1 Escribir `e2e/agenda.spec.ts` con el administrativo de H1 (TOTP): registrar un paciente `99…`, agendar 14 días
       adelante, comprobar la advertencia con la hora límite en Lima, provocar la doble reserva desde un segundo contexto y ver
       `Registro de cita ya agendado`, confirmar la cita (la insignia pasa a «Confirmada» y «No asistió» aún no se ofrece),
       reprogramar, cancelar y ver la cita `Cancelada` sin acciones. Las citas se cancelan al terminar; sin datos de
       demostración la prueba se omite con un aviso. Verificar con `npm run test:e2e` contra la build de producción local y que
       falla si se cambia a propósito el literal esperado.
-- [ ] 12.2 Escribir `e2e/bajas.spec.ts`: agendar dos citas con el médico de Medicina general 14 días adelante, crear una baja que
+      Resultado: `e2e/agenda.spec.ts` en verde en el CI del PR y contra el preview (con `CAPTURAS_H3` guarda una captura por paso). Comprobación por mutación (2026-10-20):
+      con el literal esperado cambiado a «El DNI debe tener 9 dígitos» la prueba falla en ese paso, en una copia temporal contra el preview.
+
+- [x] 12.2 Escribir `e2e/bajas.spec.ts`: agendar dos citas con el médico de Medicina general 14 días adelante, crear una baja que
       las cubra, reasignar una al sustituto sembrado, confirmar la cita nueva y comprobar la marca de contacto manual de la
       otra; limpiar cancelando las citas y borrando el bloqueo. Verificar con `npm run test:e2e` y que un paciente que abre
       `/administrativo/bajas` es devuelto a su área sin ver el contenido (negativo).
-- [ ] 12.3 Añadir las páginas nuevas a `e2e/accesibilidad.spec.ts` (axe, WCAG 2.1 AA) y corregir lo que reporte, incluidos
+      Resultado: `e2e/bajas.spec.ts` en verde en el CI del PR y contra el preview: dos citas con el titular, ausencia que las cubre, reasignar una al sustituto,
+      confirmar la nueva, y el negativo (un paciente que abre `/administrativo/bajas` es devuelto a su área sin ver el contenido). La limpieza cancela las citas y
+      borra la ausencia.
+
+- [x] 12.3 Añadir las páginas nuevas a `e2e/accesibilidad.spec.ts` (axe, WCAG 2.1 AA) y corregir lo que reporte, incluidos
       objetivos táctiles de 24 px mínimo y el foco de los diálogos de confirmación. Verificar que la prueba queda en verde y que
       se pone en rojo al quitar a propósito la etiqueta de un campo en un cambio temporal revertido.
+      Resultado: `e2e/accesibilidad.spec.ts` recorre las pantallas nuevas a 1280 y a 390 px con los diálogos abiertos (axe, WCAG 2.1 AA), comprueba el foco de los
+      diálogos y los 24 px mínimos de los controles. Comprobación por mutación (2026-10-20): quitar las etiquetas de los campos en el navegador pone la revisión en rojo
+      (`label` y `select-name`, críticos) y sin la mutación pasa.
 
 ## 13. Documentación y verificación integral
 
-- [ ] 13.1 Actualizar `CLAUDE.md` (estado: H3), la tabla de Server Actions y el árbol de rutas de TECH-DESIGN (incluidas
+- [x] 13.1 Actualizar `CLAUDE.md` (estado: H3), la tabla de Server Actions y el árbol de rutas de TECH-DESIGN (incluidas
       `confirmarCita`, `marcarNoAsistio` y `marcarAtendida`), `docs/pruebas-e2e.md` (nuevas E2E y su requisito de datos de
       demostración) y añadir las notas fechadas propuestas en ADR-0008 (códigos `UC001`–`UC004`), ADR-0011 (dirección de
       `reprogramada_de`) y ADR-0016 (quién confirma: la recepción), **marcadas para revisión humana** y sin cambiar el texto de la
       decisión. Verificar con una búsqueda que todos los documentos citan el mismo mensaje exacto, los mismos códigos y las rutas
       reales, y que ningún enlace relativo se rompe.
-- [ ] 13.2 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:agenda`, la suite pgTAP
+      Resultado (2026-10-20): `CLAUDE.md` (estado H3), la tabla de Server Actions de `docs/TECH-DESIGN.md` (con una nota del cierre de citas vencidas),
+      `docs/pruebas-e2e.md` y las notas fechadas, marcadas para revisión humana, de ADR-0008, ADR-0011 y ADR-0016. Búsqueda: el mensaje «Registro de cita ya agendado»
+      aparece con un único texto en todo el repositorio y no hay enlaces relativos rotos en `CLAUDE.md`, `docs/` ni `docs/adrs/`.
+
+- [x] 13.2 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:agenda`, la suite pgTAP
       completa, `npm run test:concurrencia`, `npm run test:integracion` y la E2E completa; verificar que todo pasa en el PR
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
+      Resultado (2026-10-20): todo corre en limpio en el CI del PR: `ci.yml` (`npm ci`, lint, typecheck, build, `test:agenda` con 211) y `neon-branch-pr.yml` (migrar, pgTAP,
+      concurrencia e integración) y el job `e2e` (34 pruebas), en verde. La descripción del PR trae el cuadro requisito → prueba de los 32 requisitos de las cuatro specs.
+
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
+      Avance (2026-10-20, sin marcar: falta el visto bueno del usuario y la decisión del punto 3): revisión hecha sobre el preview del commit e4a47cb, con
+      37 capturas a 1280 y a 390 px (las pantallas nuevas, los tres diálogos y los pasos clave de las E2E; quedan fuera del repositorio). Comprobado de punta
+      a punta en el preview, con la base `dev` ya migrada (se aplicaron ahí las tres migraciones nuevas, como dice el plan de migración): una `reservada`
+      de ayer insertada a mano pasó a «No asistió» al abrir la agenda, sin acciones, y se borró después. Hallazgos:
+      (1) corregido: el pie de la barra lateral desbordaba (`UserButton showName` con un nombre largo dejaba el avatar fuera de la barra, encima del
+      contenido) → `components/clinica/pie-usuario.tsx` recorta el nombre; (2) corregido: a 390 px el destino actual (Horarios, Bajas médicas) podía quedar
+      fuera de vista en la lista horizontal → se centra al cambiar de página; (3) **abierto, decisión del usuario:** a 390 px las tablas de Agenda, Bajas y
+      Horarios dejan fuera de vista lo decisivo porque se desplazan por dentro (Estado y Acciones; Por reasignar, Por contactar y «Ver»; el recuento y «Ver
+      horarios»). Propuesta: ocultar bajo 768 px las columnas secundarias (Documento y Médico; Periodo y Motivo; Servicio y Estado) o presentar cada fila como
+      tarjeta; (4) sugerencias: ocultar o plegar las citas canceladas de la agenda (llenan el día), alinear la línea base del día y la hora del horario
+      semanal, y la demostración usa especialidades (Pediatría, Cardiología, Ginecología) distintas de las cinco de la clínica.
 - [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.

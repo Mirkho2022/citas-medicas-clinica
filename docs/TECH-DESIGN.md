@@ -994,6 +994,8 @@ corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad r
 | `crearBloqueo`, `actualizarBloqueo`, `eliminarBloqueo` | administrativo | Sin cruce de ausencias; fin posterior al inicio; informa cuántas citas vigentes caen dentro |
 | `asignarPacienteAMedico` | administrativo | Asignación manual paciente-médico para casos especiales (interconsulta, cobertura, médico de cabecera); `vigente_hasta` opcional ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) |
 
+**Cierre de citas vencidas (no es una Server Action).** `cerrarCitasVencidas` (`lib/citas/cierre.ts`) la llama la agenda del administrativo antes de leer (y, en H7, la jornada del médico): pasa a `no_asistio` las `reservada` que ya terminaron sin confirmarse, por la función `cerrar_citas_vencidas_como_personal()` (exige administrativo o médico; sin cron ni credencial de servicio). Ver `openspec/changes/agenda-y-reserva/design.md`, D13.
+
 Todas validan con Zod en servidor antes de tocar la base de datos, y todas devuelven un resultado
 tipado `{ ok: true, datos } | { ok: false, mensaje }` — nunca lanzan la excepción de Postgres al
 usuario, para no filtrar estructura interna.

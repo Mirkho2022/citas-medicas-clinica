@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import type { Rol } from "@/lib/auth/rol";
 import { NAVEGACION, destinoActivo } from "@/lib/ui/navegacion";
 import { cn } from "@/lib/utils";
@@ -66,9 +67,19 @@ export function NavegacionInferior({ rol }: { rol: Rol }) {
 // Barra lateral de la consola del personal (240 px en escritorio; en pantallas estrechas se muestra como lista horizontal).
 export function NavegacionLateral({ rol }: { rol: Rol }) {
   const ruta = usePathname();
+  const lista = useRef<HTMLUListElement>(null);
+  // En una pantalla estrecha la lista se desplaza en horizontal y el destino actual (Horarios, Bajas médicas) podía quedar fuera de
+  // vista: se centra en la lista al cambiar de página. Solo mueve la lista, nunca la página, y no hace nada si todo cabe.
+  useEffect(() => {
+    const contenedor = lista.current;
+    const actual = contenedor?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!contenedor || !actual || contenedor.scrollWidth <= contenedor.clientWidth) return;
+    const izquierda = actual.getBoundingClientRect().left - contenedor.getBoundingClientRect().left + contenedor.scrollLeft;
+    contenedor.scrollLeft = izquierda - (contenedor.clientWidth - actual.offsetWidth) / 2;
+  }, [ruta]);
   return (
     <nav aria-label="Principal" className="px-3 py-2 md:py-4">
-      <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+      <ul ref={lista} className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {NAVEGACION[rol].map((destino) => {
           const Icono = destino.icono;
           const activo = destinoActivo(destino, ruta, RAIZ[rol]);
