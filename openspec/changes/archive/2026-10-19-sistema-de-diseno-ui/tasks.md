@@ -145,6 +145,9 @@ instalan o ejecutan con la autorización del usuario.
       y a 1280 px, y mostrar las capturas al usuario; verificar que el usuario da su visto bueno o lista los ajustes (que se
       hacen antes del merge). *Evidencia: el usuario revisó el preview directamente (sin capturas de Claude, porque el
       preview exige sesión) y dio su visto bueno el 2026-10-18 con «el preview se ve bien», sin ajustes.*
-- [ ] 9.3 Tras el merge, comprobar que el despliegue de producción está en estado READY y que `/iniciar-sesion` se ve en
+- [x] 9.3 Tras el merge, comprobar que el despliegue de producción está en estado READY y que `/iniciar-sesion` se ve en
       español y con la marca; verificar con la URL pública. La carga de datos de demostración y cualquier pantalla con datos
-      reales **no** forman parte de este change.
+      reales **no** forman parte de este change. *Evidencia (2026-10-19, merge `b1f2a90`): el despliegue de producción de Vercel está
+      en `success`, `Migrar producción` terminó en `success`, y `/iniciar-sesion` en la URL pública, vista con un navegador limpio
+      a 1280 y a 390 px, está en español y con la marca «Citas Médicas». Sigue lo ya documentado de Clerk: el subtítulo
+      «citas-clinicas» y el pie «Development mode» (la instancia de producción es de desarrollo; se cambia en el panel de Clerk).*
