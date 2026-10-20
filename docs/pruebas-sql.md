@@ -45,6 +45,7 @@ correr. En CI las pruebas corren en el branch efímero del PR (`neon-branch-pr.y
 | `39_citas_por_reasignar_rls` | vista `citas_por_reasignar` (`security_invoker`): el administrativo ve todas, el médico las suyas, los demás ninguna; sale sola al resolver la cita |
 | `61_transiciones_de_cita` | ciclo de estados: matriz de transiciones, `marcar_cita_atendida`, auditoría del actor y acceso a la historia al confirmar |
 | `62_proteger_citas` | una cita no se edita (`citas_proteger_columnas`, `42501`) y solo nace en un hueco de la agenda (`citas_validar_horario`, `UC001`; `42501` a roles que no crean): columna por columna, los dos escenarios de la revisión 6.4, el paciente con una política de `UPDATE` temporal que simula la de H4 y el dueño sin restricciones |
+| `63_ajustes_de_reasignacion` | hallazgos 6.4 (2) y (3): `citas_por_reasignar` muestra las citas de una baja sin fecha de fin (`upper()` nulo) y no las anteriores a ella; `propuestas_reasignacion` conserva el orden (por cita y, en cada una, el mismo horario primero) con las citas insertadas en orden inverso |
 
 Los datos de estas pruebas usan DNI `74NNxxxx` (NN = número del archivo) y fechas de 2032, lejos en el futuro; `now()` es fijo dentro de
 la transacción, así que los límites de 1 hora son deterministas. Una sola prueba: `node scripts/ejecutar-pgtap.ts 35_slots`

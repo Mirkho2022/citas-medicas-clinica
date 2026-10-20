@@ -211,14 +211,23 @@ empieza cuando H2b está aplicado.
       de rol hacen fallar la 62 en la prueba que corresponde; dos mutantes que sobrevivieron a la primera versión de la prueba (confirmar fijando
       `cancelada_por`, y el «pasado» que solo pasaba por caer en domingo) llevaron a añadir esas pruebas. Subsume `citas_proteger_columnas_paciente`
       de H4 (ver portal-del-paciente D4 y 2.4).
-      (2) MEDIA-BAJA: un bloqueo sin fecha de fin (`tstzrange(x, null)`) hace que `citas_por_reasignar` no devuelva ninguna cita
+      (2) MEDIA-BAJA, **corregido (ver abajo)**: un bloqueo sin fecha de fin (`tstzrange(x, null)`) hace que `citas_por_reasignar` no devuelva ninguna cita
       (`upper(b.rango) > now()` es nulo), aunque `validar_cancelacion` sí le aplica la excepción; solo la Zod exige el fin. Arreglo:
       `CHECK (not upper_inf(rango))` en `bloqueos_agenda` o `upper_inf(b.rango) or …` en la vista.
-      (3) BAJA-MEDIA: `propuestas_reasignacion` ordena por cita pero sin desempate por candidato; no garantiza que el «mismo horario» vaya
+      (3) BAJA-MEDIA, **corregido (ver abajo)**: `propuestas_reasignacion` ordena por cita pero sin desempate por candidato; no garantiza que el «mismo horario» vaya
       primero con muchas citas en orden físico desordenado (la prueba 38 usa 3 citas ya ordenadas). Arreglo: `row_number()` dentro del
       lateral y `order by a.inicio, a.cita_id, t.orden`.
       (4) BAJA: una cita `reservada` cuya hora pasó no tiene salida (`reservada → no_asistio` no existe) y el médico conserva la lectura
       de `pacientes` mientras siga vigente; depende de la pregunta abierta 1 de design.md.
+      **(2) y (3) corregidos (2026-10-20)** con la migración `1792343400000_ajustes-de-reasignacion` y la prueba `63_ajustes_de_reasignacion` (4 pruebas):
+      (2) la vista `citas_por_reasignar` filtra `upper_inf(b.rango) or upper(b.rango) > now()`, así que una baja sin fecha de regreso sí devuelve las citas
+      futuras del médico (se eligió la vista y no un `CHECK (not upper_inf(rango))`: la base admite hoy el rango abierto, la Zod pide el fin solo en la
+      pantalla, y un `CHECK` obligaría a validar filas existentes y a prohibir una baja indefinida). (3) `propuestas_reasignacion` numera cada candidato con
+      `row_number() over ()` sobre el flujo ya ordenado y filtrado (antes del `LIMIT`) y la salida ordena por `a.inicio, a.cita_id, t.orden`; el defecto era
+      real y se reprodujo en el branch `h3/pruebas` con cinco citas insertadas en orden inverso: dentro de cada cita las propuestas salían desordenadas
+      (`08:20>08:40, 08:20>08:00, 08:20>08:20*`), no solo «dependía del plan». La prueba 63 falla sobre la migración anterior (1, 2 y 4) y pasa con la nueva.
+      pgTAP completo 796 pruebas, 0 fallos; agenda 206, integración 61 y concurrencia 10, en verde.
+      **Sigue abierto solo el (4)** (una `reservada` vencida sin salida): depende de la pregunta abierta 1 de `design.md`, decisión del usuario; por eso 6.4 no se marca.
       Notas: el paciente puede distinguir «ausencia» de «cita ocupada» combinando `horario_en_agenda` y `slots_disponibles` (sin
       motivos ni identidades); la excepción de la ventana también llega por `reprogramar_cita` y por `UPDATE` directo (D9 es más fuerte
       que la realidad); el disparador de transiciones solo actúa sobre `authenticated`, así que toda función `SECURITY DEFINER`
@@ -443,6 +452,6 @@ empieza cuando H2b está aplicado.
       (`neon-branch-pr.yml`) y que la descripción trae un cuadro de cada requisito de las cuatro specs con la prueba que lo cubre.
 - [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las seis migraciones, que el deployment de producción está
+- [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las siete migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.
