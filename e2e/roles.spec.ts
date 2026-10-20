@@ -29,10 +29,10 @@ test("credenciales inválidas no abren sesión", async ({ page }) => {
     variable("E2E_PACIENTE_EMAIL"),
     "ContrasenaIncorrecta#000",
   );
-  await expect(page.getByTestId("form-feedback-error")).toContainText(
-    /password is incorrect/i,
-    { timeout: 30_000 },
-  );
+  // El texto del error depende del idioma de Clerk; lo estable es el elemento de error del formulario.
+  await expect(page.getByTestId("form-feedback-error")).toBeVisible({
+    timeout: 30_000,
+  });
   await expect(page).not.toHaveURL(/\/paciente$/);
 });
 

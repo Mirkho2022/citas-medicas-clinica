@@ -29,3 +29,7 @@ independientemente de lo que el formulario del cliente ya haya validado.
   costo de mantenimiento de cada esquema cuando cambia un campo de la historia clínica o del
   registro de paciente; un cambio de regla de negocio en un esquema Zod que se olvide replicar deja
   al cliente mostrando un mensaje que el servidor luego contradice.
+
+> **Nota (2026-10-09):** la identidad visual (colores, tipografía, espaciado, radios y sombras) se define en
+> [DESIGN.md](../DESIGN.md) y se genera como tema de Tailwind v4 con `npm run tema`; shadcn/ui queda como base de los
+> componentes, ajustada a esos tokens (change `sistema-de-diseno-ui`, H2b). La decisión de este ADR no cambia.

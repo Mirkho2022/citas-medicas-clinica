@@ -42,6 +42,12 @@ export async function prepararPagina(page: Page): Promise<void> {
   }
 }
 
+// Selectores estables de los formularios de Clerk (H2b, D7): atributos y clases del marcado de Clerk, no textos. Así un
+// cambio de idioma o de redacción (la interfaz está en español) no rompe las pruebas. Si Clerk cambia su marcado, se
+// actualizan aquí; la lista de lo que se verificó está en docs/pruebas-e2e.md.
+const BOTON_PRINCIPAL_CLERK = "button.cl-formButtonPrimary";
+const CAMPO_CODIGO_CLERK = 'input[autocomplete="one-time-code"]';
+
 // Código fijo de Clerk para correos `+clerk_test` en instancias de desarrollo.
 const CODIGO_CLERK_TEST = "424242";
 
@@ -53,9 +59,9 @@ export async function enviarCredenciales(
 ): Promise<void> {
   await page.goto("/iniciar-sesion");
   await page.locator('input[name="identifier"]').fill(email);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
   await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
 }
 
 // Inicia sesión y atraviesa los pasos intermedios que Clerk pueda pedir: verificación
@@ -69,9 +75,7 @@ export async function iniciarSesion(
 ): Promise<void> {
   await enviarCredenciales(page, email, password);
 
-  const campoCodigo = page.getByRole("textbox", {
-    name: "Enter verification code",
-  });
+  const campoCodigo = page.locator(CAMPO_CODIGO_CLERK);
   const pasoIntermedioOFin = (u: URL) =>
     u.pathname.includes("client-trust") ||
     u.pathname.includes("factor-two") ||

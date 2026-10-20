@@ -104,13 +104,13 @@ sistema existente).
 | Autenticación | `@clerk/nextjs` | MFA/TOTP, invitaciones, sesión ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) |
 | Almacenamiento | `@vercel/blob` | Adjuntos clínicos vía URL firmada ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
 | Anti-bots / rate limiting | Vercel BotID, Upstash Ratelimit + Redis | ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
-| UI | Tailwind CSS, shadcn/ui, `react-hook-form` | |
+| UI | Tailwind CSS v4, shadcn/ui, `react-hook-form` | Tokens de [DESIGN.md](DESIGN.md) → `app/tema.generado.css` (`npm run tema`); componentes propios en `components/clinica/` |
 | Validación | Zod | Esquemas en `lib/schemas/`, compartidos |
 | Fechas | `date-fns` + `date-fns-tz` | Formateo siempre con zona `America/Lima` |
 | Correo | Resend SDK | Detrás de `lib/notificaciones/proveedor.ts` |
 | Cron | Vercel Cron Jobs (`vercel.json`) | Un solo cron diario, plan Hobby ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) |
 | Migraciones | `node-pg-migrate` (`migrations/*.sql`) | Versionadas en git; nunca cambios manuales en producción ([ADR-0027](adrs/0027-herramienta-de-migraciones.md)) |
-| Tests | pgTAP, `node:test`, Playwright (Vitest para unitarias cuando haya lógica de aplicación) | pgTAP es obligatorio para políticas RLS ([pruebas-sql.md](pruebas-sql.md)) |
+| Tests | pgTAP, `node:test`, Playwright con axe-core (Vitest para unitarias cuando haya lógica de aplicación) | pgTAP es obligatorio para políticas RLS ([pruebas-sql.md](pruebas-sql.md)) |
 
 ## Decisiones de arquitectura
 
@@ -1064,7 +1064,7 @@ y el objetivo de reducir tiempos de espera se degrada silenciosamente.
 | Backups | PITR de Neon, nivel gratuito para el MVP — ventana exacta a confirmar, no asumir 7 días ([ADR-0021](adrs/0021-base-de-datos-neon.md)) + export diario cifrado a almacenamiento independiente |
 | RPO / RTO | RPO ≤ 5 min; RTO ≤ 4 h |
 | Retención de historias clínicas | **Pendiente de definición legal** (ver «Riesgos técnicos abiertos», P-1) |
-| Accesibilidad | WCAG 2.1 AA; objetivos táctiles ≥ 44 px; contraste alto en el portal |
+| Accesibilidad | WCAG 2.1 AA; objetivos táctiles ≥ 44 px; contraste alto en el portal. Comprobada con axe en las E2E y con el contraste calculado de DESIGN.md (`npm run tema:comprobar`) |
 | Navegadores | Últimas 2 versiones de Chrome, Edge, Safari, Firefox; móvil prioritario en el portal |
 | Idioma | Español (es-PE) en toda la interfaz y en los mensajes de error |
 
@@ -1135,8 +1135,8 @@ sus hitos):
   revoca el acceso ya otorgado, y un médico dado de baja lo pierde.
 - **Integración** (`tests/integracion/`): el SQL del webhook de Clerk con los privilegios reales de `sync_identidad`.
 - **E2E (Playwright):** autenticación y redirección por rol, y que Postgres reconoce al usuario por su token de Clerk
-  (H1/H2); el recorrido completo de reserva del paciente y el de registro de historia clínica del médico llegan con
-  H4 y H6.
+  (H1/H2), los componentes de la galería y la revisión de accesibilidad con axe (H2b); el recorrido completo de reserva del
+  paciente y el de registro de historia clínica del médico llegan con H4 y H6.
 
 ## Migración desde Excel y papel
 
@@ -1390,6 +1390,7 @@ pierde información. La fecha de corte la fija la clínica.
 |---|---|---|
 | H1 | Esqueleto: Next.js sobre Vercel, Neon, Clerk, roles, CI | — |
 | H2 | Esquema completo + RLS + suite pgTAP | H1 |
+| H2b | Sistema de diseño UI: tema desde DESIGN.md, componentes, estructuras de pantalla, Clerk en español, accesibilidad comprobada | H1 |
 | H3 | Agenda: disponibilidades, slots, reserva con anticruce (panel administrativo) | H2 |
 | H4 | Portal del paciente: registro, búsqueda, reserva, cancelación | H3 |
 | H5 | Notificaciones por email + cron | H3 |

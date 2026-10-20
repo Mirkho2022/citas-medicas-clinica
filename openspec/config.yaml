@@ -2,9 +2,10 @@ schema: spec-driven
 
 context: |
   Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
-  Reemplaza Excel + Google Forms (citas) y papel (historias clínicas). Estado: sin código de
-  aplicación aún — docs/PRD.md, docs/TECH-DESIGN.md y docs/adrs/ ya existen y son la fuente de verdad. Antes de
-  proponer un cambio, léelos (CLAUDE.md los resume pero no los sustituye).
+  Reemplaza Excel + Google Forms (citas) y papel (historias clínicas). Estado: H1 (aplicación base con
+  autenticación y roles) y H2 (esquema con RLS y pruebas) completos, y el sistema de diseño de la interfaz (H2b);
+  docs/PRD.md, docs/TECH-DESIGN.md, docs/DESIGN.md y docs/adrs/ son la fuente de verdad. Antes de proponer un cambio,
+  léelos (CLAUDE.md los resume pero no los sustituye).
 
   Stack decidido (no reabrir): Next.js 15 (App Router) + TypeScript en Vercel, Neon (Postgres
   serverless) con Neon RLS Authorize (pg_session_jwt + JWT de Clerk) para el contexto de usuario,
@@ -47,8 +48,8 @@ context: |
 
   Hoja de ruta sugerida (TECH-DESIGN.md, "Plan de implementación sugerido") — úsala para
   secuenciar los changes salvo que el cliente pida otro orden:
-    H1 esqueleto (Next.js/Vercel/Neon/Clerk/roles/CI) → H2 esquema + RLS + pgTAP → H3 agenda y
-    reserva (panel administrativo) → H4 portal del paciente → H5 notificaciones → H6 historias
+    H1 esqueleto (Next.js/Vercel/Neon/Clerk/roles/CI) → H2 esquema + RLS + pgTAP → H2b sistema de
+    diseño UI (docs/DESIGN.md) → H3 agenda y reserva (panel administrativo) → H4 portal del paciente → H5 notificaciones → H6 historias
     clínicas (bloqueado por la decisión legal) → H7 turnos de enfermería y dashboard → H8
     migración de datos y capacitación.
 
