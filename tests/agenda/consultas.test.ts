@@ -6,6 +6,8 @@ import type { Ejecutor, Fila, Sentencia } from "../../lib/db/ejecutor.ts";
 import {
   agendaDelDia,
   aIso,
+  diasConHorarios,
+  diasConPlantilla,
   esUuid,
   horariosLibres,
   ordenarAgenda,
@@ -105,4 +107,29 @@ test("pacientePorId devuelve null sin consultar si el identificador no es un uui
   assert.equal(llamadas.length, 0);
   assert.equal(await pacientePorId(ejecutar, MEDICO), null);
   assert.equal(llamadas.length, 1);
+});
+
+test("diasConPlantilla marca los días con un tramo vigente: día de la semana, inicio y fin de la vigencia", () => {
+  const lunesYMiercoles = [
+    { diaSemana: 1, vigenteDesde: "2026-10-20", vigenteHasta: "2026-11-03" },
+    { diaSemana: 3, vigenteDesde: "2026-10-20", vigenteHasta: "2026-11-03" },
+  ];
+  // 19/10 (lunes) todavía no está vigente; el 4/11 (miércoles) ya no.
+  assert.deepEqual(diasConPlantilla(lunesYMiercoles, "2026-10-19", 21), ["2026-10-21", "2026-10-26", "2026-10-28", "2026-11-02"]);
+  // sin fin de vigencia, sigue abierto
+  assert.deepEqual(diasConPlantilla([{ diaSemana: 0, vigenteDesde: "2020-01-01", vigenteHasta: null }], "2026-10-19", 8), ["2026-10-25"]);
+  assert.deepEqual(diasConPlantilla([], "2026-10-19", 30), []);
+  assert.deepEqual(diasConPlantilla(lunesYMiercoles, "2026-10-19", 0), []);
+});
+
+test("diasConHorarios rechaza una fecha o un médico mal formados sin llegar a la base de datos", async () => {
+  const { ejecutar, llamadas } = ejecutorDe();
+  await assert.rejects(() => diasConHorarios(ejecutar, MEDICO, "2026-13-40"), /Fecha de Lima no válida/);
+  await assert.rejects(() => diasConHorarios(ejecutar, "x", "2026-10-19"), /médico no válido/);
+  assert.equal(llamadas.length, 0);
+});
+
+test("diasConHorarios lee la plantilla del médico y la convierte en días", async () => {
+  const { ejecutar } = ejecutorDe([{ dia_semana: 2, vigente_desde: "2020-01-01", vigente_hasta: null }]);
+  assert.deepEqual(await diasConHorarios(ejecutar, MEDICO, "2026-10-19", 8), ["2026-10-20"]);
 });

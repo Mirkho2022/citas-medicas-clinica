@@ -10,6 +10,7 @@ import type pg from "pg";
 import {
   agendaDelDia,
   citaVigentePorId,
+  diasConHorarios,
   horariosLibres,
   listarMedicos,
   pacientePorId,
@@ -225,4 +226,13 @@ test("la RLS acota las lecturas: enfermera y sin rol no ven citas ni huecos; el 
   assert.deepEqual(ids, [citaB9], "solo su propia cita");
   assert.equal(await como(PACIENTE, (e) => pacientePorId(e, pacienteX)), null, "no lee a otro paciente");
   assert.equal(await como(PACIENTE, (e) => citaVigentePorId(e, citaA9)), null, "ni su cita ajena");
+});
+
+test("diasConHorarios marca los días con plantilla vigente del médico (aquí, todos los días)", async () => {
+  const dias = await como(ADMIN, (e) => diasConHorarios(e, medicoA, hoyLima(), 7));
+  assert.deepEqual(dias, Array.from({ length: 7 }, (_, i) => sumarDias(hoyLima(), i)));
+  // La plantilla la lee todo rol con sesión (política `disponibilidades_lee_todo_rol`: no es un dato sensible y el paciente la
+  // necesita para reservar); una sesión sin rol, no.
+  assert.equal((await como(ENFERMERA, (e) => diasConHorarios(e, medicoA, hoyLima(), 7))).length, 7);
+  assert.deepEqual(await como(SIN_ROL, (e) => diasConHorarios(e, medicoA, hoyLima(), 7)), [], "sin rol no ve la plantilla");
 });

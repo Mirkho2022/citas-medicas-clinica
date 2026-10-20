@@ -5,6 +5,7 @@
 // eventos ni refrescan nada. Los instantes salen como texto ISO 8601 en UTC; la pantalla los muestra en hora de Lima.
 import { consultar, type Ejecutor, type Fila } from "../db/ejecutor.ts";
 import { esFechaLima, finDiaLima, inicioDiaLima } from "../fechas/lima.ts";
+import { diaDeLaSemana, sumarDias } from "../ui/calendario.ts";
 import type { EstadoCita } from "../ui/estados-cita.ts";
 import type { PacienteEncontrado } from "./pacientes.ts";
 
@@ -208,6 +209,47 @@ export async function citaVigentePorId(ejecutar: Ejecutor, id: string): Promise<
     [id],
   );
   return filas[0] ? aCita(filas[0]) : null;
+}
+
+export interface TramoPlantilla {
+  // 0 = domingo … 6 = sábado, como `disponibilidades.dia_semana`.
+  diaSemana: number;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+}
+
+// Los días, entre `desde` y `desde + dias - 1`, en que la plantilla del médico tiene algún tramo vigente. Es lo que marca con un
+// punto el selector de fecha; no mira ausencias ni citas: un día sin huecos libres se ve igual al elegirlo.
+export function diasConPlantilla(tramos: readonly TramoPlantilla[], desde: string, dias: number): string[] {
+  const salida: string[] = [];
+  for (let i = 0; i < dias; i++) {
+    const dia = sumarDias(desde, i);
+    const dow = diaDeLaSemana(dia);
+    if (tramos.some((t) => t.diaSemana === dow && t.vigenteDesde <= dia && (t.vigenteHasta === null || t.vigenteHasta >= dia))) {
+      salida.push(dia);
+    }
+  }
+  return salida;
+}
+
+export async function diasConHorarios(ejecutar: Ejecutor, medicoId: string, desde: string, dias = 90): Promise<string[]> {
+  if (!esFechaLima(desde)) throw new Error(`Fecha de Lima no válida: «${desde}»`);
+  if (!esUuid(medicoId)) throw new Error("Identificador de médico no válido");
+  const filas = await consultar(
+    ejecutar,
+    `select dia_semana, vigente_desde::text as vigente_desde, vigente_hasta::text as vigente_hasta
+       from public.disponibilidades where medico_id = $1::uuid`,
+    [medicoId],
+  );
+  return diasConPlantilla(
+    filas.map((f) => ({
+      diaSemana: Number(f.dia_semana),
+      vigenteDesde: String(f.vigente_desde),
+      vigenteHasta: f.vigente_hasta === null || f.vigente_hasta === undefined ? null : String(f.vigente_hasta),
+    })),
+    desde,
+    dias,
+  );
 }
 
 // Parámetros de la URL de la agenda: una fecha de Lima válida (si no, hoy) y un médico `uuid` (si no, todos).
