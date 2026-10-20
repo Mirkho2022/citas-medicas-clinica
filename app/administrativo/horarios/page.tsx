@@ -53,7 +53,8 @@ export default async function PaginaHorarios() {
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/administrativo/horarios/${m.id}`}>
-                        Ver horarios<span className="sr-only"> de {m.nombre}</span>
+                        Ver<span className="max-md:sr-only"> horarios</span>
+                        <span className="sr-only"> de {m.nombre}</span>
                       </Link>
                     </Button>
                   </TableCell>
