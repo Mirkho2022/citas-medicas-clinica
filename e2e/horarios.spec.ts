@@ -57,9 +57,21 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
   const domingo = () => page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Domingo", level: 3 }) }).first();
 
   await test.step("alta: un tramo de domingo de 08:00 a 09:00 cada 20 minutos", async () => {
+    // Idempotente: si una corrida anterior falló a medias dejó una cita y un tramo del domingo en la base compartida del preview.
+    // Primero se cancelan las citas de ese domingo (así los tres huecos vuelven a estar libres) y luego se borra el tramo.
+    await page.goto(`/administrativo/agenda?fecha=${DOMINGO}&medico=${medico.valor}`);
+    await expect(page.getByRole("heading", { name: "Agenda del día" })).toBeVisible();
+    const citasSobrantes = page.getByRole("button", { name: /^Cancelar/ });
+    while ((await citasSobrantes.count()) > 0) {
+      await citasSobrantes.first().click();
+      const cancelar = page.getByRole("alertdialog", { name: "¿Cancelar esta cita?" });
+      await cancelar.getByRole("button", { name: "Cancelar cita" }).click();
+      await expect(cancelar).toBeHidden();
+      await page.waitForTimeout(500);
+    }
+
     await page.goto(url);
     await expect(page.getByRole("heading", { name: nombre, level: 1 })).toBeVisible();
-    // Idempotente: si una corrida anterior falló a medias y dejó un tramo de domingo, se borra antes de empezar.
     const sobrantes = domingo().getByRole("button", { name: /^Eliminar/ });
     while ((await sobrantes.count()) > 0) {
       await sobrantes.first().click();
@@ -114,7 +126,14 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
 
   await test.step("eliminar el tramo: la cita queda fuera del horario, se muestra y NO se cancela", async () => {
     await page.goto(url);
-    await expect(page.getByText(/cita vigente fuera del horario/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: nombre, level: 1 })).toBeVisible();
+    // Con el tramo vigente la cita nueva está dentro del horario: el aviso no cuenta más citas que las que ya había fuera (de otras
+    // corridas o de otros domingos); al eliminar el tramo debe subir exactamente en una.
+    const fueraDelHorario = async () => {
+      const titulo = page.getByText(/\d+ citas? vigentes? fuera del horario/).first();
+      return (await titulo.count()) === 0 ? 0 : Number((await titulo.innerText()).match(/^\d+/)![0]);
+    };
+    const antes = await fueraDelHorario();
     await domingo().getByRole("button", { name: /^Eliminar/ }).click();
     const dialogo = page.getByRole("alertdialog", { name: "¿Eliminar este horario?" });
     await expect(dialogo).toContainText("Las citas ya agendadas no se cancelan");
@@ -122,7 +141,8 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
     await expect(page.getByText("Horario eliminado.")).toBeVisible();
     await expect(domingo().getByText("Sin horario")).toBeVisible();
 
-    const aviso = page.getByRole("status").filter({ hasText: "1 cita vigente fuera del horario" });
+    const ahora = antes + 1;
+    const aviso = page.getByRole("status").filter({ hasText: `${ahora} ${ahora === 1 ? "cita vigente" : "citas vigentes"} fuera del horario` });
     await expect(aviso).toBeVisible();
     const fila = page.getByRole("row").filter({ hasText: apellido });
     await expect(fila).toBeVisible();
