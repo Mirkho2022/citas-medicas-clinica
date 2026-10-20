@@ -33,4 +33,18 @@
     outline: none;
     box-shadow: var(--shadow-focus-ring);
   }
+
+  /* «Reducir movimiento» (DESIGN.md, «Motion»): toda animación y transición se acota al fundido de `reduced` (150 ms) y los
+     bucles (como el pulso del esqueleto) se detienen. Las traslaciones y escalas de los componentes van además con
+     `motion-safe:`, así que aquí solo queda el fundido. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: var(--motion-reduced) !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: var(--motion-reduced) !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

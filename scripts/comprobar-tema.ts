@@ -3,12 +3,14 @@
 //   2. Ningún archivo bajo app/ ni components/ (salvo el CSS generado) declara un color literal.
 //   3. El contraste WCAG de cada par de texto y fondo de DESIGN.md y de una lista de pares adicionales.
 //   4. Los estilos de texto que conoce `cn` (lib/ui/estilos-texto.ts) son los de DESIGN.md.
+//   5. El movimiento de DESIGN.md cumple las reglas aprobadas: nada pasa de 320 ms (salvo el ciclo del esqueleto) y salir
+//      es más rápido que entrar.
 // Sale con código 1 si alguna falla. Uso: npm run tema:comprobar
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ESTILOS_TEXTO } from "../lib/ui/estilos-texto.ts";
 import { contraste } from "./lib/contraste.ts";
-import { generarTema, leerDesign } from "./lib/tema.ts";
+import { generarTema, leerDesign, validarMovimiento } from "./lib/tema.ts";
 
 const DESIGN = "docs/DESIGN.md";
 const CSS_GENERADO = "app/tema.generado.css";
@@ -108,6 +110,9 @@ if (enDesign !== enCn) {
     `lib/ui/estilos-texto.ts no coincide con la tipografía de ${DESIGN}: «${enCn}» frente a «${enDesign}»`,
   );
 }
+
+// 5. Movimiento.
+problemas.push(...validarMovimiento(design.motion));
 
 if (problemas.length > 0) {
   console.error(`tema:comprobar encontró ${problemas.length} problema(s):`);

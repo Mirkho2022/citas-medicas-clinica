@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { aRem, generarTema, resolverReferencias } from "../../scripts/lib/tema.ts";
+import { aRem, generarTema, leerDesign, resolverReferencias, validarMovimiento } from "../../scripts/lib/tema.ts";
 
 // DESIGN.md mínimo con todo lo que el generador exige (colores de la capa de shadcn/ui, rounded.md y las dos familias).
 function design(extra = "", sombras = '  focus-ring: "0 0 0 2px {colors.surface}, 0 0 0 4px {colors.primary}"'): string {
@@ -102,12 +102,56 @@ test("falla si falta un color de la capa de shadcn/ui", () => {
   assert.throws(() => generarTema(texto), /El color «error» que usa la capa de shadcn\/ui no está en DESIGN\.md/);
 });
 
-test("el DESIGN.md real genera 22 colores, 10 estilos de texto y 3 sombras, y es idempotente", () => {
+test("el DESIGN.md real genera 22 colores, 10 estilos de texto, 3 sombras y 18 valores de movimiento, y es idempotente", () => {
   const md = readFileSync("docs/DESIGN.md", "utf8");
   const primera = generarTema(md);
   assert.deepEqual(primera.avisos, []);
   assert.equal([...primera.css.matchAll(/^ {2}--color-[a-z-]+: #[0-9A-F]{6};$/gm)].length, 22);
   assert.equal([...primera.css.matchAll(/^ {2}--text-(?:[a-z]+-?)+: [0-9.]+rem;$/gm)].length, 10);
   assert.equal([...primera.css.matchAll(/^ {2}--shadow-[a-z-]+: /gm)].length, 3);
+  assert.equal([...primera.css.matchAll(/^ {2}--ease-[a-z-]+: cubic-bezier\(/gm)].length, 2);
+  assert.equal([...primera.css.matchAll(/^ {2}--motion-[a-z-]+: \d+ms;$/gm)].length, 16);
   assert.equal(generarTema(md).css, primera.css);
+});
+
+const MOVIMIENTO = '  ease-salida-rapida: "cubic-bezier(0.23, 1, 0.32, 1)"\n  press: 120ms\n  toast-in: 240ms\n  toast-out: 140ms\n';
+
+test("las curvas van a --ease-* y las duraciones a --motion-*, sin pisar las de Tailwind", () => {
+  const { css, avisos } = generarTema(design(`motion:\n${MOVIMIENTO}`));
+  assert.deepEqual(avisos, []);
+  assert.match(css, /^ {2}--ease-salida-rapida: cubic-bezier\(0\.23, 1, 0\.32, 1\);$/m);
+  assert.match(css, /^ {2}--motion-press: 120ms;$/m);
+  assert.match(css, /^ {2}--motion-toast-in: 240ms;$/m);
+  assert.ok(!/--ease-out:/.test(css) && !/--motion-ease/.test(css));
+});
+
+test("sin grupo motion no se genera ninguna variable de movimiento", () => {
+  const { css } = generarTema(design());
+  assert.ok(!css.includes("--motion-") && !css.includes("--ease-"));
+});
+
+test("validarMovimiento acepta el movimiento del DESIGN.md real", () => {
+  const { design: real } = leerDesign(readFileSync("docs/DESIGN.md", "utf8"));
+  assert.deepEqual(validarMovimiento(real.motion), []);
+});
+
+test("validarMovimiento rechaza una duración mayor de 320 ms, pero deja pasar el ciclo del esqueleto", () => {
+  assert.deepEqual(validarMovimiento({ skeleton: "1400ms", "sheet-in": "320ms" }), []);
+  assert.deepEqual(validarMovimiento({ "sheet-in": "321ms" }), ["motion.sheet-in: 321 ms supera el máximo de 320 ms"]);
+});
+
+test("validarMovimiento exige que salir sea más rápido que entrar", () => {
+  assert.deepEqual(validarMovimiento({ "toast-in": "240ms", "toast-out": "140ms" }), []);
+  assert.deepEqual(validarMovimiento({ "toast-in": "240ms", "toast-out": "240ms" }), [
+    "motion.toast-out: 240 ms no es más rápido que toast-in (240 ms): salir debe ser más rápido que entrar",
+  ]);
+  assert.equal(validarMovimiento({ "dialog-in": "200ms", "dialog-out": "300ms" }).length, 1);
+});
+
+test("validarMovimiento rechaza valores que no son curvas ni milisegundos", () => {
+  const problemas = validarMovimiento({ "ease-rara": "ease-in-out", press: "0.12s", reduced: "150" });
+  assert.equal(problemas.length, 3);
+  assert.match(problemas[0], /ease-rara.*cubic-bezier/);
+  assert.match(problemas[1], /press.*milisegundos/);
+  assert.match(problemas[2], /reduced.*milisegundos/);
 });

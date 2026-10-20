@@ -78,6 +78,25 @@
   --shadow-popover: 0 8px 24px rgb(20 38 43 / 12%);
   --shadow-dialog: 0 16px 40px rgb(20 38 43 / 18%);
   --shadow-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #0F766E;
+
+  --ease-salida-rapida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-press: 120ms;
+  --motion-toast-in: 240ms;
+  --motion-toast-out: 140ms;
+  --motion-popover-in: 180ms;
+  --motion-popover-out: 120ms;
+  --motion-sheet-in: 320ms;
+  --motion-sheet-out: 220ms;
+  --motion-dialog-in: 220ms;
+  --motion-dialog-out: 140ms;
+  --motion-backdrop-in: 200ms;
+  --motion-backdrop-out: 140ms;
+  --motion-step-in: 220ms;
+  --motion-list-in: 260ms;
+  --motion-list-stagger: 40ms;
+  --motion-skeleton: 1400ms;
+  --motion-reduced: 150ms;
 }
 
 /* Capa de correspondencia con shadcn/ui (tabla «Components» de DESIGN.md). */
