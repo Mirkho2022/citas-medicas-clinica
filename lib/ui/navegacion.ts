@@ -7,8 +7,10 @@ import {
   CalendarDays,
   CalendarPlus,
   ClipboardList,
+  Clock,
   House,
   Stethoscope,
+  TriangleAlert,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -29,8 +31,10 @@ export const NAVEGACION: Record<Rol, Destino[]> = {
   ],
   administrativo: [
     { ruta: "/administrativo", etiqueta: "Inicio", icono: House, disponible: true },
-    { ruta: "/administrativo/agenda", etiqueta: "Agenda", icono: CalendarDays, disponible: false },
-    { ruta: "/administrativo/pacientes", etiqueta: "Pacientes", icono: Users, disponible: false },
+    { ruta: "/administrativo/agenda", etiqueta: "Agenda", icono: CalendarDays, disponible: true },
+    { ruta: "/administrativo/pacientes", etiqueta: "Pacientes", icono: Users, disponible: true },
+    { ruta: "/administrativo/horarios", etiqueta: "Horarios", icono: Clock, disponible: true },
+    { ruta: "/administrativo/bajas", etiqueta: "Bajas médicas", icono: TriangleAlert, disponible: true },
     { ruta: "/administrativo/notificaciones", etiqueta: "Notificaciones", icono: Bell, disponible: false },
   ],
   medico: [

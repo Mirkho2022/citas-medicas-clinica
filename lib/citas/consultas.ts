@@ -401,3 +401,140 @@ export async function citasFueraDeLaPlantilla(ejecutar: Ejecutor, medicoId: stri
       documento: `${String(f.tipo_documento)} ${String(f.numero_documento)}`,
     }));
 }
+
+// ---- Bajas médicas y reasignación (11.1 y 11.2) ----
+
+export interface BajaListada {
+  id: string;
+  medicoId: string;
+  medico: string;
+  especialidad: string;
+  desde: string;
+  hasta: string;
+  motivo: string;
+  // Citas vigentes del médico que la baja alcanza y siguen sin reasignar.
+  porReasignar: number;
+  // De ellas, las que tienen al menos una propuesta de reasignación; el resto exige contactar al paciente.
+  conPropuestas: number;
+  porContactar: number;
+}
+
+const SENTENCIA_BAJA = `select b.id, b.medico_id, pm.nombres, pm.apellidos, e.nombre as especialidad,
+         lower(b.rango) as desde, upper(b.rango) as hasta, b.motivo,
+         (select count(*) from public.citas_por_reasignar r where r.bloqueo_id = b.id)::int as por_reasignar,
+         (select count(distinct p.cita_id) from public.propuestas_reasignacion(b.id) p)::int as con_propuestas
+    from public.bloqueos_agenda b
+    join public.medicos m on m.id = b.medico_id
+    join public.perfiles pm on pm.id = m.perfil_id
+    join public.especialidades e on e.id = m.especialidad_id`;
+
+function aBaja(f: Fila): BajaListada {
+  const porReasignar = Number(f.por_reasignar);
+  const conPropuestas = Number(f.con_propuestas);
+  return {
+    id: String(f.id),
+    medicoId: String(f.medico_id),
+    medico: nombreCompleto(f.nombres, f.apellidos),
+    especialidad: String(f.especialidad),
+    desde: aIso(f.desde),
+    hasta: aIso(f.hasta),
+    motivo: String(f.motivo),
+    porReasignar,
+    conPropuestas,
+    porContactar: Math.max(porReasignar - conPropuestas, 0),
+  };
+}
+
+// Las bajas (ausencias de un médico) vigentes o futuras, de todos los médicos, con cuántas citas quedan por reasignar y por contactar.
+export async function bajasVigentes(ejecutar: Ejecutor): Promise<BajaListada[]> {
+  const filas = await consultar(ejecutar, `${SENTENCIA_BAJA} where upper(b.rango) > now() order by lower(b.rango), b.id`);
+  return filas.map(aBaja);
+}
+
+export interface PropuestaReasignacion {
+  medicoId: string;
+  medico: string;
+  inicio: string;
+  fin: string;
+  // Mismo día y misma hora que la cita original: es la propuesta que se destaca.
+  mismoHorario: boolean;
+}
+
+export interface CitaAfectada {
+  id: string;
+  inicio: string;
+  fin: string;
+  estado: EstadoCita;
+  paciente: {
+    id: string;
+    nombres: string;
+    apellidos: string;
+    tipoDocumento: "DNI" | "CE";
+    documento: string;
+    email: string;
+    telefono: string | null;
+  };
+  // Hasta 3, en el orden de la base de datos (mismo horario primero). Vacío = contactar al paciente.
+  propuestas: PropuestaReasignacion[];
+}
+
+export interface DetalleBaja {
+  baja: BajaListada;
+  citas: CitaAfectada[];
+}
+
+// Una baja con sus citas afectadas, cada una con sus propuestas de reasignación (`propuestas_reasignacion`: solo propone, no cambia
+// nada) y los datos de contacto del paciente para cuando no hay propuestas. `null` si la baja no existe o ya terminó.
+export async function detalleDeBaja(ejecutar: Ejecutor, bloqueoId: string): Promise<DetalleBaja | null> {
+  if (!esUuid(bloqueoId)) return null;
+  const [baja, citas, propuestas] = await ejecutar([
+    { texto: `${SENTENCIA_BAJA} where b.id = $1::uuid and upper(b.rango) > now()`, parametros: [bloqueoId] },
+    {
+      texto: `select r.cita_id, r.inicio, r.fin, r.estado::text as estado, pa.id as paciente_id, pa.nombres, pa.apellidos,
+                     pa.tipo_documento::text as tipo_documento, pa.numero_documento, pa.email::text as email, pa.telefono
+                from public.citas_por_reasignar r join public.pacientes pa on pa.id = r.paciente_id
+               where r.bloqueo_id = $1::uuid order by r.inicio, r.cita_id`,
+      parametros: [bloqueoId],
+    },
+    {
+      texto: `select p.cita_id, p.medico_id, pm.nombres, pm.apellidos, p.inicio, p.fin, p.mismo_horario
+                from public.propuestas_reasignacion($1::uuid) with ordinality as p(cita_id, medico_id, inicio, fin, mismo_horario, orden)
+                join public.medicos m on m.id = p.medico_id join public.perfiles pm on pm.id = m.perfil_id
+               order by p.orden`,
+      parametros: [bloqueoId],
+    },
+  ]);
+  if (!baja?.[0]) return null;
+
+  const porCita = new Map<string, PropuestaReasignacion[]>();
+  for (const f of propuestas ?? []) {
+    const lista = porCita.get(String(f.cita_id)) ?? [];
+    lista.push({
+      medicoId: String(f.medico_id),
+      medico: nombreCompleto(f.nombres, f.apellidos),
+      inicio: aIso(f.inicio),
+      fin: aIso(f.fin),
+      mismoHorario: f.mismo_horario === true,
+    });
+    porCita.set(String(f.cita_id), lista);
+  }
+  return {
+    baja: aBaja(baja[0]),
+    citas: (citas ?? []).map((f) => ({
+      id: String(f.cita_id),
+      inicio: aIso(f.inicio),
+      fin: aIso(f.fin),
+      estado: String(f.estado) as EstadoCita,
+      paciente: {
+        id: String(f.paciente_id),
+        nombres: String(f.nombres),
+        apellidos: String(f.apellidos),
+        tipoDocumento: String(f.tipo_documento) === "CE" ? "CE" : "DNI",
+        documento: String(f.numero_documento),
+        email: String(f.email),
+        telefono: f.telefono === null || f.telefono === undefined ? null : String(f.telefono),
+      },
+      propuestas: porCita.get(String(f.cita_id)) ?? [],
+    })),
+  };
+}

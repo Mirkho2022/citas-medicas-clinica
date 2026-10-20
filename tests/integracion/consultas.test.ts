@@ -9,9 +9,11 @@ import { after, before, test } from "node:test";
 import type pg from "pg";
 import {
   agendaDelDia,
+  bajasVigentes,
   bloqueosDelMedico,
   citaVigentePorId,
   citasFueraDeLaPlantilla,
+  detalleDeBaja,
   diasConHorarios,
   horariosLibres,
   listarMedicos,
@@ -284,5 +286,57 @@ test("citasFueraDeLaPlantilla muestra solo las citas vigentes futuras que la pla
   } finally {
     if (idFuera) await c.query(`delete from public.citas where id = $1`, [idFuera]);
     await c.end();
+  }
+});
+
+test("bajasVigentes cuenta las citas por reasignar de cada baja; con un sustituto, ninguna queda por contactar", async () => {
+  const todas = await como(ADMIN, (e) => bajasVigentes(e));
+  const baja = todas.find((b) => b.medicoId === medicoB);
+  assert.ok(baja, "la baja de prueba del médico B figura");
+  assert.equal(baja.motivo, "Baja de prueba");
+  assert.equal(baja.medico, "Benito user_ic_medico_b");
+  assert.deepEqual([baja.porReasignar, baja.conPropuestas, baja.porContactar], [1, 1, 0]);
+});
+
+test("el detalle de la baja trae la cita afectada con su paciente y las propuestas, el mismo horario primero", async () => {
+  const [ausencia] = await como(ADMIN, (e) => bloqueosDelMedico(e, medicoB));
+  const detalle = await como(ADMIN, (e) => detalleDeBaja(e, ausencia!.id));
+  assert.ok(detalle);
+  assert.equal(detalle.citas.length, 1, "solo la cita de las 10:00 cae dentro de la baja; la de las 9:00, no");
+  const c = detalle.citas[0]!;
+  assert.equal(c.id, citaB10);
+  assert.deepEqual(c.paciente, {
+    id: pacienteY, nombres: "Paciente", apellidos: "Consultas", tipoDocumento: "CE", documento: "738000002",
+    email: "ic738000002@demo.invalid", telefono: null,
+  });
+  assert.ok(c.propuestas.length >= 1 && c.propuestas.length <= 3);
+  const primera = c.propuestas[0]!;
+  assert.equal(primera.mismoHorario, true, "el mismo horario va primero");
+  assert.equal(primera.medicoId, medicoA);
+  assert.equal(primera.inicio, instanteDesdeLima(FECHA, "10:00").toISOString());
+  assert.equal(await como(ADMIN, (e) => detalleDeBaja(e, "00000000-0000-4000-8000-000000000000")), null);
+  assert.equal(await como(ADMIN, (e) => detalleDeBaja(e, "no-es-uuid")), null);
+});
+
+test("sin médico sustituto disponible no hay propuestas: la cita queda por contactar, con los datos del paciente", async () => {
+  const [ausencia] = await como(ADMIN, (e) => bloqueosDelMedico(e, medicoB));
+  const c = await conectar();
+  try {
+    await c.query(`update public.medicos set activo = false where id = $1`, [medicoA]);
+    const detalle = await como(ADMIN, (e) => detalleDeBaja(e, ausencia!.id));
+    assert.equal(detalle?.citas[0]?.propuestas.length, 0);
+    assert.equal(detalle?.baja.porContactar, 1);
+    assert.equal(detalle?.citas[0]?.paciente.email, "ic738000002@demo.invalid");
+  } finally {
+    await c.query(`update public.medicos set activo = true where id = $1`, [medicoA]);
+    await c.end();
+  }
+});
+
+test("enfermera y sin rol no ven bajas ni detalle (la RLS y las funciones los rechazan)", async () => {
+  const [ausencia] = await como(ADMIN, (e) => bloqueosDelMedico(e, medicoB));
+  for (const identidad of [ENFERMERA, SIN_ROL]) {
+    assert.deepEqual(await como(identidad, (e) => bajasVigentes(e).catch(() => [])), [], identidad.sub);
+    assert.equal(await como(identidad, (e) => detalleDeBaja(e, ausencia!.id).catch(() => null)), null, identidad.sub);
   }
 });
