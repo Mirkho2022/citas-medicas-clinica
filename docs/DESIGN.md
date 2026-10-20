@@ -346,7 +346,7 @@ como `--ease-*` (las curvas, que Tailwind usa como `ease-salida-rapida` y `ease-
 | Velo del diálogo | 200 ms | 140 ms | salida rápida | opacidad | `backdrop-in` / `backdrop-out` |
 | Cambio de paso | 220 ms | — | salida rápida | traslación de 16 px y opacidad | `step-in` |
 | Lista (al aparecer) | 260 ms + 40 ms por fila (máximo 6) | — | salida rápida | traslación de 8 px y opacidad | `list-in`, `list-stagger` |
-| Esqueleto de carga | ciclo de 1,4 s | — | lineal | opacidad (pulso) | `skeleton` |
+| Esqueleto de carga | ciclo de 1,4 s | — | lineal | brillo que recorre el bloque (traslación) | `skeleton` |
 
 Curvas: **salida rápida** `cubic-bezier(0.23, 1, 0.32, 1)` y **cajón** `cubic-bezier(0.32, 0.72, 0, 1)`.
 
@@ -357,8 +357,12 @@ Curvas: **salida rápida** `cubic-bezier(0.23, 1, 0.32, 1)` y **cajón** `cubic-
 - **Reducir movimiento** (`prefers-reduced-motion`): se eliminan traslaciones y escalas y queda un fundido de `reduced`
   (150 ms). Los componentes aplican `transform` solo con `motion-safe:`; además, `app/globals.css` acota por defecto toda
   animación y transición a esos 150 ms y detiene los bucles.
-- El esqueleto de carga **pulsa en opacidad** en vez de recorrerse con un brillo en degradado: así cumple «solo `transform` y
-  `opacity`», no añade un recurso visual nuevo y se detiene limpio con «Reducir movimiento».
+- **Esqueleto de carga:** un bloque de `surface-muted` que un brillo lineal de `canvas` recorre de izquierda a derecha cada
+  1,4 s (decisión del propietario, 2026-10-19). El brillo es un degradado entre tokens que se desplaza con `transform`: no se
+  anima `background-position`, para mantener «solo `transform` y `opacity`». Con «Reducir movimiento» el brillo no se muestra y
+  queda el bloque fijo. Se usa con la clase `.esqueleto` de `app/globals.css`; el redondeo lo pone cada uso, igual que la forma
+  del contenido al que sustituye.
+- `npm run tema:comprobar` también falla si un `@keyframes` de `app/` anima algo que no sea `transform` u `opacity`.
 
 ## Shapes
 
@@ -408,7 +412,7 @@ Reglas de los componentes principales:
   `role="status"` que no roba el foco, y se mueve como indica «Motion».
 - **Atención firmada:** bloque con etiqueta «Firmada» y candado, fecha y autor; sin botón de editar. «Agregar addenda» es
   la única acción de corrección.
-- **Estados vacíos y de carga:** esqueletos con la forma del contenido (pulsan en opacidad, ver «Motion»), no un indicador
+- **Estados vacíos y de carga:** esqueletos con la forma del contenido (un brillo los recorre, ver «Motion»), no un indicador
   giratorio a pantalla completa.
 
 ## Do's and Don'ts

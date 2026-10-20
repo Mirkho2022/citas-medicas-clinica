@@ -78,9 +78,10 @@ Para crear en H3 y H4 (con `components/clinica/` y shadcn/ui; el diálogo con el
 
 Detalles que el lienzo resolvió por rapidez y que DESIGN.md no cubría (resueltos el 2026-10-19 al fijar el movimiento):
 
-- **Esqueleto:** el lienzo usa un brillo en degradado. DESIGN.md no prohíbe los gradientes con esas palabras (pide un sistema
-  plano y sin ornamento), pero el principio aprobado es «solo `transform` y `opacity`»: el esqueleto **pulsa en opacidad**
-  (ciclo de 1,4 s). Es la única diferencia con el lienzo aprobado; si el propietario prefiere el brillo, se cambia en DESIGN.md.
+- **Esqueleto:** se conserva el **brillo** del lienzo (decisión del propietario, 2026-10-19). DESIGN.md no prohíbe los
+  gradientes con esas palabras, y el principio «solo `transform` y `opacity`» se mantiene porque el brillo es un degradado de
+  tokens (`surface-muted` y `canvas`) que se desplaza con `transform`, en vez de animar `background-position` como hacía el
+  lienzo. Se ve igual. Clase `.esqueleto` en `app/globals.css`; con «Reducir movimiento» queda el bloque fijo.
 - **Aviso temporal:** fondo `ink` con texto `surface` (15,65:1), ya añadido a DESIGN.md como componente `toast`.
 - «Próximamente» en la navegación de la consola para Horarios y Bajas médicas hasta que existan (sigue pendiente; se resuelve
   en H3 al construir esas rutas).
@@ -108,7 +109,8 @@ dispositivos con puntero; las transiciones son interrumpibles (no secuencias fij
 Estado: **aprobado y fijado en el sistema (2026-10-19).** Las curvas y duraciones son el grupo `motion` de la cabecera de
 [DESIGN.md](../DESIGN.md) (con su sección «Motion»), `npm run tema` las expone como `--ease-*` y `--motion-*` en
 `app/tema.generado.css`, `npm run tema:comprobar` falla si algo pasa de 320 ms o si salir no es más rápido que entrar, y
-`app/globals.css` acota todo a un fundido de 150 ms con «Reducir movimiento». **Lo que sigue pendiente** es aplicar el movimiento
+`app/globals.css` acota todo a un fundido de 150 ms con «Reducir movimiento» (y `tema:comprobar` también falla si un
+`@keyframes` anima algo distinto de `transform` u `opacity`). **Lo que sigue pendiente** es aplicar el movimiento
 en cada componente cuando se construya en H3 y H4 (la tabla de arriba dice con qué token).
 
 ## 7. Pendiente de diseñar

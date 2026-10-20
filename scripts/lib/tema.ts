@@ -234,6 +234,33 @@ export const DURACION_MAXIMA_MS = 320;
 const CICLOS = ["skeleton"];
 const CURVA = /^cubic-bezier\(\s*-?\d*\.?\d+(\s*,\s*-?\d*\.?\d+){3}\s*\)$/;
 
+// «Solo se animan `transform` y `opacity`»: cada declaración de un `@keyframes` debe ser una de esas dos. Quita los comentarios
+// antes de leer y recorre las llaves a mano porque un `@keyframes` anida un bloque por cada paso (`from`, `50%`, `to`).
+const PROPIEDADES_ANIMABLES = ["transform", "opacity"];
+export function validarKeyframes(css: string, archivo: string): string[] {
+  const texto = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const problemas: string[] = [];
+  for (const inicio of texto.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    const desde = inicio.index + inicio[0].length;
+    let nivel = 1;
+    let fin = desde;
+    while (fin < texto.length && nivel > 0) {
+      const c = texto[fin++];
+      if (c === "{") nivel++;
+      else if (c === "}") nivel--;
+    }
+    for (const paso of texto.slice(desde, fin - 1).matchAll(/\{([^{}]*)\}/g)) {
+      for (const declaracion of paso[1].split(";")) {
+        const propiedad = declaracion.split(":")[0].trim().toLowerCase();
+        if (propiedad && !PROPIEDADES_ANIMABLES.includes(propiedad)) {
+          problemas.push(`${archivo}: @keyframes ${inicio[1]} anima «${propiedad}»; solo se animan transform y opacity`);
+        }
+      }
+    }
+  }
+  return problemas;
+}
+
 export function validarMovimiento(motion: Record<string, string>): string[] {
   const problemas: string[] = [];
   const ms = (nombre: string): number | null => {

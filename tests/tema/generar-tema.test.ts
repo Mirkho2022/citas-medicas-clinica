@@ -3,7 +3,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { aRem, generarTema, leerDesign, resolverReferencias, validarMovimiento } from "../../scripts/lib/tema.ts";
+import {
+  aRem,
+  generarTema,
+  leerDesign,
+  resolverReferencias,
+  validarKeyframes,
+  validarMovimiento,
+} from "../../scripts/lib/tema.ts";
 
 // DESIGN.md mínimo con todo lo que el generador exige (colores de la capa de shadcn/ui, rounded.md y las dos familias).
 function design(extra = "", sombras = '  focus-ring: "0 0 0 2px {colors.surface}, 0 0 0 4px {colors.primary}"'): string {
@@ -154,4 +161,27 @@ test("validarMovimiento rechaza valores que no son curvas ni milisegundos", () =
   assert.match(problemas[0], /ease-rara.*cubic-bezier/);
   assert.match(problemas[1], /press.*milisegundos/);
   assert.match(problemas[2], /reduced.*milisegundos/);
+});
+
+test("validarKeyframes acepta transform y opacity, aunque haya comentarios y varios pasos", () => {
+  const css = `/* @keyframes falso { a { color: red; } } */
+    @keyframes brillo { from { transform: translateX(-100%); } 50% { opacity: .5; transform: none } to { transform: translateX(100%); } }`;
+  assert.deepEqual(validarKeyframes(css, "x.css"), []);
+});
+
+test("validarKeyframes rechaza animar otra propiedad y dice cuál y dónde", () => {
+  const css = "@keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }";
+  assert.deepEqual(validarKeyframes(css, "app/globals.css"), [
+    "app/globals.css: @keyframes brillo anima «background-position»; solo se animan transform y opacity",
+    "app/globals.css: @keyframes brillo anima «background-position»; solo se animan transform y opacity",
+  ]);
+  assert.equal(validarKeyframes("@keyframes a { to { transform: none; color: red } } @keyframes b { to { opacity: 1 } }", "x").length, 1);
+});
+
+test("los CSS propios de app/ solo animan transform y opacity, y el esqueleto lo hace con transform", () => {
+  const css = readFileSync("app/globals.css", "utf8");
+  assert.deepEqual(validarKeyframes(css, "app/globals.css"), []);
+  assert.match(css, /@keyframes brillo\s*\{\s*from\s*\{\s*transform: translateX\(-100%\);/);
+  assert.match(css, /\.esqueleto::after[\s\S]*?animation: brillo var\(--motion-skeleton\) linear infinite;/);
+  assert.match(css, /prefers-reduced-motion: reduce\)\s*\{\s*\.esqueleto::after\s*\{\s*display: none;/);
 });

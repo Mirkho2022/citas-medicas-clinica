@@ -5,12 +5,13 @@
 //   4. Los estilos de texto que conoce `cn` (lib/ui/estilos-texto.ts) son los de DESIGN.md.
 //   5. El movimiento de DESIGN.md cumple las reglas aprobadas: nada pasa de 320 ms (salvo el ciclo del esqueleto) y salir
 //      es más rápido que entrar.
+//   6. Ningún `@keyframes` de los CSS de app/ y components/ anima algo que no sea `transform` u `opacity`.
 // Sale con código 1 si alguna falla. Uso: npm run tema:comprobar
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ESTILOS_TEXTO } from "../lib/ui/estilos-texto.ts";
 import { contraste } from "./lib/contraste.ts";
-import { generarTema, leerDesign, validarMovimiento } from "./lib/tema.ts";
+import { generarTema, leerDesign, validarKeyframes, validarMovimiento } from "./lib/tema.ts";
 
 const DESIGN = "docs/DESIGN.md";
 const CSS_GENERADO = "app/tema.generado.css";
@@ -113,6 +114,11 @@ if (enDesign !== enCn) {
 
 // 5. Movimiento.
 problemas.push(...validarMovimiento(design.motion));
+
+// 6. Solo `transform` y `opacity` en los @keyframes propios (los de tw-animate-css viven en node_modules y no se revisan).
+for (const archivo of CARPETAS.flatMap(archivos).filter((a) => a.endsWith(".css"))) {
+  problemas.push(...validarKeyframes(readFileSync(archivo, "utf8"), archivo));
+}
 
 if (problemas.length > 0) {
   console.error(`tema:comprobar encontró ${problemas.length} problema(s):`);
