@@ -10,7 +10,10 @@ export function PieUsuario() {
   const nombre = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? "";
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <UserButton />
+      {/* El avatar de Clerk llega un instante después: se reserva su sitio para que el nombre no se desplace al aparecer. */}
+      <span className="inline-flex size-7 shrink-0 items-center justify-center">
+        <UserButton />
+      </span>
       {nombre ? (
         <span className="min-w-0 truncate text-body-sm text-ink" title={nombre}>
           {nombre}
