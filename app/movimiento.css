@@ -1,0 +1,186 @@
+/* Movimiento de los componentes (docs/DESIGN.md, «Motion»). Solo se animan `transform` y `opacity` (`npm run tema:comprobar` lo
+   vigila) y los tiempos y curvas salen del tema: `--motion-*` y `--ease-*`. Ningún color literal: el velo se mezcla desde `ink`.
+   Con «Reducir movimiento» se quitan traslaciones y escalas y queda el fundido de `--motion-reduced`. */
+
+/* ---------- Fundidos y entradas ---------- */
+@keyframes aparecer-solo {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes desaparecer-solo {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes paso-entra {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Diálogo de confirmación (elemento nativo <dialog>) ---------- */
+@keyframes dialogo-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dialogo-sale {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* ---------- Aviso temporal ---------- */
+@keyframes aviso-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes aviso-sale {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- Calendario: menú flotante (escritorio) y hoja inferior (móvil) ---------- */
+@keyframes popover-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hoja-entra {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@layer components {
+  dialog.dialogo {
+    animation: dialogo-entra var(--motion-dialog-in) var(--ease-salida-rapida) both;
+  }
+
+  dialog.dialogo::backdrop {
+    background-color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+    animation: aparecer-solo var(--motion-backdrop-in) linear both;
+  }
+
+  dialog.dialogo[data-saliendo] {
+    animation: dialogo-sale var(--motion-dialog-out) var(--ease-salida-rapida) both;
+  }
+
+  dialog.dialogo[data-saliendo]::backdrop {
+    animation: desaparecer-solo var(--motion-backdrop-out) linear both;
+  }
+
+  .aviso-temporal {
+    animation: aviso-entra var(--motion-toast-in) var(--ease-salida-rapida) both;
+  }
+
+  .aviso-temporal[data-saliendo] {
+    animation: aviso-sale var(--motion-toast-out) var(--ease-salida-rapida) both;
+  }
+
+  .calendario-flotante {
+    transform-origin: top left;
+    animation: popover-entra var(--motion-popover-in) var(--ease-salida-rapida) both;
+  }
+
+  /* Aparición de una lista: `style="--i: n"` en cada fila (máximo 6) escalona la entrada. */
+  .lista-entra {
+    animation: entra var(--motion-list-in) var(--ease-salida-rapida) both;
+    animation-delay: calc(var(--i, 0) * var(--motion-list-stagger));
+  }
+
+  .paso-entra {
+    animation: paso-entra var(--motion-step-in) var(--ease-salida-rapida) both;
+  }
+
+  @media (max-width: 639px) {
+    .calendario-flotante {
+      transform-origin: bottom center;
+      animation: hoja-entra var(--motion-sheet-in) var(--ease-cajon) both;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    dialog.dialogo,
+    .aviso-temporal,
+    .calendario-flotante,
+    .lista-entra,
+    .paso-entra {
+      animation-name: aparecer-solo;
+      animation-delay: 0s;
+    }
+
+    dialog.dialogo[data-saliendo],
+    .aviso-temporal[data-saliendo] {
+      animation-name: desaparecer-solo;
+    }
+  }
+}

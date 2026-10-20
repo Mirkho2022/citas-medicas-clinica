@@ -7,7 +7,7 @@ import { Slot } from "radix-ui"
 // DESIGN.md: 44 px de alto (48 px la acción principal del portal), radio md, texto label-lg. Un solo primario por
 // pantalla; el secundario es blanco con borde de control; el destructivo solo para cancelar una cita.
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-transparent text-label-lg whitespace-nowrap transition-colors outline-none select-none disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-transparent text-label-lg whitespace-nowrap transition-[color,background-color,transform] duration-(--motion-press) ease-salida-rapida motion-safe:active:scale-[0.97] outline-none select-none disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
   {
     variants: {
       variant: {
