@@ -108,12 +108,12 @@ select throws_ok(
 );
 select lives_ok(
   $q$ update public.citas set estado = 'cancelada' where paciente_id = (select id from e where clave = 'pa') and inicio = '2032-03-02 09:00:00-05' $q$,
-  'el paciente puede intentar cancelar (aún sin política de actualización: RLS lo deja en cero filas)'
+  'el paciente cancela su propia cita lejana (política «paciente cancela su cita» de H4; el detalle está en 71_portal_cancelacion)'
 );
 select tests.volver_a_dueno();
 select is(
-  (select estado::text from public.citas where inicio = '2032-03-02 09:00:00-05'), 'reservada',
-  'la cita no se canceló: la cancelación del paciente llega con el portal (H4)'
+  (select estado::text from public.citas where inicio = '2032-03-02 09:00:00-05'), 'cancelada',
+  'la cita quedó cancelada por el propio paciente'
 );
 
 -- ---- Médico y enfermera no crean citas ----

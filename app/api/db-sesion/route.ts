@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { transaccionAutenticada } from "@/lib/db/cliente-autenticado";
 
 // Comprobación de extremo a extremo de ADR-0023: devuelve lo que POSTGRES ve de la sesión (el id de Clerk y el rol
-// del token, validados por Neon), no lo que la aplicación cree. Solo informa al propio usuario.
+// del token, validados por Neon), no lo que la aplicación cree. Solo informa al propio usuario. `correo` es el claim `email`
+// del token (H4, `public.correo_actual()`): con él se vincula la cuenta del paciente con su ficha; es nulo si la plantilla del
+// JWT de Clerk aún no lo incluye (docs/pasos-manuales-h4.md).
 export async function GET() {
   await auth.protect();
   try {
     const [filas] = await transaccionAutenticada((tx) => [
-      tx`select public.usuario_actual() as clerk_user_id, public.rol_actual() as rol`,
+      tx`select public.usuario_actual() as clerk_user_id, public.rol_actual() as rol, public.correo_actual() as correo`,
     ]);
     return NextResponse.json({ estado: "ok", ...filas[0] });
   } catch (error) {

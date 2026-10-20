@@ -34,4 +34,6 @@ test("con sesión, Postgres reconoce al usuario por su token de Clerk", async ({
   expect(cuerpo.estado).toBe("ok");
   expect(cuerpo.clerk_user_id).toBe(clerkId);
   expect(cuerpo.rol).toBe("paciente");
+  // H4: el claim `email` de la plantilla del JWT de Clerk llega a la base, en minúsculas (public.correo_actual()).
+  expect(cuerpo.correo).toBe(variable("E2E_PACIENTE_EMAIL").toLowerCase());
 });

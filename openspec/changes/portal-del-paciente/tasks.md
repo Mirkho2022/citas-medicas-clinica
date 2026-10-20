@@ -13,17 +13,24 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 
 ## 1. Prerrequisitos, decisión de seguridad y pasos manuales
 
-- [ ] 1.1 Confirmar contra el **código real** (no solo contra los `design.md`) que H2b y H3 están aplicados y que existen los
+- [x] 1.1 Confirmar contra el **código real** (no solo contra los `design.md`) que H2b y H3 están aplicados y que existen los
       contratos C1–C7 de `design.md` («Contratos de H3 que H4 consume»): `slots_disponibles`, `reservar_cita`, `cancelarCita`,
       `ResultadoAccion`, `traducirError` y `MENSAJE_DOBLE_RESERVA`, `lib/schemas/documento.ts`, `notificarEventoCita`,
       `lib/fechas/lima.ts`, y los componentes `TarjetaCita`, `SelectorHorario`, `Campo`, `CampoDocumento`, `Alerta`, `PortalLayout`.
       Verificar con una búsqueda de cada símbolo y `npm run test:pgtap` en verde; anotar en el PR toda diferencia y ajustar la
       capa fina de H4 (o pedir el cambio a H3) sin duplicar lógica de agenda. Si H2b o H3 no están aplicados, detenerse.
-- [ ] 1.2 Redactar con la skill `architecture` el ADR de **verificación al vincular una ficha existente** (correo verificado de la
+      Resultado (2026-10-20): los siete contratos existen en el código real: `slots_disponibles` y `reservar_cita` (migraciones de H3), `cancelarCita` y
+      `traducirError`/`MENSAJE_DOBLE_RESERVA` (`lib/citas/`), `ResultadoAccion` (`lib/acciones/resultado.ts`), `lib/schemas/documento.ts`,
+      `notificarEventoCita` (`lib/notificaciones/eventos-cita.ts`), `lib/fechas/lima.ts` y los componentes `TarjetaCita`, `SelectorHorario`, `Campo`,
+      `CampoDocumento`, `Alerta` y `PortalLayout`. H3 está archivado y en producción (PR #13/#20); H2b, archivado. `npm run test:pgtap` en verde.
+- [x] 1.2 Redactar con la skill `architecture` el ADR de **verificación al vincular una ficha existente** (correo verificado de la
       cuenta + fecha de nacimiento; alternativas y riesgo residual de `design.md` D3) con el siguiente número libre de
       `docs/adrs/` (el change `notificaciones-email` ya propone el 0029) y presentarlo al usuario. Verificar que el archivo
       existe con estado «Aceptado» o «Propuesto», que enlaza a ADR-0003, 0022 y 0023, y que **la migración 2.2 no se aplica
       mientras no esté aceptado** (si el usuario decide otra cosa, cambian 2.2, 2.3 y la spec `registro-del-paciente`, no el resto).
+      Resultado (2026-10-20): `docs/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md`, **Aceptado** por el cliente el mismo día (aceptó la
+      propuesta de D3: correo verificado + fecha de nacimiento). Enlaza a ADR-0003, 0022 y 0023. Se usó el 0037 porque el PR #9 (borrador) ya
+      reserva 0030–0036 y el 0029 está ocupado.
 - [ ] 1.3 Crear `docs/pasos-manuales-h4.md` con los pasos de consola que no se pueden versionar y pedirle al usuario que los ejecute
       en **desarrollo y en producción** (instancias de Clerk distintas): Clerk — añadir a la plantilla del JWT el claim `email`
       (`{{user.primary_email_address}}`), exigir correo verificado y nombres en el alta, redirigir el alta a `/completar-registro`,
@@ -34,34 +41,50 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 
 ## 2. Base de datos: vinculación del paciente y cancelación propia
 
-- [ ] 2.1 Extender `scripts/ejecutar-pgtap.ts` para que cada identidad de prueba lleve el claim `email`
+- [x] 2.1 Extender `scripts/ejecutar-pgtap.ts` para que cada identidad de prueba lleve el claim `email`
       (`<identidad>@pruebas.invalid`) y documentarlo en `docs/pruebas-sql.md`. Verificar que toda la suite existente sigue en
       verde y que una prueba mínima lee `auth.session() ->> 'email'` de `paciente_a`.
-- [ ] 2.2 Crear la migración nueva `portal-paciente-vinculacion` con `public.correo_actual()` y
+      Resultado (2026-10-20): `scripts/ejecutar-pgtap.ts` firma `email` = `<identidad>@pruebas.invalid` en cada token y añade la identidad
+      `paciente_sin_correo` (sin ese claim); `tests/concurrencia/_sesion.ts` acepta `email`. Documentado en `docs/pruebas-sql.md`. Suite completa
+      en verde y `70_portal_registro` lee `auth.session() ->> 'email'` de `paciente_a`.
+- [x] 2.2 Crear la migración nueva `portal-paciente-vinculacion` con `public.correo_actual()` y
       `public.registrar_paciente_portal(...)` según `design.md` D3 (ambas `SECURITY DEFINER`, `search_path` vacío, `EXECUTE`
       revocado a `PUBLIC` y concedido solo a `authenticated`; errores `PA001`–`PA004` y `42501`). Verificar con `npm run migrate up`
       en un branch de desarrollo, con `has_function_privilege` para `authenticated`/`anonymous`/`PUBLIC`, y que no se editó
       ninguna migración existente (`git diff --stat migrations/`).
-- [ ] 2.3 Escribir `tests/pgtap/70_portal_registro.test.sql` con casos positivos y **negativos**: alta con documento nuevo (crea
+      Resultado (2026-10-20): `migrations/1792536080588_portal-paciente-vinculacion.sql`, aplicada con `migrate up` en el branch `dev`;
+      `has_function_privilege` y `aclexplode` comprueban `EXECUTE` solo para `authenticated` (prueba 70, casos 30–32); ninguna migración existente se
+      editó (`git diff --stat migrations/` sin cambios). Además del diseño, el doble envío de la misma cuenta sobre su propia ficha da `PA001`, no `PA002`.
+- [x] 2.3 Escribir `tests/pgtap/70_portal_registro.test.sql` con casos positivos y **negativos**: alta con documento nuevo (crea
       ficha vinculada y la carpeta clínica, que el paciente **no** puede leer); vinculación con correo y fecha correctos sin
       sobrescribir datos; rechazo por fecha distinta, por correo distinto, por ficha de otra cuenta y por documento ya vinculado
       (todos `PA002`); cuenta que ya tiene ficha (`PA001`); rol administrativo, médico, enfermera y sin rol (`42501`); sin claim
       `email` (`PA004`); `EXECUTE` no concedido a `PUBLIC`; CE en minúsculas guardado en mayúsculas; documento inválido
       rechazado por el `CHECK`. Verificar con `node scripts/ejecutar-pgtap.ts portal_registro` y comprobar por mutación que fallan
       al debilitar la comparación del correo y la de la fecha (cambios temporales revertidos).
-- [ ] 2.4 Crear la migración nueva `portal-paciente-cancelacion` con la política `paciente cancela su cita` según D4. El disparador
+      Resultado (2026-10-20): `tests/pgtap/70_portal_registro.test.sql`, 32 pruebas en verde. Por mutación en `dev` (revertida): sin la comparación del
+      correo y sin la de la fecha, el archivo falla.
+- [x] 2.4 Crear la migración nueva `portal-paciente-cancelacion` con la política `paciente cancela su cita` según D4. El disparador
       que protege las columnas ya existe desde H3 (agenda-y-reserva 6.4): `citas_proteger_columnas`, `SECURITY INVOKER`, para todos los
       roles y antes de `citas_validar_cancelacion`; **no** se crea `citas_proteger_columnas_paciente`. Verificar con `migrate up` y
       consultando `pg_policies` y `pg_trigger` (nombre, evento y orden de los disparadores de `citas`).
-- [ ] 2.5 Escribir `tests/pgtap/71_portal_cancelacion.test.sql`: el paciente cancela su cita a 61 minutos y queda `cancelada` con
+      Resultado (2026-10-20): `migrations/1792536200000_portal-paciente-cancelacion.sql`, aplicada en `dev`. `pg_policy` muestra la política `w` (UPDATE);
+      `pg_trigger` conserva `citas_proteger_columnas` antes de `citas_validar_cancelacion` y no existe `citas_proteger_columnas_paciente`.
+- [x] 2.5 Escribir `tests/pgtap/71_portal_cancelacion.test.sql`: el paciente cancela su cita a 61 minutos y queda `cancelada` con
       `cancelada_por` = su perfil; a 59 minutos falla con `P0001`; **no** cancela la cita de otro paciente (cero filas) ni una ya
       cancelada o atendida; **no** cambia `inicio`, `medico_id`, `paciente_id`, `motivo` ni `origen` (`42501`); **no** pone
       `confirmada`, `atendida` ni `no_asistio`; el administrativo y la excepción por bloqueo de agenda siguen igual que en H2; el
       médico y la enfermera siguen sin poder actualizar. Verificar con `node scripts/ejecutar-pgtap.ts portal_cancelacion` y por
       mutación (quitar la condición `paciente_id` de la política y el disparador, una a la vez, hace fallar casos distintos).
-- [ ] 2.6 Prueba de concurrencia `tests/concurrencia/30_registro_portal.test.ts`: dos cuentas de paciente envían a la vez el mismo
+      Resultado (2026-10-20): `tests/pgtap/71_portal_cancelacion.test.sql`, 29 pruebas en verde. Por mutación: sin el disparador de columnas fallan 11 casos;
+      sin `paciente_id` en la política falla el caso con una política de lectura temporal abierta (sin ese caso la mutación no se detectaba: la política de
+      lectura ya ocultaba las citas ajenas). La suite completa queda en 885 pruebas, 0 fallos; la prueba 32 se actualizó porque describía el estado
+      anterior a la política («sin política, cero filas»).
+- [x] 2.6 Prueba de concurrencia `tests/concurrencia/30_registro_portal.test.ts`: dos cuentas de paciente envían a la vez el mismo
       documento nuevo en 10 rondas; exactamente una ficha por documento y la otra recibe `PA002`. Reutiliza el ayudante de sesiones
       firmadas de H3. Verificar con `npm run test:concurrencia`.
+      Resultado (2026-10-20): `tests/concurrencia/30_registro_portal.test.ts`, tres escenarios de 10 rondas (dos cuentas con el mismo documento: una ficha y
+      `PA002`; doble envío de una cuenta: `PA001`; doble envío de la vinculación: `PA001`), en verde.
 - [ ] 2.7 Extender `app/api/db-sesion/route.ts` para devolver también `correo_actual()` y `e2e/db.spec.ts` para comprobar que es el
       correo de la cuenta de prueba, en minúsculas. Verificar con la E2E contra un branch con la plantilla de Clerk ya actualizada
       (tarea 1.3); es la prueba de extremo a extremo del claim `email`.

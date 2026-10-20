@@ -106,7 +106,8 @@ node --test tests/concurrencia/20_reservar_cita_funcion.test.ts    # solo esa
 - Para comprobar o preparar datos como dueño: `select tests.volver_a_dueno();` (la identidad de la
   sesión se conserva).
 - Identidades disponibles: `administrativo`, `medico_a`, `medico_b`, `enfermera`, `paciente_a`,
-  `paciente_b` y `sin_rol`. `tests.sub('medico_a')` da su `clerk_user_id` para sembrar `perfiles`.
+  `paciente_b`, `paciente_sin_correo` y `sin_rol`. Todas llevan el claim `email` = `<identidad>@pruebas.invalid`
+  (como la plantilla del JWT de Clerk; lo lee `public.correo_actual()`), salvo `paciente_sin_correo`, que no lo trae. `tests.sub('medico_a')` da su `clerk_user_id` para sembrar `perfiles`.
 - Las pruebas **no pueden asumir tablas vacías** (puede haber datos de demostración): siembran sus
   propios identificadores y afirman por id. Las negativas («este rol no ve ninguna fila») siguen
   siendo válidas con datos presentes.

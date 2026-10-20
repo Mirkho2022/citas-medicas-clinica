@@ -15,6 +15,8 @@ export interface Identidad {
   /** `sub` del token = clerk_user_id del perfil que debe existir en la base. */
   sub: string;
   rol: "administrativo" | "medico" | "enfermera" | "paciente" | null;
+  /** Claim `email` del token (el de la plantilla del JWT de Clerk); sin él, `correo_actual()` es nulo. */
+  email?: string;
 }
 
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
@@ -22,10 +24,10 @@ const jwkPublica = JSON.stringify({ kty: "OKP", crv: "Ed25519", x: publicKey.exp
 
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
 
-function firmar({ sub, rol }: Identidad, jti: number): string {
+function firmar({ sub, rol, email }: Identidad, jti: number): string {
   const ahora = Math.floor(Date.now() / 1000);
   const cabecera = b64({ alg: "EdDSA", typ: "JWT" });
-  const carga = b64({ sub, jti, nbf: ahora - 60, exp: ahora + 3600, publicMetadata: rol ? { rol } : {} });
+  const carga = b64({ sub, jti, nbf: ahora - 60, exp: ahora + 3600, ...(email ? { email } : {}), publicMetadata: rol ? { rol } : {} });
   const firma = sign(null, Buffer.from(`${cabecera}.${carga}`), privateKey).toString("base64url");
   return `${cabecera}.${carga}.${firma}`;
 }
