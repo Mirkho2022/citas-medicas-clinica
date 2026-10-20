@@ -16,7 +16,7 @@ import {
   pacientePorId,
 } from "@/lib/citas/consultas";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
-import { esFechaLima, hoyLima } from "@/lib/fechas/lima";
+import { esFechaLima, fechaYHoraLima, hoyLima } from "@/lib/fechas/lima";
 import { sumarDias } from "@/lib/ui/calendario";
 import { fechaHoraLima } from "@/lib/ui/formato";
 import { FiltroMedico } from "../filtro-medico";
@@ -73,8 +73,15 @@ export default async function PaginaNuevaCita({ searchParams }: { searchParams: 
   const medicoId =
     esUuid(medicoPedido) && medicos.some((m) => m.id === medicoPedido) ? medicoPedido : (cita?.medicoId ?? null);
   const medico = medicos.find((m) => m.id === medicoId) ?? null;
+  // Fecha de los horarios: la de la URL; al reprogramar, por defecto la de la cita (no la de hoy); si no, hoy. Nunca una pasada.
   const fechaPedida = una(q.fecha);
-  const fecha = fechaPedida && esFechaLima(fechaPedida) && fechaPedida >= hoy ? fechaPedida : hoy;
+  const fechaDeLaCita = cita ? fechaYHoraLima(cita.inicio).fecha : null;
+  const fecha =
+    fechaPedida && esFechaLima(fechaPedida) && fechaPedida >= hoy
+      ? fechaPedida
+      : fechaDeLaCita && fechaDeLaCita >= hoy
+        ? fechaDeLaCita
+        : hoy;
 
   const [horarios, dias] =
     medicoId && paciente
@@ -87,7 +94,7 @@ export default async function PaginaNuevaCita({ searchParams }: { searchParams: 
   // Parámetros que se conservan al cambiar un paso.
   const base = { reprogramar: reprograma ? reprogramarId : undefined, paciente: reprograma ? undefined : paciente?.id };
   const puedeReprogramar = !cita || accionesVisibles(cita, new Date()).reprogramar;
-  const hrefAgenda = `/administrativo/agenda?fecha=${q.fecha && esFechaLima(una(q.fecha) ?? "") ? una(q.fecha) : hoy}${medicoId ? `&medico=${medicoId}` : ""}`;
+  const hrefAgenda = `/administrativo/agenda?fecha=${fecha}${medicoId ? `&medico=${medicoId}` : ""}`;
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
