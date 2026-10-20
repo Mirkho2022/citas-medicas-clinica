@@ -13,6 +13,7 @@ export const MENSAJE_REGISTRO_RECHAZADO =
   "No pudimos completar su registro con estos datos. Si ya se atendió en la clínica, comuníquese con ella para que revisen su ficha.";
 export const MENSAJE_CUENTA_YA_REGISTRADA = "Su cuenta ya está registrada. Vaya a su inicio para reservar una cita.";
 export const MENSAJE_SESION_NO_CONFIRMADA = "No pudimos confirmar su sesión. Cierre sesión e ingrese de nuevo.";
+export const MENSAJE_REVISAR_DOCUMENTO = "Revise el número de documento.";
 export const MENSAJE_PREPARANDO_CUENTA = "Estamos preparando su cuenta…";
 export const MENSAJE_CUENTA_TARDA = "Su cuenta está tardando más de lo normal. Toque «Reintentar»; si el problema sigue, comuníquese con la clínica.";
 

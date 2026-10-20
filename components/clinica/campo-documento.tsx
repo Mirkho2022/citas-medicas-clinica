@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { Campo } from "@/components/clinica/campo";
 import { Label } from "@/components/ui/label";
 
@@ -26,6 +27,8 @@ export function CampoDocumento({
   valorInicial = "",
   error,
   soloLectura = false,
+  registroTipo,
+  registroNumero,
 }: {
   id: string;
   nombreTipo?: string;
@@ -34,6 +37,9 @@ export function CampoDocumento({
   valorInicial?: string;
   error?: string;
   soloLectura?: boolean;
+  // Con react-hook-form: el resultado de `register` de cada control. Sin ellos el componente se comporta como siempre.
+  registroTipo?: UseFormRegisterReturn;
+  registroNumero?: UseFormRegisterReturn;
 }) {
   const [tipo, setTipo] = useState<TipoDocumento>(tipoInicial);
   const idTipo = `${id}-tipo`;
@@ -47,9 +53,13 @@ export function CampoDocumento({
         <select
           id={idTipo}
           name={nombreTipo}
+          {...registroTipo}
           value={tipo}
           disabled={soloLectura}
-          onChange={(e) => setTipo(e.target.value as TipoDocumento)}
+          onChange={(e) => {
+            setTipo(e.target.value as TipoDocumento);
+            void registroTipo?.onChange(e);
+          }}
           className="h-11 w-full rounded-md border border-input bg-surface px-3.5 text-body-md text-foreground disabled:bg-muted disabled:opacity-100"
         >
           <option value="DNI">DNI</option>
@@ -68,6 +78,7 @@ export function CampoDocumento({
         ayuda={formato.ayuda}
         error={error}
         soloLectura={soloLectura}
+        {...registroNumero}
       />
     </fieldset>
   );

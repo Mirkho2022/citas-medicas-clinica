@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { exigirRol } from "@/lib/auth/rol";
+import { exigirPacienteRegistrado } from "@/lib/auth/accion-paciente";
 
 export default async function PaginaPaciente() {
   await auth.protect();
-  await exigirRol("paciente");
+  // Un rol distinto va a su área; un paciente sin ficha, a «Complete su registro».
+  await exigirPacienteRegistrado();
 
   return (
     <>

@@ -1,4 +1,5 @@
 import { CircleAlert } from "lucide-react";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { cn } from "@/lib/utils";
 
 export interface OpcionSegmentada {
@@ -17,6 +18,7 @@ export function ControlSegmentado({
   valorInicial,
   error,
   className,
+  registro,
 }: {
   nombre: string;
   etiqueta: string;
@@ -24,6 +26,8 @@ export function ControlSegmentado({
   valorInicial?: string;
   error?: string;
   className?: string;
+  // Con react-hook-form: el resultado de `register` del grupo. Sin él el componente se comporta como siempre.
+  registro?: UseFormRegisterReturn;
 }) {
   const idError = error ? `${nombre}-error` : undefined;
   return (
@@ -35,6 +39,7 @@ export function ControlSegmentado({
             <input
               type="radio"
               name={nombre}
+              {...registro}
               value={opcion.valor}
               defaultChecked={opcion.valor === valorInicial}
               className="peer sr-only"

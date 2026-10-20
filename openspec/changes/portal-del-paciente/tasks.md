@@ -144,25 +144,30 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`) y cambiar `app/page.tsx` para que quien tiene sesión pero aún no tiene rol
       vaya a `/completar-registro` en lugar de ver la portada de visitantes. Verificar con `npm run build` y con la E2E 5.6: tras crear
       la cuenta nunca se muestra el enlace «Registrarme» de la portada.
+      Estado (2026-10-20): hecho `forceRedirectUrl="/completar-registro"` en `<SignUp />`, `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` en `.env.example` y `app/page.tsx` (con sesión y sin rol va a `/completar-registro`); `npm run build` en verde. Falta la E2E 5.6 y poner la variable en Vercel (docs/pasos-manuales-h4.md, paso 3).
 - [ ] 5.2 Crear `app/completar-registro/page.tsx` (`auth.protect()`; decide entre redirigir a otra área, redirigir a `/paciente`, mostrar
       el formulario o mostrar la espera) y el componente de cliente `EsperarCuenta`: confirmar primero en la documentación de Clerk
       la API para refrescar el token (`session.reload()` / `getToken({ skipCache: true })`), refrescar cada 2 s hasta 30 s con
       `router.refresh()`, región `aria-live="polite"` «Estamos preparando su cuenta…» y, pasados 30 s, «Reintentar» y el texto de
       contacto; nunca redirige a `/`. Verificar con la E2E 5.6 (la pantalla aparece y se resuelve sola) y revisando que un usuario de
       personal que abre la ruta va a su área.
+      Estado (2026-10-20): hecho `app/completar-registro/{layout,page,esperar-cuenta}.tsx`. API confirmada en los tipos de la versión instalada (`@clerk/nextjs` 7.9.9): `useAuth().getToken({ skipCache: true })`. Falta la E2E 5.6 (necesita el claim `email` en la plantilla de Clerk: paso 1 de docs/pasos-manuales-h4.md).
 - [ ] 5.3 Crear el formulario de registro (`react-hook-form` + `zodResolver` con el esquema 3.1): `CampoDocumento` DNI/CE con su
       ayuda, nombres y apellidos prellenados desde `perfiles`, fecha de nacimiento, sexo («Otro o prefiero no indicarlo»), teléfono y
       dirección opcionales, correo de solo lectura con «Solo lectura»; errores por campo con icono, `aria-describedby` y foco al
       primer error; botón «Continuar» de 48 px con «Guardando…». Verificar con la E2E 5.6 (DNI de 7 dígitos muestra «El DNI debe tener
       8 dígitos», CE fuera de formato muestra la ayuda, correo no editable) y con axe en el grupo 9.
-- [ ] 5.4 Crear la Server Action `completarRegistro` y `lib/portal/registro.ts`: envoltorio de 3.3/4.4, validación Zod, llamada a
+      Estado (2026-10-20): hecho `app/completar-registro/formulario-registro.tsx` (react-hook-form + zodResolver con el esquema 3.1; `CampoDocumento` y `ControlSegmentado` aceptan ahora el `register` de RHF sin cambiar su uso anterior). Falta la E2E 5.6 y axe del grupo 9.
+- [x] 5.4 Crear la Server Action `completarRegistro` y `lib/portal/registro.ts`: envoltorio de 3.3/4.4, validación Zod, llamada a
       `registrar_paciente_portal`, traducción de `PA001` («Su cuenta ya está registrada»), `PA002` (el mismo texto genérico siempre),
       `PA003`/`PA004` («Cierre sesión e ingrese de nuevo»), `42501`, `23514` y `23505`; redirige a `/paciente` al terminar y no registra
       documento ni correo en el log. Verificar con `tests/portal/registro.test.ts` (todos los rechazos de vinculación producen
       exactamente el mismo mensaje; claves extra ignoradas; el log capturado no contiene el documento).
+      Resultado (2026-10-20): `lib/portal/registro.ts` y `app/completar-registro/acciones.ts`; `tests/portal/registro.test.ts` (9 casos): todos los rechazos PA002 y la carrera 23505 dan exactamente el mismo resultado, las claves extra no llegan a la base de datos y el registro (log) solo recibe la clase del error, nunca el documento. Redirige a `/paciente` al terminar.
 - [ ] 5.5 Añadir `exigirPacienteRegistrado()` a `/paciente` y a las páginas nuevas de los grupos 6 y 7, y activar `disponible` en
       `lib/ui/navegacion.ts` para «Mis citas» y «Reservar» cuando existan sus páginas. Verificar con la E2E 5.6: una cuenta sin ficha que
       abre `/paciente` o `/paciente/citas` es llevada a `/completar-registro`.
+      Estado (2026-10-20): `exigirPacienteRegistrado()` aplicado a `/paciente`; el de `/paciente/citas` y `/paciente/citas/nueva` y la activación de `disponible` en `lib/ui/navegacion.ts` llegan con los grupos 6 y 7.
 - [ ] 5.6 Escribir `e2e/portal-registro.spec.ts` y el ayudante `e2e/datos-portal.ts` (siembra de una ficha con el rol dueño sobre el
       branch de pruebas): cuenta nueva `+clerk_test` → espera → formulario → DNI `98…` nuevo → `/paciente`; validaciones de DNI y CE;
       vinculación de una ficha sembrada con el mismo correo y fecha de nacimiento (aparecen sus citas en «Mis citas»); rechazo con fecha

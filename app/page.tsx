@@ -1,13 +1,21 @@
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Marca } from "@/components/clinica/marca";
 import { Button } from "@/components/ui/button";
 import { obtenerRolSesion, rutaParaRol } from "@/lib/auth/rol";
+import { RUTA_COMPLETAR_REGISTRO } from "@/lib/auth/rutas";
 
 export default async function Home() {
   const rol = await obtenerRolSesion();
   if (rol) {
     redirect(rutaParaRol(rol));
+  }
+  // Sesión iniciada pero sin rol todavía: la cuenta recién creada espera el alta del rol. Nunca se le muestra la portada de
+  // visitantes (con «Registrarme»): «Complete su registro» sabe esperar y no redirige de vuelta aquí.
+  const { userId } = await auth();
+  if (userId) {
+    redirect(RUTA_COMPLETAR_REGISTRO);
   }
 
   return (
