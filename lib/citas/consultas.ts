@@ -7,6 +7,7 @@ import { consultar, type Ejecutor, type Fila } from "../db/ejecutor.ts";
 import { esFechaLima, finDiaLima, inicioDiaLima } from "../fechas/lima.ts";
 import { diaDeLaSemana, sumarDias } from "../ui/calendario.ts";
 import type { EstadoCita } from "../ui/estados-cita.ts";
+import { citaEnLaMalla, type TramoSemanal } from "./disponibilidades.ts";
 import type { PacienteEncontrado } from "./pacientes.ts";
 
 const FORMA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -261,4 +262,142 @@ export function parametrosAgenda(
   const fecha = una(consulta.fecha);
   const medico = una(consulta.medico);
   return { fecha: fecha && esFechaLima(fecha) ? fecha : hoy, medicoId: esUuid(medico) ? medico : null };
+}
+
+// ---- Horarios y ausencias (9.2 y 9.3) ----
+
+export interface MedicoConHorarios {
+  id: string;
+  nombre: string;
+  especialidad: string;
+  activo: boolean;
+  tramos: number;
+  // Ausencias vigentes o futuras (las ya terminadas no cuentan).
+  ausencias: number;
+}
+
+// Todos los médicos (también los dados de baja, marcados) con cuántos tramos semanales y ausencias vigentes o futuras tienen.
+export async function medicosConHorarios(ejecutar: Ejecutor): Promise<MedicoConHorarios[]> {
+  const filas = await consultar(
+    ejecutar,
+    `select m.id, pm.nombres, pm.apellidos, e.nombre as especialidad, m.activo,
+            (select count(*) from public.disponibilidades d where d.medico_id = m.id)::int as tramos,
+            (select count(*) from public.bloqueos_agenda b where b.medico_id = m.id and upper(b.rango) > now())::int as ausencias
+       from public.medicos m
+       join public.perfiles pm on pm.id = m.perfil_id
+       join public.especialidades e on e.id = m.especialidad_id
+      order by m.activo desc, pm.apellidos, pm.nombres`,
+  );
+  return filas.map((f) => ({
+    id: String(f.id),
+    nombre: nombreCompleto(f.nombres, f.apellidos),
+    especialidad: String(f.especialidad),
+    activo: f.activo === true,
+    tramos: Number(f.tramos),
+    ausencias: Number(f.ausencias),
+  }));
+}
+
+export interface TramoListado {
+  id: string;
+  // 0 = domingo … 6 = sábado
+  diaSemana: number;
+  horaInicio: string;
+  horaFin: string;
+  duracionSlotMin: number;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+}
+
+// La plantilla semanal del médico, de lunes a domingo y por hora.
+export async function plantillaDelMedico(ejecutar: Ejecutor, medicoId: string): Promise<TramoListado[]> {
+  if (!esUuid(medicoId)) throw new Error("Identificador de médico no válido");
+  const filas = await consultar(
+    ejecutar,
+    `select id, dia_semana, left(hora_inicio::text, 5) as hora_inicio, left(hora_fin::text, 5) as hora_fin,
+            duracion_slot_min, vigente_desde::text as vigente_desde, vigente_hasta::text as vigente_hasta
+       from public.disponibilidades where medico_id = $1::uuid
+      order by (dia_semana + 6) % 7, hora_inicio, vigente_desde`,
+    [medicoId],
+  );
+  return filas.map((f) => ({
+    id: String(f.id),
+    diaSemana: Number(f.dia_semana),
+    horaInicio: String(f.hora_inicio),
+    horaFin: String(f.hora_fin),
+    duracionSlotMin: Number(f.duracion_slot_min),
+    vigenteDesde: String(f.vigente_desde),
+    vigenteHasta: f.vigente_hasta === null || f.vigente_hasta === undefined ? null : String(f.vigente_hasta),
+  }));
+}
+
+export interface BloqueoListado {
+  id: string;
+  desde: string;
+  hasta: string;
+  motivo: string;
+  // Citas vigentes del médico que esta ausencia alcanza y siguen sin reasignar (vista `citas_por_reasignar`).
+  porReasignar: number;
+}
+
+// Las ausencias del médico vigentes o futuras, por fecha de inicio.
+export async function bloqueosDelMedico(ejecutar: Ejecutor, medicoId: string): Promise<BloqueoListado[]> {
+  if (!esUuid(medicoId)) throw new Error("Identificador de médico no válido");
+  const filas = await consultar(
+    ejecutar,
+    `select b.id, lower(b.rango) as desde, upper(b.rango) as hasta, b.motivo,
+            (select count(*) from public.citas_por_reasignar r where r.bloqueo_id = b.id)::int as por_reasignar
+       from public.bloqueos_agenda b where b.medico_id = $1::uuid and upper(b.rango) > now()
+      order by lower(b.rango), b.id`,
+    [medicoId],
+  );
+  return filas.map((f) => ({
+    id: String(f.id),
+    desde: aIso(f.desde),
+    hasta: aIso(f.hasta),
+    motivo: String(f.motivo),
+    porReasignar: Number(f.por_reasignar),
+  }));
+}
+
+export interface CitaFueraDeLaPlantilla {
+  id: string;
+  inicio: string;
+  fin: string;
+  estado: EstadoCita;
+  paciente: string;
+  documento: string;
+}
+
+// Las citas vigentes futuras del médico que su plantilla actual ya no cubre (specs/disponibilidad-y-slots: «Advertencia al
+// recortar una disponibilidad con citas futuras»). Solo informa: no cancela ni mueve nada; la recepción las reprograma desde la agenda.
+export async function citasFueraDeLaPlantilla(ejecutar: Ejecutor, medicoId: string): Promise<CitaFueraDeLaPlantilla[]> {
+  if (!esUuid(medicoId)) throw new Error("Identificador de médico no válido");
+  const [citas, tramos] = await ejecutar([
+    {
+      texto: `select c.id, c.inicio, c.fin, c.estado::text as estado, pa.nombres, pa.apellidos,
+                     pa.tipo_documento::text as tipo_documento, pa.numero_documento
+                from public.citas c join public.pacientes pa on pa.id = c.paciente_id
+               where c.medico_id = $1::uuid and c.estado in ('reservada', 'confirmada') and c.inicio > now()
+               order by c.inicio, c.id`,
+      parametros: [medicoId],
+    },
+    {
+      texto: `select dia_semana, hora_inicio::text as hora_inicio, hora_fin::text as hora_fin, duracion_slot_min,
+                     vigente_desde::text as vigente_desde, vigente_hasta::text as vigente_hasta
+                from public.disponibilidades where medico_id = $1::uuid`,
+      parametros: [medicoId],
+    },
+  ]);
+  const plantilla = (tramos ?? []) as unknown as TramoSemanal[];
+  return (citas ?? [])
+    .filter((f) => !citaEnLaMalla({ inicio: aIso(f.inicio), fin: aIso(f.fin) }, plantilla))
+    .map((f) => ({
+      id: String(f.id),
+      inicio: aIso(f.inicio),
+      fin: aIso(f.fin),
+      estado: String(f.estado) as EstadoCita,
+      paciente: nombreCompleto(f.nombres, f.apellidos),
+      documento: `${String(f.tipo_documento)} ${String(f.numero_documento)}`,
+    }));
 }

@@ -9,6 +9,7 @@ import {
   mesDeFecha,
   sumarDias,
   sumarMeses,
+  textoFecha,
   textoFechaConDia,
   textoMes,
 } from "../../lib/ui/calendario.ts";
@@ -59,4 +60,10 @@ test("el día de la semana y las etiquetas están en español", () => {
 test("una fecha mal escrita se rechaza con un mensaje que dice el formato", () => {
   assert.throws(() => sumarDias("20/10/2026", 1), /Use el formato AAAA-MM-DD/);
   assert.throws(() => mesDeFecha("2026-10"), /Fecha no válida/);
+});
+
+test("textoFecha da dd/MM/yyyy a una fecha de calendario sin depender de la zona", () => {
+  assert.equal(textoFecha("2026-10-20"), "20/10/2026");
+  assert.equal(textoFecha("2026-01-05"), "05/01/2026");
+  assert.equal(textoFecha("2028-02-29"), "29/02/2028");
 });

@@ -9,11 +9,15 @@ import { after, before, test } from "node:test";
 import type pg from "pg";
 import {
   agendaDelDia,
+  bloqueosDelMedico,
   citaVigentePorId,
+  citasFueraDeLaPlantilla,
   diasConHorarios,
   horariosLibres,
   listarMedicos,
+  medicosConHorarios,
   pacientePorId,
+  plantillaDelMedico,
 } from "../../lib/citas/consultas.ts";
 import { hoyLima, instanteDesdeLima } from "../../lib/fechas/lima.ts";
 import { sumarDias } from "../../lib/ui/calendario.ts";
@@ -235,4 +239,50 @@ test("diasConHorarios marca los días con plantilla vigente del médico (aquí, 
   // necesita para reservar); una sesión sin rol, no.
   assert.equal((await como(ENFERMERA, (e) => diasConHorarios(e, medicoA, hoyLima(), 7))).length, 7);
   assert.deepEqual(await como(SIN_ROL, (e) => diasConHorarios(e, medicoA, hoyLima(), 7)), [], "sin rol no ve la plantilla");
+});
+
+test("la plantilla del médico sale de lunes a domingo, con el fin 24:00 intacto", async () => {
+  const tramos = await como(ADMIN, (e) => plantillaDelMedico(e, medicoA));
+  assert.deepEqual(tramos.map((t) => t.diaSemana), [1, 2, 3, 4, 5, 6, 0]);
+  assert.ok(tramos.every((t) => t.horaInicio === "00:00" && t.horaFin === "24:00" && t.duracionSlotMin === 20 && t.vigenteDesde === "2020-01-01" && t.vigenteHasta === null));
+});
+
+test("las ausencias del médico traen el rango como instantes y el motivo; solo las vigentes o futuras", async () => {
+  const ausencias = await como(ADMIN, (e) => bloqueosDelMedico(e, medicoB));
+  assert.equal(ausencias.length, 1);
+  assert.equal(ausencias[0]!.desde, instanteDesdeLima(FECHA, "10:00").toISOString());
+  assert.equal(ausencias[0]!.hasta, instanteDesdeLima(FECHA, "10:20").toISOString());
+  assert.equal(ausencias[0]!.motivo, "Baja de prueba");
+  assert.deepEqual(await como(ADMIN, (e) => bloqueosDelMedico(e, medicoA)), []);
+});
+
+test("medicosConHorarios cuenta tramos y ausencias vigentes de cada médico", async () => {
+  const todos = await como(ADMIN, (e) => medicosConHorarios(e));
+  const a = todos.find((m) => m.id === medicoA);
+  const b = todos.find((m) => m.id === medicoB);
+  assert.deepEqual([a?.tramos, a?.ausencias, a?.activo], [7, 0, true]);
+  assert.deepEqual([b?.tramos, b?.ausencias], [7, 1]);
+  assert.equal(a?.especialidad, "Esp integracion consultas");
+});
+
+test("citasFueraDeLaPlantilla muestra solo las citas vigentes futuras que la plantilla ya no cubre, sin tocarlas", async () => {
+  assert.deepEqual(await como(ADMIN, (e) => citasFueraDeLaPlantilla(e, medicoA)), [], "con la plantilla completa, ninguna queda fuera");
+  const c = await conectar();
+  let idFuera: string | undefined;
+  try {
+    // 11:10–11:30 no es un slot de 20 minutos desde las 00:00.
+    const inicio = instanteDesdeLima(FECHA, "11:10");
+    idFuera = (await c.query(
+      `insert into public.citas (paciente_id, medico_id, inicio, fin, estado, origen) values ($1, $2, $3, $4, 'reservada', 'administrativo') returning id`,
+      [pacienteX, medicoA, inicio, new Date(inicio.getTime() + SLOT)],
+    )).rows[0].id as string;
+    const fuera = await como(ADMIN, (e) => citasFueraDeLaPlantilla(e, medicoA));
+    assert.deepEqual(fuera.map((f) => f.id), [idFuera]);
+    assert.equal(fuera[0]!.paciente, "Paciente Consultas");
+    assert.equal(fuera[0]!.documento, "DNI 73800001");
+    assert.equal((await c.query(`select estado::text as e from public.citas where id = $1`, [idFuera])).rows[0].e, "reservada", "no se canceló");
+  } finally {
+    if (idFuera) await c.query(`delete from public.citas where id = $1`, [idFuera]);
+    await c.end();
+  }
 });

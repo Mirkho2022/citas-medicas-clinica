@@ -84,3 +84,10 @@ export function textoFechaConDia(fecha: string): string {
   const nombre = NOMBRES_DIA[diaDeLaSemana(fecha)];
   return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${String(dia).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${anio}`;
 }
+
+// «20/10/2026»: una fecha de calendario `AAAA-MM-DD` con el formato de pantalla de DESIGN.md, sin pasar por zonas horarias (a
+// diferencia de `fechaLima`, que formatea un instante).
+export function textoFecha(fecha: string): string {
+  const [anio, mes, dia] = partes(fecha);
+  return `${String(dia).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${anio}`;
+}
