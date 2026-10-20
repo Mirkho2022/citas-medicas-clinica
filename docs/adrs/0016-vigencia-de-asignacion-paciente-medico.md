@@ -94,3 +94,9 @@ riesgo que RLS existe para prevenir — es el riesgo principal declarado del pro
 - La tabla crece con una fila por cada cita que alcanza `confirmada`/`atendida` (no se sobrescribe
   ninguna); a la escala de una clínica esto es proporcional al volumen de citas, no un problema de
   crecimiento sin control.
+
+**Nota (2026-10-19, H3) — propuesta, pendiente de revisión humana:** quien confirma la cita es la **recepción** (rol administrativo):
+`reservada → confirmada` y `confirmada → no_asistio`; el médico solo marca `confirmada → atendida`, sobre sus propias citas, con
+`marcar_cita_atendida()`. Un disparador cierra la matriz de transiciones para el usuario de la aplicación. Confirmar es el hecho que
+concede al médico el acceso a la historia; reprogramar y reasignar crean la cita nueva `reservada`, sin acceso hasta que se confirme.
+No cambia el texto de la decisión.

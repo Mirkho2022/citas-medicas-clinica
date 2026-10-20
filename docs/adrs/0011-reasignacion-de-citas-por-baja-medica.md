@@ -35,3 +35,10 @@ ni perder la relación entre la cita original y la nueva.
   con el mismo médico si vuelve a estar disponible pronto) ni carga de trabajo ya asignada al
   sustituto más allá de la disponibilidad de agenda — el administrativo debe revisar la propuesta
   antes de confirmarla, el sistema no la ejecuta de forma autónoma.
+
+**Nota (2026-10-19, H3) — propuesta, pendiente de revisión humana:** la reasignación se implementa con `reasignar_cita_por_baja()`,
+que valida que el bloqueo sea del médico de la cita y la cubra y que el sustituto sea un médico activo, de la misma especialidad y
+distinto, y delega en `reprogramar_cita()`: la original queda `cancelada` y la nueva nace `reservada` con `reprogramada_de` apuntando
+a la **original** (la columna vive en la cita nueva). El sustituto no obtiene acceso a la historia clínica por recibir la cita: el
+acceso lo concede `confirmar` ([ADR-0016](0016-vigencia-de-asignacion-paciente-medico.md)). La pantalla solo reasigna las filas que
+la recepción elige; una cita sin propuestas se marca «Contactar al paciente». No cambia el texto de la decisión.
