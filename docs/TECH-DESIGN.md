@@ -957,6 +957,19 @@ app/
 > dentro de ellas (p. ej. «Mis citas» en `/paciente/citas`); cada change actualiza este árbol al
 > implementarse.
 
+**Rutas reales del administrativo (H3, 2026-10-19).** Todas las páginas llaman a `auth.protect()`, comprueban el rol y redirigen a
+`/configurar-mfa` sin MFA; las acciones vuelven a comprobar rol y MFA (`exigirPersonal`). El estado de cada pantalla vive en la URL y
+se lee en el servidor con la identidad del usuario, de modo que la RLS decide qué filas existen.
+
+| Ruta | Qué hace |
+|---|---|
+| `/administrativo` | Portada con atajos a las cuatro pantallas |
+| `/administrativo/agenda` | Agenda del día (`?fecha=`, `?medico=`): citas con los huecos libres intercalados; confirmar, «No asistió», cancelar, reprogramar y agendar |
+| `/administrativo/agenda/nueva` | Agendar en tres pasos (`?paciente=`, `?medico=`, `?fecha=`) y reprogramar (`?reprogramar=<cita>`) |
+| `/administrativo/pacientes` | Buscar (`?q=`) por documento exacto o inicio de apellidos y registrar pacientes |
+| `/administrativo/horarios` y `/administrativo/horarios/[medicoId]` | Plantilla semanal y ausencias de cada médico; citas que la plantilla ya no cubre |
+| `/administrativo/bajas` y `/administrativo/bajas/[bloqueoId]` | Bajas médicas con citas por reasignar y por contactar; reasignación al sustituto |
+
 Cada grupo de rutas lleva un `layout.tsx` que verifica el rol en servidor y redirige si no
 corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad real es RLS.
 
@@ -972,8 +985,16 @@ corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad r
 | `firmarAtencion` | médico | Autoría propia; vuelve la nota inmutable |
 | `agregarAddenda` | médico | Atención existente y firmada |
 | `asignarTurno` | administrativo | Sin choque de turno para la enfermera |
-| `reasignarPorBaja` | administrativo | Sustituto de la misma especialidad y libre |
+| `reasignarPorBaja` | administrativo | Sustituto de la misma especialidad y libre; una transacción por cita y un resultado por fila |
+| `buscarPacientes` | administrativo | Texto no vacío: documento exacto o inicio de apellidos; máximo 20 resultados, sin datos clínicos |
+| `confirmarCita` | administrativo | `reservada` → `confirmada` mientras la cita no haya terminado; concede el acceso del médico a la historia ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) |
+| `marcarNoAsistio` | administrativo | `confirmada` → `no_asistio` solo si la hora de la cita ya empezó |
+| `marcarAtendida` | médico | Cita propia, `confirmada` y ya empezada (función `marcar_cita_atendida()`) |
+| `guardarDisponibilidad`, `eliminarDisponibilidad` | administrativo | Sin cruce de tramos del mismo médico; informa cuántas citas vigentes quedan fuera de la plantilla (no las cancela) |
+| `crearBloqueo`, `actualizarBloqueo`, `eliminarBloqueo` | administrativo | Sin cruce de ausencias; fin posterior al inicio; informa cuántas citas vigentes caen dentro |
 | `asignarPacienteAMedico` | administrativo | Asignación manual paciente-médico para casos especiales (interconsulta, cobertura, médico de cabecera); `vigente_hasta` opcional ([ADR-0016](adrs/0016-vigencia-de-asignacion-paciente-medico.md)) |
+
+**Cierre de citas vencidas (no es una Server Action).** `cerrarCitasVencidas` (`lib/citas/cierre.ts`) la llama la agenda del administrativo antes de leer (y, en H7, la jornada del médico): pasa a `no_asistio` las `reservada` que ya terminaron sin confirmarse, por la función `cerrar_citas_vencidas_como_personal()` (exige administrativo o médico; sin cron ni credencial de servicio). Ver `openspec/changes/agenda-y-reserva/design.md`, D13.
 
 Todas validan con Zod en servidor antes de tocar la base de datos, y todas devuelven un resultado
 tipado `{ ok: true, datos } | { ok: false, mensaje }` — nunca lanzan la excepción de Postgres al

@@ -91,6 +91,9 @@ const MEDICOS = [
   { clave: "mock_medico_2", esp: 1, cmp: "CMP-DEMO-002", nombres: "Lucía", apellidos: "Paredes Ruiz", horaInicio: "08:00" },
   { clave: "mock_medico_3", esp: 2, cmp: "CMP-DEMO-003", nombres: "Jorge", apellidos: "Mendoza Rojas", horaInicio: "14:00" },
   { clave: "mock_medico_4", esp: 3, cmp: "CMP-DEMO-004", nombres: "Patricia", apellidos: "Quispe León", horaInicio: "14:00" },
+  // Segundo médico de Medicina general (H3): sin un colega de la misma especialidad no hay sustituto para probar la
+  // reasignación por baja. Va al final para no mover los índices que usan las citas, los antecedentes y los turnos.
+  { clave: "mock_medico_5", esp: 0, cmp: "CMP-DEMO-005", nombres: "Raúl", apellidos: "Acosta Vidal", horaInicio: "08:00" },
 ];
 const ENFERMERAS = [
   { clave: "enfermera", nombres: "Rosa", apellidos: "Díaz Torres" },

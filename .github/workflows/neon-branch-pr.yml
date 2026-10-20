@@ -68,13 +68,13 @@ jobs:
           DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
           DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
 
-      - name: Pruebas de concurrencia (doble reserva)
+      - name: Pruebas de concurrencia (doble reserva, reservar_cita y altas simultáneas)
         run: npm run test:concurrencia
         env:
           DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}
           DATABASE_URL_PRODUCCION: ${{ secrets.DATABASE_URL_PRODUCCION }}
 
-      - name: Pruebas de integración (sincronización de perfiles con el rol sync_identidad)
+      - name: Pruebas de integración (sincronización de perfiles y acciones de H3 con la RLS de cada rol)
         run: npm run test:integracion
         env:
           DATABASE_URL_PRUEBAS: ${{ steps.neon.outputs.db_url }}

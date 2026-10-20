@@ -43,3 +43,11 @@ recordatorios) para no requerir plan de pago de Vercel. Ver
 **Nota (2026-10-08, H2):** «doble reserva» corresponde a `23P01` **y** a `40P01` (`deadlock_detected`), que Postgres puede
 devolver cuando varias reservas del mismo horario chocan a la vez; ambos se traducen al mismo mensaje de negocio. Ver
 [ADR-0005](0005-modelo-de-datos-y-prevencion-de-doble-reserva.md) y [TECH-DESIGN.md](../TECH-DESIGN.md), «Doble reserva».
+
+**Nota (2026-10-19, H3) — propuesta, pendiente de revisión humana:** las reglas de negocio nuevas de la agenda se rechazan con
+`SQLSTATE` propios de la clase `UC` (reservada por el estándar a la implementación), que `lib/citas/errores.ts` traduce por el
+contexto de la acción: `UC001` horario no disponible (pasado, fuera de la agenda del médico, en una ausencia o con un médico de baja),
+`UC002` la cita ya no está vigente, `UC003` la reasignación no corresponde a la baja registrada y `UC004` transición de estado no
+permitida (confirmar, «No asistió» o «Atendida»). `P0001` significa únicamente «ventana de cancelación»; `42501`, falta de permiso
+(también cuando se intenta editar una cita fuera de `estado`). Un horario ocupado **no** es `UC001`: es `23P01` y sigue produciendo el
+mensaje exacto `Registro de cita ya agendado`. No cambia el texto de la decisión.

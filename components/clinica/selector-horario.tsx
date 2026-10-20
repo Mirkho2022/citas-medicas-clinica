@@ -18,10 +18,17 @@ export function SelectorHorario({
   horarios,
   nombre = "inicio",
   valorInicial = null,
+  alElegir,
+  mostrarAdvertencia = true,
 }: {
   horarios: HorarioSeleccionable[];
   nombre?: string;
   valorInicial?: string | null;
+  // Avisa al padre del horario elegido (la consola lo necesita para el resumen y para enviar el `fin` del hueco).
+  alElegir?: (inicio: string) => void;
+  // La advertencia «Podrá cancelar esta cita…» es la del portal (habla al paciente). La consola muestra la suya, dirigida a quien
+  // agenda («Informe al paciente…»), en el resumen.
+  mostrarAdvertencia?: boolean;
 }) {
   const [elegido, setElegido] = useState<string | null>(valorInicial);
 
@@ -40,7 +47,10 @@ export function SelectorHorario({
               type="button"
               disabled={!h.disponible}
               aria-pressed={seleccionado}
-              onClick={() => setElegido(h.inicio)}
+              onClick={() => {
+                setElegido(h.inicio);
+                alElegir?.(h.inicio);
+              }}
               className={cn(
                 "flex h-12 flex-col items-center justify-center rounded-md border text-label-lg tabular-nums transition-colors",
                 h.disponible
@@ -60,7 +70,7 @@ export function SelectorHorario({
       </div>
       <input type="hidden" name={nombre} value={elegido ?? ""} />
       <div aria-live="polite">
-        {elegido ? (
+        {mostrarAdvertencia && elegido ? (
           <Alerta tono="aviso">
             Podrá cancelar esta cita hasta 1 hora antes, a las {horaLimiteCancelacion(elegido)}.
           </Alerta>

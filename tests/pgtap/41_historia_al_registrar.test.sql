@@ -1,6 +1,7 @@
 -- Historias clínicas (H2, tarea 6.2): la historia se crea al registrar al paciente.
--- Spec: integridad-historia-clinica («Una carpeta de historia por paciente»).
-select plan(8);
+-- Spec: integridad-historia-clinica («Una carpeta de historia por paciente») e identificacion-de-pacientes
+-- («El administrativo no ve contenido clínico del paciente que registró»; H3, tarea 8.2).
+select plan(10);
 
 -- El dueño registra pacientes (el disparador es SECURITY DEFINER).
 insert into public.pacientes (tipo_documento, numero_documento, nombres, apellidos, fecha_nacimiento, sexo, email) values
@@ -37,6 +38,15 @@ select lives_ok(
   $q$ insert into public.pacientes (tipo_documento, numero_documento, nombres, apellidos, fecha_nacimiento, sexo, email)
       values ('DNI', '77000003', 'Registrado', 'PorAdmin', '1992-02-02', 'F', 'h3@demo.invalid') $q$,
   'el administrativo registra un paciente: el disparador (SECURITY DEFINER) crea la historia por él'
+);
+-- La carpeta se creó a su nombre, pero el administrativo no la ve: ni la del paciente que acaba de registrar ni ninguna otra.
+select is(
+  (select count(*)::int from public.historias_clinicas where paciente_id = (select id from public.pacientes where numero_documento = '77000003')), 0,
+  'el administrativo NO ve la historia clínica del paciente que acaba de registrar'
+);
+select is(
+  (select count(*)::int from public.historias_clinicas), 0,
+  'el administrativo NO ve ninguna historia clínica'
 );
 select tests.volver_a_dueno();
 select is(

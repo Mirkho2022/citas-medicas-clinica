@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./tema.generado.css";
+@import "./movimiento.css";
 
 /* Los valores (colores, tipografía, espaciado, radios y sombras) vienen de docs/DESIGN.md vía tema.generado.css:
    cámbielos allí y ejecute `npm run tema`. Este archivo no declara ningún color. */

@@ -13,6 +13,7 @@
     "migrate": "node-pg-migrate",
     "test:e2e": "playwright test",
     "test:pgtap": "node scripts/ejecutar-pgtap.ts",
+    "test:agenda": "node --test \"tests/agenda/*.test.ts\"",
     "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
     "test:integracion": "node --test \"tests/integracion/*.test.ts\"",
     "test:tema": "node --test \"tests/tema/*.test.ts\""

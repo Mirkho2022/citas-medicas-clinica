@@ -31,6 +31,30 @@ Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). 
 - Los previews de Vercel están protegidos con Vercel Authentication: se entra con el *Protection
   Bypass for Automation* (`VERCEL_AUTOMATION_BYPASS_SECRET`).
 
+## Agenda del administrativo (H3)
+
+Tres archivos de [e2e/](../e2e/) cubren las pantallas de H3 con la cuenta de administrativo (TOTP) y, en el negativo, la de paciente:
+
+| Archivo | Qué recorre |
+|---|---|
+| [agenda.spec.ts](../e2e/agenda.spec.ts) | Registrar pacientes `99…` (un DNI de 7 dígitos muestra «El DNI debe tener 8 dígitos»; un duplicado ofrece abrir al existente), agendar 14 días adelante con la advertencia y su hora límite en Lima, **doble reserva desde un segundo contexto** (`Registro de cita ya agendado`), confirmar («No asistió» aún no se ofrece), reprogramar y cancelar (la cita queda «Cancelada» sin acciones) |
+| [bajas.spec.ts](../e2e/bajas.spec.ts) | Agendar dos citas con el titular de Medicina general, registrar una ausencia que las cubra (el aviso dice cuántas caen dentro), reasignar **una** al sustituto, confirmar la nueva y dejar la otra por reasignar; el paciente que abre las rutas del administrativo vuelve a su área |
+| [accesibilidad.spec.ts](../e2e/accesibilidad.spec.ts) (prueba de H3) | axe (WCAG 2.1 A y AA) sobre Pacientes, Agenda, Agendar, Horarios y Bajas a 1280 y 390 px y con los diálogos y el selector de fecha abiertos; el foco entra al diálogo y vuelve al botón con Escape; todo control de la consola mide 24 px o más |
+
+- **Requieren los datos de demostración** ([datos-demo.md](datos-demo.md)): médicos con horario de lunes a viernes y dos médicos de Medicina
+  general. Sin ellos `agenda.spec.ts` y `bajas.spec.ts` se **omiten con un aviso** (no fallan). Los pacientes `99…` que crean no se pueden
+  borrar; las citas y la ausencia sí se cancelan y se borran al terminar.
+- **La base del preview es la rama `dev` de Neon**, no la rama efímera del PR (esa solo sirve a pgTAP, concurrencia e integración). Para que
+  un preview con pantallas nuevas funcione hay que aplicar las migraciones pendientes a `dev` y sembrar la demostración
+  (`node scripts/sembrar-datos-demo.ts --confirmar` con la URL directa de `dev`), como dice el plan de migración de cada change. Sin eso la
+  pantalla muestra «No se pudo cargar la página» y el registro de Vercel dice qué función falta.
+- **Correr contra un preview:** `PLAYWRIGHT_BASE_URL=<url del preview> npx playwright test e2e/agenda.spec.ts` con las variables `E2E_*`,
+  `CLERK_SECRET_KEY` y `VERCEL_AUTOMATION_BYPASS_SECRET` en el entorno. Con `CAPTURAS_H3=<carpeta>` guardan una captura de cada pantalla en
+  los pasos clave. Muchos inicios de sesión seguidos pueden agotar el límite de Clerk: si `iniciarSesion` agota el tiempo en pruebas que no
+  tocó, espere unos minutos y repita.
+- **La marca «Contactar al paciente»** (cita sin ningún sustituto libre) no se puede provocar desde la interfaz sin dar de baja al sustituto;
+  la cubre `tests/integracion/consultas.test.ts` contra la base real.
+
 ## Interfaz: tema, componentes y galería (H2b)
 
 La interfaz sigue [DESIGN.md](DESIGN.md). Antes de abrir un PR de interfaz: `npm run test:tema` (generador y

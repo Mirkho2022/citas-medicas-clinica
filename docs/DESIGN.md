@@ -311,7 +311,11 @@ con soporte completo del español (`á é í ó ú ü ñ ¿ ¡`):
 - **Portal del paciente:** una columna de hasta 640 px, centrada, con tarjetas apiladas; navegación inferior de 3 destinos en
   móvil (Inicio, Mis citas, Reservar). Se diseña primero para móvil.
 - **Consola del personal:** barra lateral de 240 px (colapsable) + área de contenido de hasta 1280 px. Tablas con filas de
-  40 px, filtros arriba, acciones masivas en una barra fija. Pensada para escritorio.
+  40 px, filtros arriba, acciones masivas en una barra fija. Pensada para escritorio. Bajo `md` (768 px) las tablas ocultan las
+  columnas secundarias (documento, médico y servicio en la agenda; periodo y motivo en las bajas; servicio y estado en los
+  horarios) para que quepan las decisivas (estado, acciones, recuentos y enlaces) sin desplazar la tabla; lo ocultado está en la
+  página de detalle. En esos anchos el relleno horizontal de las celdas baja de 16 a 6 px, los títulos numéricos se parten en dos
+  líneas y «Ver horarios» se muestra como «Ver» (su nombre accesible no cambia).
 - **Historia clínica:** dos zonas: la ficha del paciente (solo lectura) a un lado o arriba y el formulario de la atención
   como contenido principal; la barra con «Guardar» queda fija al pie.
 - **Puntos de quiebre:** `sm 640`, `md 768`, `lg 1024`, `xl 1280` (los de Tailwind).

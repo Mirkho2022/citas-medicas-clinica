@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import type { Rol } from "@/lib/auth/rol";
 import { NAVEGACION, destinoActivo } from "@/lib/ui/navegacion";
 import { cn } from "@/lib/utils";
@@ -66,9 +67,19 @@ export function NavegacionInferior({ rol }: { rol: Rol }) {
 // Barra lateral de la consola del personal (240 px en escritorio; en pantallas estrechas se muestra como lista horizontal).
 export function NavegacionLateral({ rol }: { rol: Rol }) {
   const ruta = usePathname();
+  const lista = useRef<HTMLUListElement>(null);
+  // En una pantalla estrecha la lista se desplaza en horizontal y el destino actual (Horarios, Bajas médicas) podía quedar fuera de
+  // vista: se centra en la lista al cambiar de página. Solo mueve la lista, nunca la página, y no hace nada si todo cabe.
+  useEffect(() => {
+    const contenedor = lista.current;
+    const actual = contenedor?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!contenedor || !actual || contenedor.scrollWidth <= contenedor.clientWidth) return;
+    const izquierda = actual.getBoundingClientRect().left - contenedor.getBoundingClientRect().left + contenedor.scrollLeft;
+    contenedor.scrollLeft = izquierda - (contenedor.clientWidth - actual.offsetWidth) / 2;
+  }, [ruta]);
   return (
     <nav aria-label="Principal" className="px-3 py-2 md:py-4">
-      <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+      <ul ref={lista} className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {NAVEGACION[rol].map((destino) => {
           const Icono = destino.icono;
           const activo = destinoActivo(destino, ruta, RAIZ[rol]);
@@ -76,8 +87,9 @@ export function NavegacionLateral({ rol }: { rol: Rol }) {
             <>
               <Icono className="size-5 shrink-0" aria-hidden="true" />
               <span className="whitespace-nowrap">{destino.etiqueta}</span>
+              {/* «Próximamente» va debajo de la etiqueta: con nombres largos («Notificaciones») no cabe al lado en 240 px. */}
               {destino.disponible ? null : (
-                <span className="ml-auto whitespace-nowrap text-label-sm font-normal">Próximamente</span>
+                <span className="basis-full whitespace-nowrap pl-7 text-label-sm font-normal">Próximamente</span>
               )}
             </>
           );
@@ -97,7 +109,7 @@ export function NavegacionLateral({ rol }: { rol: Rol }) {
               ) : (
                 <span
                   aria-disabled="true"
-                  className="flex min-h-9 items-center gap-2 rounded-md px-3 py-2 text-label-md text-ink-muted opacity-70"
+                  className="flex min-h-9 flex-wrap items-center gap-x-2 rounded-md px-3 py-2 text-label-md text-ink-muted opacity-70"
                 >
                   {contenido}
                 </span>

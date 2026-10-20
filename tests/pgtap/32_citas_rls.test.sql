@@ -29,6 +29,14 @@ insert into e
   union all select 'pc', id from public.pacientes where numero_documento = '75000003'
   union all select 'perfil_admin', id from public.perfiles where clerk_user_id = tests.sub('administrativo');
 
+-- Malla de los dos médicos: todos los días de 08:00 a 11:00 en huecos de 20 minutos. Desde H3 (6.4) citas_validar_horario rechaza
+-- (UC001) los INSERT de un usuario de la aplicación que no caen en un hueco de la agenda; las pruebas de política de abajo
+-- tienen que llegar a la política con horas que sí lo sean. Las citas que inserta el dueño no pasan por ese disparador.
+insert into public.disponibilidades (medico_id, dia_semana, hora_inicio, hora_fin, duracion_slot_min, vigente_desde, vigente_hasta)
+  select m.id, d, '08:00', '11:00', 20, '2020-01-01', null
+  from public.medicos m, generate_series(0, 6) d
+  where m.id in (select id from e where clave in ('m_a', 'm_b'));
+
 insert into public.citas (paciente_id, medico_id, inicio, fin, origen) values
   ((select id from e where clave = 'pa'), (select id from e where clave = 'm_a'), '2032-03-01 09:00:00-05', '2032-03-01 09:20:00-05', 'portal'),
   ((select id from e where clave = 'pb'), (select id from e where clave = 'm_a'), '2032-03-01 10:00:00-05', '2032-03-01 10:20:00-05', 'portal'),
@@ -77,16 +85,25 @@ select throws_ok(
               '2032-03-05 09:00:00-05', '2032-03-05 09:20:00-05', 'administrativo') $q$,
   '42501', null, 'el paciente NO crea citas con origen administrativo'
 );
+-- El «pasado» lo rechazan dos barreras: citas_validar_horario (UC001, corre antes) y la política (42501, `inicio > now()`).
+-- Para probar la política por separado, el dueño apaga el disparador solo en estas dos sentencias; en 62 se prueba el disparador.
+select tests.volver_a_dueno();
+alter table public.citas disable trigger citas_validar_horario;
+select tests.autenticar_como('paciente_a');
 select throws_ok(
   $q$ insert into public.citas (paciente_id, medico_id, inicio, fin, origen)
       values ((select id from e where clave = 'pa'), (select id from e where clave = 'm_a'),
               now() - interval '2 hours', now() - interval '100 minutes', 'portal') $q$,
   '42501', null, 'el paciente NO reserva en el pasado'
 );
+select tests.volver_a_dueno();
+alter table public.citas enable trigger citas_validar_horario;
+select tests.autenticar_como('paciente_a');
+-- Mismo hueco que su otra cita (03-01 09:00, con m_a) pero con otro médico: lo para el motor, no la política ni el disparador.
 select throws_ok(
   $q$ insert into public.citas (paciente_id, medico_id, inicio, fin, origen)
       values ((select id from e where clave = 'pa'), (select id from e where clave = 'm_b'),
-              '2032-03-01 09:10:00-05', '2032-03-01 09:30:00-05', 'portal') $q$,
+              '2032-03-01 09:00:00-05', '2032-03-01 09:20:00-05', 'portal') $q$,
   '23P01', null, 'la doble reserva sigue bloqueada por el motor aunque la política permita insertar'
 );
 select lives_ok(

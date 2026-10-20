@@ -7,8 +7,10 @@ Reemplaza el proceso actual (Excel + Google Forms para citas, papel para histori
 autenticación y roles (H1) y el esquema de base de datos con RLS, sus pruebas y los datos de demostración (H2,
 ver [spike-rls-h2.md](docs/spike-rls-h2.md), [pruebas-sql.md](docs/pruebas-sql.md) y
 [datos-demo.md](docs/datos-demo.md)), y el sistema de diseño de la interfaz (H2b: tema, componentes y estructuras de
-pantalla, ver [DESIGN.md](docs/DESIGN.md)). El resto de módulos (agenda, portal, notificaciones, historias clínicas,
-turnos) llegan en H3–H8.**
+pantalla y movimiento, ver [DESIGN.md](docs/DESIGN.md)), y la agenda y reserva de citas del administrativo (H3:
+pacientes, agenda del día, agendar y reprogramar, horarios y bajas médicas con reasignación, y el ciclo de estados de la
+cita; ver [pruebas-sql.md](docs/pruebas-sql.md) y [pruebas-e2e.md](docs/pruebas-e2e.md)). El resto de módulos (portal del
+paciente, notificaciones, historias clínicas, turnos) llegan en H4–H8.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
 con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
