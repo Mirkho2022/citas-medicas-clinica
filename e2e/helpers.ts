@@ -108,15 +108,21 @@ export async function iniciarSesion(
       if (!opciones.totpSecret) {
         throw new Error("La cuenta pide TOTP y no se pasó totpSecret");
       }
-      await campoCodigo.pressSequentially(codigoTotp(opciones.totpSecret));
+      // Clerk rechaza («Código incorrecto») un código TOTP ya usado en la misma ventana de 30 s, y la cuenta de pruebas es
+      // compartida: otra corrida (local o del CI) que inicie sesión a la vez lo consume. Si no navega, se espera a la ventana
+      // siguiente y se reintenta con el código nuevo.
+      for (let intento = 0; ; intento++) {
+        await campoCodigo.fill("");
+        await campoCodigo.pressSequentially(codigoTotp(opciones.totpSecret));
+        const navego = await page
+          .waitForURL((u) => u.href !== urlAntes, { timeout: 10_000, waitUntil: "commit" })
+          .then(() => true, () => false);
+        if (navego) break;
+        if (intento === 2) throw new Error("Clerk rechazó tres códigos TOTP seguidos");
+        await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 1_000);
+      }
     } else {
       return;
-    }
-    if (!pathname.includes("client-trust")) {
-      await page.waitForURL((u) => u.href !== urlAntes, {
-        timeout: 30_000,
-        waitUntil: "commit",
-      });
     }
   }
 }

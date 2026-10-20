@@ -110,6 +110,11 @@ test("bajas: una ausencia cubre dos citas, se reasigna una al sustituto y la otr
     const ausencia = page.getByRole("listitem").filter({ hasText: MOTIVO });
     await expect(ausencia.getByText("2 citas vigentes caen dentro de esta ausencia.")).toBeVisible();
     await capturar(page, "10-horarios-con-ausencia");
+
+    // Mientras dura la ausencia (06:00 a 14:00, que cubre todo el horario de la mañana) la agenda del médico no ofrece huecos.
+    await page.goto(`/administrativo/agenda?fecha=${DIA}&medico=${titular.valor}`);
+    await expect(fila(page, horaA, apellidoA)).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: "Libre" })).toHaveCount(0);
   });
 
   await test.step("la lista de bajas cuenta las dos citas por reasignar", async () => {

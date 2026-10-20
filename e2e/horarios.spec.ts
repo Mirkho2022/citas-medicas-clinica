@@ -59,13 +59,22 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
   await test.step("alta: un tramo de domingo de 08:00 a 09:00 cada 20 minutos", async () => {
     await page.goto(url);
     await expect(page.getByRole("heading", { name: nombre, level: 1 })).toBeVisible();
+    // Idempotente: si una corrida anterior falló a medias y dejó un tramo de domingo, se borra antes de empezar.
+    const sobrantes = domingo().getByRole("button", { name: /^Eliminar/ });
+    while ((await sobrantes.count()) > 0) {
+      await sobrantes.first().click();
+      const confirmar = page.getByRole("alertdialog", { name: "¿Eliminar este horario?" });
+      await confirmar.getByRole("button", { name: "Eliminar horario" }).click();
+      await expect(confirmar).toBeHidden();
+      await page.waitForTimeout(500);
+    }
     await expect(domingo().getByText("Sin horario")).toBeVisible();
     const dialogo = await abrirFormulario();
     await llenar(dialogo, "08:00", "09:00");
     await dialogo.getByRole("button", { name: "Guardar horario" }).click();
     await expect(page.getByText("Horario guardado.")).toBeVisible();
-    await expect(domingo().getByText("08:00–09:00")).toBeVisible();
-    await expect(domingo().getByText(/cada 20 min/)).toBeVisible();
+    await expect(domingo().getByText("08:00–09:00", { exact: true })).toBeVisible();
+    await expect(domingo().getByText(/cada 20 min/).first()).toBeVisible();
     await capturar(page, "13-horarios-con-tramo");
   });
 
@@ -78,7 +87,7 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
     await capturar(page, "14-horarios-solape");
     await dialogo.getByRole("button", { name: "Volver" }).click();
     await expect(dialogo).toBeHidden();
-    await expect(domingo().getByText("08:30–09:30")).toHaveCount(0);
+    await expect(domingo().getByText("08:30–09:30", { exact: true })).toHaveCount(0);
   });
 
   let idPaciente = "";

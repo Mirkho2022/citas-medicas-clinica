@@ -8,6 +8,18 @@ import { iniciarSesion, prepararPagina, variable } from "./helpers";
 const ETIQUETAS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 async function revisar(page: Page, nombre: string) {
+  // Los diálogos entran con una transición de opacidad y axe mide el contraste con el color ya mezclado (un botón primario a medio
+  // aparecer da 4,06 : 1 en vez de 5,47 : 1). Se espera a que no quede ninguna animación finita en curso; las infinitas (el brillo
+  // del esqueleto de carga) no terminan nunca y no cuentan.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.getAnimations().filter((a) => a.playState === "running" && Number(a.effect?.getComputedTiming().endTime) !== Infinity)
+            .length,
+      ),
+    )
+    .toBe(0);
   const { violations } = await new AxeBuilder({ page }).withTags(ETIQUETAS).analyze();
   const resumen = violations.map(
     (v) =>
