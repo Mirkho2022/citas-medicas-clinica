@@ -41,8 +41,8 @@ export default async function PaginaBajas() {
                 <TableHead scope="col">Médico</TableHead>
                 <TableHead scope="col" className="hidden md:table-cell">Periodo (hora de Lima)</TableHead>
                 <TableHead scope="col" className="hidden md:table-cell">Motivo</TableHead>
-                <TableHead scope="col" className="text-right">Por reasignar</TableHead>
-                <TableHead scope="col" className="text-right">Por contactar</TableHead>
+                <TableHead scope="col" className="text-right whitespace-normal md:whitespace-nowrap">Por reasignar</TableHead>
+                <TableHead scope="col" className="text-right whitespace-normal md:whitespace-nowrap">Por contactar</TableHead>
                 <TableHead scope="col">
                   <span className="sr-only">Acciones</span>
                 </TableHead>

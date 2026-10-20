@@ -34,8 +34,8 @@ export default async function PaginaHorarios() {
               <TableRow className="hover:bg-transparent">
                 <TableHead scope="col">Médico</TableHead>
                 <TableHead scope="col" className="hidden md:table-cell">Servicio</TableHead>
-                <TableHead scope="col" className="text-right">Horarios semanales</TableHead>
-                <TableHead scope="col" className="text-right">Ausencias vigentes</TableHead>
+                <TableHead scope="col" className="text-right whitespace-normal md:whitespace-nowrap">Horarios semanales</TableHead>
+                <TableHead scope="col" className="text-right whitespace-normal md:whitespace-nowrap">Ausencias vigentes</TableHead>
                 <TableHead scope="col" className="hidden md:table-cell">Estado</TableHead>
                 <TableHead scope="col">
                   <span className="sr-only">Acciones</span>
