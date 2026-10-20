@@ -24,12 +24,13 @@ empieza cuando H2b está aplicado.
       (hijo de `dev`) y en `production`; ambos tienen **0 filas** en `disponibilidades` (la siembra de demostración aún no se
       aplicó a `dev` ni a producción, así que la restricción nueva no puede fallar al migrar). Pendiente: copiar la consulta y este
       resultado a la descripción del PR.
-- [ ] 1.3 Revisar con el usuario las preguntas abiertas de `design.md` que condicionan pantallas (1, 2 y 3: cita `reservada`
+- [x] 1.3 Revisar con el usuario las preguntas abiertas de `design.md` que condicionan pantallas (1, 2 y 3: cita `reservada`
       vencida sin confirmar, horizonte de sustitutos y baja sin fecha de término) y anotar las respuestas en `design.md` antes
       del grupo 11. Verificar que cada pregunta queda con respuesta o con el valor por defecto aceptado por escrito.
-      Avance (2026-10-20, sin marcar): la pregunta 1 (reservada vencida) la respondió el cliente: se cierra sola como «No asistió», sin cron (D13). Faltan
-      por escrito los valores por defecto de la 2 (horizonte de sustitutos: mismo día primero y hasta 7 días) y de la 3 (baja sin fecha de término: H3 exige
-      fecha de fin en la pantalla; la base ya admite el rango abierto y la vista de citas por reasignar lo trata como vigente).
+      Resultado (2026-10-20): la pregunta 1 (reservada vencida) la respondió el cliente: se cierra sola como «No asistió», sin cron (D13). El cliente
+      aceptó los valores por defecto de la 2 (horizonte de sustitutos: mismo día primero y hasta 7 días) y de la 3 (baja sin fecha de término: la
+      pantalla exige fecha de fin; la base ya admite el rango abierto y la vista de citas por reasignar lo trata como vigente). Quedan anotados en
+      `design.md`, «Open Questions».
 - [x] 1.4 Verificar con un script descartable (sin commitear) contra un branch de desarrollo que el driver HTTP de Neon entrega
       `code` en el error de una violación `23P01`, de un `raise exception … using errcode = 'UC001'` y de un `40P01`
       simulado en PL/pgSQL, y si expone `constraint`. Verificar anotando los tres resultados en el PR; el traductor de errores
@@ -526,9 +527,9 @@ empieza cuando H2b está aplicado.
       Resultado (2026-10-20): todo corre en limpio en el CI del PR: `ci.yml` (`npm ci`, lint, typecheck, build, `test:agenda` con 211) y `neon-branch-pr.yml` (migrar, pgTAP,
       concurrencia e integración) y el job `e2e` (34 pruebas), en verde. La descripción del PR trae el cuadro requisito → prueba de los 32 requisitos de las cuatro specs.
 
-- [ ] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
+- [x] 13.3 Revisar en el preview de Vercel las pantallas nuevas a 1280 px y a 390 px y mostrar capturas al usuario; verificar que da su
       visto bueno o lista ajustes (se hacen antes del merge). Confirmar con `openspec validate agenda-y-reserva --strict`.
-      Avance (2026-10-20, sin marcar: falta el visto bueno del usuario y la decisión del punto 3): revisión hecha sobre el preview del commit e4a47cb, con
+      Avance (2026-10-20): revisión hecha sobre el preview del commit e4a47cb, con
       37 capturas a 1280 y a 390 px (las pantallas nuevas, los tres diálogos y los pasos clave de las E2E; quedan fuera del repositorio). Comprobado de punta
       a punta en el preview, con la base `dev` ya migrada (se aplicaron ahí las tres migraciones nuevas, como dice el plan de migración): una `reservada`
       de ayer insertada a mano pasó a «No asistió» al abrir la agenda, sin acciones, y se borró después. Hallazgos:
@@ -539,6 +540,12 @@ empieza cuando H2b está aplicado.
       horarios»). Propuesta: ocultar bajo 768 px las columnas secundarias (Documento y Médico; Periodo y Motivo; Servicio y Estado) o presentar cada fila como
       tarjeta; (4) sugerencias: ocultar o plegar las citas canceladas de la agenda (llenan el día), alinear la línea base del día y la hora del horario
       semanal, y la demostración usa especialidades (Pediatría, Cardiología, Ginecología) distintas de las cinco de la clínica.
+      Resultado (2026-10-20): el cliente dio su visto bueno y decidió el punto (3): **ocultar las columnas secundarias bajo `md` (768 px)** (Agenda: Documento
+      y Médico y servicio; Bajas: Periodo y Motivo; Horarios: Servicio y Estado), sin tarjetas. Hecho (`hidden md:table-cell` en cabeceras y celdas; en la
+      agenda, Estado y Acciones dejan de tener ancho fijo bajo `md`; el relleno horizontal de las celdas baja de 16 a 6 px, los títulos numéricos se parten
+      en dos líneas y «Ver horarios» se muestra como «Ver») y anotado en `docs/DESIGN.md`. El escritorio no cambia. Verificado en el preview (2026-10-20):
+      a 390 px las tres tablas caben sin desplazarse por dentro (se midió el ancho de cada una contra su caja) y a 1280 px conservan todas sus columnas;
+      el E2E del CI sigue en verde; hay capturas de las tres. Los puntos (1) y (2) ya estaban corregidos; las sugerencias de (4) quedan a criterio del cliente.
 - [ ] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está
       READY y que `select proname from pg_proc where proname in (…)` muestra las funciones. La siembra ampliada en producción es una
       acción explícita aparte (5.4), no parte del merge.

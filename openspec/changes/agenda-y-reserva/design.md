@@ -400,9 +400,12 @@ Se pueden responder después sin cambiar las specs ni el desglose de tareas; los
 1. ~~**Cita `reservada` cuya hora pasó sin confirmarse**~~ **Resuelta (2026-10-20):** el cliente decidió que se cierra sola
    como «No asistió», sin cron, cuando el personal usa el sistema; ver D13 (`cerrar_citas_vencidas_como_personal()`).
 2. **Criterio de «horario equivalente» en la reasignación** (mismo día primero, luego hasta 7 días hacia adelante, mismo
-   horario antes que el más cercano). Validar con la clínica; `días` y `máx` son parámetros de la función.
+   horario antes que el más cercano). **Valor por defecto aceptado por el cliente (2026-10-20).** `días` y `máx` siguen siendo
+   parámetros de la función por si la clínica pide otro criterio.
 3. **Baja sin fecha de término** (licencia indefinida): H3 exige fecha de fin. Un rango abierto ampliaría el alcance de la
-   excepción de la ventana de ADR-0012; no se permite hasta que el cliente decida cómo representarla.
+   excepción de la ventana de ADR-0012; no se permite hasta que el cliente decida cómo representarla. **Valor por defecto aceptado
+   por el cliente (2026-10-20):** la pantalla exige fecha de fin. La base de datos admite el rango abierto y la vista de citas por
+   reasignar lo trata como vigente (prueba pgTAP 63), por si más adelante se decide permitir una baja indefinida.
 4. **Reprogramar dentro de la última hora está bloqueado**, consecuencia directa de ADR-0012 (reprogramar cancela). Confirmar con
    el cliente que el administrativo acepta ese límite; no se reabre el ADR.
 5. **Dueño de la agenda de lectura del médico** («ver sus turnos y citas confirmadas», PRD): ninguna fila del plan de TECH-DESIGN
