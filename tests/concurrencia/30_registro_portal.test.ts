@@ -4,7 +4,7 @@
 //  - dos cuentas distintas con el mismo documento nuevo: una sola ficha por documento; la otra recibe PA002;
 //  - la misma cuenta que envía dos veces a la vez un documento nuevo (doble clic): una sola ficha; el segundo envío recibe PA001;
 //  - la misma cuenta que envía dos veces a la vez la vinculación de su ficha: se vincula una vez; el segundo envío recibe PA001.
-// Las filas de prueba llevan marcas propias (documentos `7350…`, perfiles `user_rpp_…`) y se borran al empezar y al terminar.
+// Las filas de prueba llevan marcas propias (documentos `7391…`, perfiles `user_rpp_…`) y se borran al empezar y al terminar.
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type pg from "pg";
@@ -18,7 +18,7 @@ const A = cuenta(0);
 const B = cuenta(1);
 
 async function limpiar(c: pg.Client): Promise<void> {
-  const ids = `select id from public.pacientes where numero_documento like '7350%'`;
+  const ids = `select id from public.pacientes where numero_documento like '7391%'`;
   await c.query(`delete from public.historias_clinicas where paciente_id in (${ids})`);
   await c.query(`delete from public.pacientes where id in (${ids})`);
   await c.query(`delete from public.perfiles where clerk_user_id like 'user_rpp_%'`);
@@ -61,7 +61,7 @@ async function registrar(sesion: pg.Client, documento: string, fecha = "1990-01-
 
 // Deja a las cuentas de prueba sin ficha, como si no se hubieran registrado nunca.
 async function reiniciar(c: pg.Client): Promise<void> {
-  const ids = `select id from public.pacientes where numero_documento like '7350%'`;
+  const ids = `select id from public.pacientes where numero_documento like '7391%'`;
   await c.query(`delete from public.historias_clinicas where paciente_id in (${ids})`);
   await c.query(`delete from public.pacientes where id in (${ids})`);
 }
@@ -72,7 +72,7 @@ test(`${RONDAS} rondas de dos cuentas con el mismo documento nuevo: una sola fic
     await conSesiones([A, B], async ([a, b]) => {
       for (let ronda = 0; ronda < RONDAS; ronda++) {
         await reiniciar(admin);
-        const documento = `7350${String(ronda).padStart(4, "0")}`;
+        const documento = `7391${String(ronda).padStart(4, "0")}`;
         const resultados = await Promise.all([registrar(a!, documento), registrar(b!, documento)]);
 
         const altas = resultados.filter((r) => r.ok);
@@ -96,7 +96,7 @@ test(`${RONDAS} rondas de doble envío de una misma cuenta con un documento nuev
     await conSesiones([A, A], async ([a1, a2]) => {
       for (let ronda = 0; ronda < RONDAS; ronda++) {
         await reiniciar(admin);
-        const documento = `7350${String(ronda + 100).padStart(4, "0")}`;
+        const documento = `7391${String(ronda + 100).padStart(4, "0")}`;
         const resultados = await Promise.all([registrar(a1!, documento), registrar(a2!, documento)]);
 
         assert.equal(resultados.filter((r) => r.ok).length, 1, `ronda ${ronda}: debe prosperar exactamente un envío`);
@@ -121,7 +121,7 @@ test(`${RONDAS} rondas de doble envío de la vinculación de una ficha existente
     await conSesiones([A, A], async ([a1, a2]) => {
       for (let ronda = 0; ronda < RONDAS; ronda++) {
         await reiniciar(admin);
-        const documento = `7350${String(ronda + 200).padStart(4, "0")}`;
+        const documento = `7391${String(ronda + 200).padStart(4, "0")}`;
         await admin.query(
           `insert into public.pacientes (tipo_documento, numero_documento, nombres, apellidos, fecha_nacimiento, sexo, email)
            values ('DNI', $1, 'Ficha', 'Existente', '1990-01-01', 'F', $2)`,

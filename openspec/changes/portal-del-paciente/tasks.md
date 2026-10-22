@@ -222,23 +222,35 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 
 ## 8. Aislamiento del paciente y autogestión medible
 
-- [ ] 8.1 Escribir `tests/portal/guarda-estatica.test.ts`: recorre `app/completar-registro/`, `app/paciente/`, `lib/portal/` y
+- [x] 8.1 Escribir `tests/portal/guarda-estatica.test.ts`: recorre `app/completar-registro/`, `app/paciente/`, `lib/portal/` y
       `lib/seguridad/` y falla si algún archivo nombra `historias_clinicas`, `atenciones`, `addendas`, `antecedentes`,
       `accesos_historia`, `notificaciones`, `auditoria`, `bloqueos_agenda`, `asignaciones_paciente_medico` o `turnos_enfermeria`, o si
       una acción acepta un campo `paciente_id`, `perfil_id` o `rol` en su esquema. Verificar con `npm run test:portal` y por mutación
       (añadir temporalmente una consulta a `atenciones` en `lib/portal/` hace fallar la prueba).
-- [ ] 8.2 Escribir `tests/pgtap/72_portal_aislamiento.test.sql` con el punto de vista del rol paciente tras este change: cero filas en
+      Resultado (2026-10-21): `tests/portal/guarda-estatica.test.ts`; `npm run test:portal` 66 pruebas en verde. Por mutación (añadir `select * from public.atenciones`
+      a `lib/portal/registro.ts`, revertido): falla «ningún archivo del portal nombra una tabla clínica o administrativa» y señala el archivo y la tabla.
+- [x] 8.2 Escribir `tests/pgtap/72_portal_aislamiento.test.sql` con el punto de vista del rol paciente tras este change: cero filas en
       las tablas clínicas (incluida su propia carpeta recién creada) y administrativas; no inserta ni actualiza `pacientes` por su
       cuenta; no crea citas con origen `administrativo`; no cambia `perfiles.rol`; ve solo su ficha, sus citas y los perfiles de
       médicos. Verificar con `node scripts/ejecutar-pgtap.ts portal_aislamiento` y que `99_rls_en_todas_las_tablas` sigue en verde.
-- [ ] 8.3 Escribir `e2e/portal-aislamiento.spec.ts`: un paciente que abre las rutas de administrativo, médico y enfermería es llevado a
+      Resultado (2026-10-21): `tests/pgtap/72_portal_aislamiento.test.sql`, 30 pruebas en verde en `dev`. La suite completa queda en 915 pruebas, 0 fallos
+      (39 archivos, incluido `99_rls_en_todas_las_tablas`).
+- [x] 8.3 Escribir `e2e/portal-aislamiento.spec.ts`: un paciente que abre las rutas de administrativo, médico y enfermería es llevado a
       `/paciente`; no existe ningún enlace del portal hacia contenido clínico; el título de pestaña de cada pantalla no contiene
       datos personales. Verificar con `npx playwright test portal-aislamiento`.
-- [ ] 8.4 Dejar medible la autogestión (D10): prueba `tests/integracion/autogestion.test.ts` que reserva y cancela como paciente y
+      Resultado (2026-10-21): `e2e/portal-aislamiento.spec.ts`, 4 pruebas en verde contra la build de producción local
+      (`npm run build && npm start` y `PLAYWRIGHT_BASE_URL=http://localhost:3000`). Con `next dev` en Windows el inicio de sesión se queda en `/` con el
+      cuerpo vacío (también falla la spec `roles` existente), como ya advertía `docs/pruebas-e2e.md`: no es un fallo de la spec. La clave `correo` de
+      `/api/db-sesion` se comprueba solo como presente; su valor depende de que la plantilla del JWT de Clerk lleve el claim `email` (1.3, pendiente).
+- [x] 8.4 Dejar medible la autogestión (D10): prueba `tests/integracion/autogestion.test.ts` que reserva y cancela como paciente y
       comprueba `origen = 'portal'`, `creada_por` y `cancelada_por` = perfil del paciente (y que una cancelación del administrativo se
       distingue), y documentar en `docs/pruebas-sql.md` las dos consultas de la métrica (reservas por `origen`, cancelaciones por rol de
       `cancelada_por`) sin construir ninguna pantalla. Verificar con `npm run test:integracion` y ejecutando las consultas sobre los
       datos de demostración.
+      Resultado (2026-10-21): `tests/integracion/autogestion.test.ts` y consultas en `docs/pruebas-sql.md`; `npm run test:integracion` 67 pruebas en verde
+      (la de `reservas.test.ts` que decía «el paciente no cancela hasta H4» se actualizó a la política nueva). Sobre `dev`: 156 citas de origen
+      `administrativo` y 140 cancelaciones del rol administrativo, ninguna del portal (los datos de demostración son todos administrativos). La
+      concurrencia de registro (`30_registro_portal`) se movió a documentos `7391…` para no chocar con los `7350…` de `tests/integracion/horarios.test.ts`, que los borra al empezar y al terminar, y sigue en verde.
 
 ## 9. Usabilidad y accesibilidad
 

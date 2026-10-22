@@ -378,7 +378,7 @@ test("el paciente reserva a su nombre con origen portal y no a nombre de otro; m
   assert.equal(await cuentaDeCitas(medicoA, ajeno.inicio, ajeno.fin), 0, "ninguna cita en ese horario");
 });
 
-test("solo el administrativo reprograma y cancela: el paciente (hasta que H4 añada su política), el médico, la enfermera y una sesión sin rol no (negativo)", async () => {
+test("solo el administrativo reprograma; cancelan el administrativo y el paciente SU cita, y el médico, la enfermera y una sesión sin rol no (negativo)", async () => {
   const propiaSlot = slot(260);
   const propia = await citaDueno(pacientePortal, medicoA, propiaSlot.inicio, propiaSlot.fin);
   const ajenaSlot = slot(261);
@@ -389,19 +389,29 @@ test("solo el administrativo reprograma y cancela: el paciente (hasta que H4 añ
     const r = await como(identidad, (e) => reprogramarCita(e, { ...entrada(pacientePortal, medicoA, destino), cita_id: propia }));
     assert.equal(r.ok === false && r.codigo, "NO_AUTORIZADO", `${identidad.sub}: reprogramar`);
   }
-  // En H3 el paciente no tiene política de UPDATE sobre `citas` (la añade H4, portal-del-paciente): cancelar no encuentra la fila.
-  for (const identidad of [PACIENTE, MEDICO_A, ENFERMERA, SIN_ROL]) {
+  // Cancelar: el médico, la enfermera y la sesión sin rol no tienen política de UPDATE sobre `citas`, y el paciente (política «paciente
+  // cancela su cita», H4) solo alcanza las suyas: en todos esos casos la cita no se encuentra y no cambia.
+  const noEncontrada = { ok: false, codigo: "CITA_NO_VIGENTE", mensaje: MENSAJE_CITA_NO_VIGENTE };
+  for (const identidad of [MEDICO_A, ENFERMERA, SIN_ROL]) {
     for (const cita of [propia, ajena]) {
       const r = await como(identidad, (e) => cancelarCita(e, { cita_id: cita }));
-      assert.deepEqual(r, { ok: false, codigo: "CITA_NO_VIGENTE", mensaje: MENSAJE_CITA_NO_VIGENTE }, `${identidad.sub}: cancelar`);
+      assert.deepEqual(r, noEncontrada, `${identidad.sub}: cancelar`);
     }
   }
+  const delPacienteAjena = await como(PACIENTE, (e) => cancelarCita(e, { cita_id: ajena }));
+  assert.deepEqual(delPacienteAjena, noEncontrada, "el paciente no cancela la cita de otro paciente");
   assert.equal((await fila(ajena)).estado, "reservada");
   assert.equal((await fila(propia)).estado, "reservada", "ninguno de los anteriores la cambió");
 
-  const delAdministrativo = await como(ADMIN, (e) => cancelarCita(e, { cita_id: propia }));
-  assert.equal(delAdministrativo.ok, true);
+  // El paciente cancela la suya.
+  const delPaciente = await como(PACIENTE, (e) => cancelarCita(e, { cita_id: propia }));
+  assert.equal(delPaciente.ok, true);
   assert.equal((await fila(propia)).estado, "cancelada");
+
+  // El administrativo cancela la de cualquier paciente.
+  const delAdministrativo = await como(ADMIN, (e) => cancelarCita(e, { cita_id: ajena }));
+  assert.equal(delAdministrativo.ok, true);
+  assert.equal((await fila(ajena)).estado, "cancelada");
 });
 
 // Ejecutor que simula una red que falla en torno a la reasignación: `cuando` = «despues» ejecuta la sentencia de verdad (se confirma

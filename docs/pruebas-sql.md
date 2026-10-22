@@ -95,6 +95,33 @@ npm run test:concurrencia                                          # todas las p
 node --test tests/concurrencia/20_reservar_cita_funcion.test.ts    # solo esa
 ```
 
+## Pruebas del portal del paciente (H4)
+
+| Archivo | Qué prueba |
+|---|---|
+| `70_portal_registro` | `correo_actual()` y `registrar_paciente_portal()` ([ADR-0037](adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)): el claim `email` del token, alta con documento nuevo (CE guardado en mayúsculas, espacios recortados, correo tomado del token), vinculación solo con correo y fecha correctos sin sobrescribir la ficha, y los rechazos `PA002` (fecha distinta, correo distinto, ficha de otra cuenta, documento ya vinculado), `PA001` (cuenta con ficha), `PA003` (sin perfil), `PA004` (sin claim `email`) y `42501` (administrativo, médico, enfermera, sin rol); `EXECUTE` solo para `authenticated` |
+| `71_portal_cancelacion` | política «paciente cancela su cita»: cancela a 61 minutos y a 59 recibe `P0001`; cero filas sobre citas ajenas, ya canceladas o atendidas (también con una política de lectura temporal abierta, para que la política se defienda sola); no edita ninguna columna ni se confirma, atiende o marca «No asistió»; `cancelada_por` y `cancelada_en` los fija el servidor; los demás roles y la ventana del administrativo no cambian |
+| `72_portal_aislamiento` | el rol paciente tras registrarse: ve su ficha, sus citas y los perfiles de los médicos y nada más; cero filas en las once tablas clínicas y administrativas (incluida su historia recién creada); no inserta ni actualiza pacientes, no crea citas de origen administrativo, de otro paciente ni en el pasado, no cambia su rol (RLS y, con una política temporal, el disparador) y recibe `42501` en las funciones del personal |
+
+Las identidades de prueba llevan el claim `email` = `<identidad>@pruebas.invalid`; `paciente_sin_correo` no lo lleva (caso `PA004`). Los documentos son `728…` (72) y `72000…`
+(70) para no chocar con los de demostración (`99…`) ni con los de H3 (`74…`). La de concurrencia, `tests/concurrencia/30_registro_portal.test.ts`, repite 10 rondas de:
+dos cuentas con el mismo documento nuevo (una ficha, la otra recibe `PA002`), el doble envío de una misma cuenta con un documento nuevo (`PA001`) y el doble envío
+de la vinculación de una ficha existente (`PA001`).
+
+**Autogestión medible (D10).** La métrica «75 % de las citas se reservan o se cancelan por el propio paciente» no necesita ninguna pantalla nueva: `tests/integracion/autogestion.test.ts`
+reserva y cancela como paciente y como administrativo y ejecuta estas dos consultas, que son las de la métrica:
+
+```sql
+-- Reservas por canal: 'portal' = el propio paciente; 'administrativo' = la recepción.
+select origen, count(*) from public.citas group by origen;
+
+-- Cancelaciones según el rol de quien canceló.
+select pf.rol, count(*)
+  from public.citas c join public.perfiles pf on pf.id = c.cancelada_por
+ where c.estado = 'cancelada'
+ group by pf.rol;
+```
+
 ## Escribir una prueba pgTAP
 
 - El archivo trae **solo el cuerpo pgTAP** (`select plan(n); ...; select * from finish();`). El runner
