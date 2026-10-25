@@ -103,7 +103,7 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
   fechadas en ADR-0017 y TECH-DESIGN, para revisión humana (grupo 10 de `tasks.md`). No se reabre ningún ADR en silencio.
 - **Código nuevo:** `lib/notificaciones/` (proveedor, plantillas, avisos, cron), `lib/db/cliente-cron.ts`,
   `app/api/cron/notificaciones/route.ts`, `app/administrativo/notificaciones/page.tsx`, `vercel.json`, `migrations/` (3
-  archivos nuevos), `tests/` (pgTAP, integración, concurrencia), `docs/pasos-manuales-h5.md`.
+  archivos nuevos), `tests/` (pgTAP, integración, concurrencia), `docs/09-deploy/pasos-manuales-h5.md`.
 - **Código existente que se toca:** las Server Actions de reserva, cancelación, reprogramación y reasignación de H3/H4 (una
   llamada tras confirmar la operación), `eslint.config.mjs` (restricción de imports), `.env.example` y el pgTAP
   `51_notificaciones.test.sql` (el disparador ya crea el recordatorio que esa prueba insertaba a mano).
@@ -112,5 +112,5 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
   usuario antes de instalar.
 - **Configuración fuera del repositorio:** variables `CRON_SECRET`, `RESEND_API_KEY`, `NOTIFICACIONES_PROVEEDOR`,
   `NOTIFICACIONES_REMITENTE`, `APP_URL` y `DATABASE_CRON_URL` en Vercel (Production), `LOGIN` y contraseña de
-  `cron_notificaciones` y dominio verificado en Resend (SPF, DKIM, DMARC); pasos en `docs/pasos-manuales-h5.md`.
+  `cron_notificaciones` y dominio verificado en Resend (SPF, DKIM, DMARC); pasos en `docs/09-deploy/pasos-manuales-h5.md`.
 - **Supuestos sobre H3:** estados y eventos que debe exponer, en `design.md` (D13).

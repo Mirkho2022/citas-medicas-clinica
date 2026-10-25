@@ -115,9 +115,11 @@ debe ser rápida para el médico.
   usuario y mensajes de error.
 - El PRD se genera y edita con la skill `generar-prd-conversacional` — si hay que actualizarlo,
   úsala en lugar de editarlo a mano.
-- Los documentos de referencia (`PRD.md`, `TECH-DESIGN.md`, `adrs/`) viven en [docs/](docs/). Las
-  skills (`generar-prd-conversacional`, `generar-tech-design`, `generar-backlog`, `auditar-drift`,
-  `revision-adversarial`) asumen esos archivos en la raíz: al usarlas, indícales la ruta `docs/`.
+- Los documentos viven en [docs/](docs/README.md), en carpetas numeradas en el orden del proceso: `01-producto` (PRD), `02-diseno`
+  (DESIGN.md), `03-arquitectura` (TECH-DESIGN.md y `adrs/`), `04-backlog`, `05-specs` (puente hacia `openspec/`), `06-diagramas`,
+  `07-testing`, `08-seguridad` (`SECURITY-REPORT.md`) y `09-deploy` (`DEPLOY-PLAN.md` y los pasos manuales). Las skills
+  (`generar-prd-conversacional`, `generar-tech-design`, `generar-backlog`, `auditar-drift`, `revision-adversarial`, `security-pass`,
+  `deploy-pass`) escriben por defecto en la raíz: al usarlas, indícales la ruta de su carpeta numerada.
 - Las migraciones viven en `migrations/*.sql` (`node-pg-migrate`, ver
   [ADR-0027](docs/03-arquitectura/adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
   Nunca cambios manuales en producción, y nunca restaurar el branch principal de Neon a un estado

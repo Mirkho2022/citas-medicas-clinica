@@ -4,7 +4,7 @@ Material de la revisión visual aprobada el 2026-10-18. Se lee en este orden:
 
 1. [BRIEF-DISENO.md](BRIEF-DISENO.md): qué se aprobó, las pantallas, las reglas visibles, los componentes nuevos y el
    movimiento. **Empiece aquí.**
-2. [../DESIGN.md](DESIGN.md): el sistema de diseño (colores, tipografía, formas). Fuente de verdad de lo visual.
+2. [DESIGN.md](DESIGN.md): el sistema de diseño (colores, tipografía, formas). Fuente de verdad de lo visual.
 3. [lienzo/](lienzo/): los archivos fuente de las nueve láminas interactivas.
 
 ## El lienzo
