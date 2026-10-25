@@ -309,6 +309,7 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 - [ ] 11.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:portal`,
       `npm run test:pgtap`, `npm run test:concurrencia`, `npm run test:integracion` y la suite E2E completa (incluidas las de H1–H3);
       verificar que todo pasa y que el PR trae el cuadro de cada requisito de las seis specs con la prueba que lo cubre.
+      Estado (2026-10-25): en local, sobre la build de producción y el branch `dev`, todo en verde: `npm run lint`, `typecheck`, `build`, `test:portal` (129), `test:agenda`, `test:tema`, `tema:comprobar`, `test:pgtap`, `test:concurrencia` (13; se corrigió un choque entre los archivos 21 y 30: el `_` de un `LIKE` es un comodín), `test:integracion` (81) y la suite E2E completa de H1–H4 (75 pruebas; una de `bajas`, de H3, falló una vez dentro de la suite completa por un resto de su corrida anterior y pasó 3 de 3 repetida sola). Faltan `npm ci` en limpio, el CI del PR y las specs nuevas contra el preview, y el cuadro de requisitos → prueba del PR.
 - [ ] 11.2 Pasar las dos migraciones, la política, el disparador, las funciones `SECURITY DEFINER` y las Server Actions del portal por el
       agente `code-review` (RLS, fuga entre pacientes, escalada, enumeración de documentos, manejo de errores) y por el skill
       `security-review`; verificar que cada hallazgo queda corregido o justificado en el PR.
