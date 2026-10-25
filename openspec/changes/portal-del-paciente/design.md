@@ -328,6 +328,9 @@ Las que cambian el diseño o las tareas se señalan: no se pudieron preguntar al
   vigentes por paciente.
 - **Q5.** Lectura del límite 5 / 15 min de ADR-0026 con los componentes de Clerk (D9); posible nota fechada en el ADR.
 - **Q6.** ¿BotID (modo básico) está disponible en el plan Hobby y cómo se trata el tráfico de las E2E en el preview?
+  *Respuesta (2026-10-24, documentación de Vercel):* sí, el nivel básico es gratuito en todos los planes y el análisis profundo no se usa. Las E2E
+  (Playwright) se detectan como bot: se resuelve con `BOTID_EXCEPCION_E2E=1`, solo en Preview y en local, ignorada con `VERCEL_ENV=production`
+  (docs/pasos-manuales-h4.md, paso 5).
 - **Q7.** Datos de contacto de la clínica (teléfono o dirección) que puedan mostrarse en los mensajes «avise a la clínica».
 - **Q8.** Pacientes menores de edad o sin correo propio: el PRD supone correo propio; hoy los agenda el administrativo fuera del portal.
 - **Q9.** Cuando el correo o la fecha de una ficha existente no coinciden, ¿qué herramienta tiene el administrativo para corregirlos

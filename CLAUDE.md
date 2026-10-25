@@ -9,8 +9,10 @@ ver [spike-rls-h2.md](docs/spike-rls-h2.md), [pruebas-sql.md](docs/pruebas-sql.m
 [datos-demo.md](docs/datos-demo.md)), y el sistema de diseño de la interfaz (H2b: tema, componentes y estructuras de
 pantalla y movimiento, ver [DESIGN.md](docs/DESIGN.md)), y la agenda y reserva de citas del administrativo (H3:
 pacientes, agenda del día, agendar y reprogramar, horarios y bajas médicas con reasignación, y el ciclo de estados de la
-cita; ver [pruebas-sql.md](docs/pruebas-sql.md) y [pruebas-e2e.md](docs/pruebas-e2e.md)). El resto de módulos (portal del
-paciente, notificaciones, historias clínicas, turnos) llegan en H4–H8.**
+cita; ver [pruebas-sql.md](docs/pruebas-sql.md) y [pruebas-e2e.md](docs/pruebas-e2e.md)), y el portal del paciente (H4: registro con
+vinculación de la ficha, búsqueda y reserva, «Mis citas», cancelación y controles de borde con BotID y límite de peticiones; implementado y verificado
+en local — antes de abrirlo a pacientes reales faltan los pasos de consola de [pasos-manuales-h4.md](docs/pasos-manuales-h4.md) y la prueba de
+[usabilidad-portal.md](docs/usabilidad-portal.md)). El resto de módulos (notificaciones, historias clínicas, turnos) llegan en H5–H8.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
 con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
