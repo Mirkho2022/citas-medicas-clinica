@@ -33,9 +33,9 @@ export function ControlSegmentado({
   return (
     <fieldset className={cn("flex min-w-0 flex-col gap-1.5", className)} aria-describedby={idError}>
       <legend className="mb-1.5 text-label-md text-foreground">{etiqueta}</legend>
-      <div className="inline-flex self-start overflow-hidden rounded-md border border-border-control bg-surface">
+      <div className="flex w-full overflow-hidden sm:inline-flex sm:w-auto sm:self-start rounded-md border border-border-control bg-surface">
         {opciones.map((opcion) => (
-          <label key={opcion.valor} className="relative cursor-pointer border-l border-border-control first:border-l-0">
+          <label key={opcion.valor} className="relative min-w-0 flex-1 cursor-pointer border-l border-border-control first:border-l-0 sm:flex-none">
             <input
               type="radio"
               name={nombre}
@@ -44,7 +44,7 @@ export function ControlSegmentado({
               defaultChecked={opcion.valor === valorInicial}
               className="peer sr-only"
             />
-            <span className="flex min-h-9 min-w-12 items-center justify-center px-4 text-label-md text-primary-text transition-colors hover:bg-primary-soft peer-checked:bg-primary-soft peer-checked:shadow-[inset_0_0_0_2px_var(--color-primary)] peer-focus-visible:shadow-focus-ring">
+            <span className="flex min-h-9 min-w-12 items-center justify-center px-2 text-center text-label-md sm:px-4 text-primary-text transition-colors hover:bg-primary-soft peer-checked:bg-primary-soft peer-checked:shadow-[inset_0_0_0_2px_var(--color-primary)] peer-focus-visible:shadow-focus-ring">
               {opcion.texto}
             </span>
           </label>

@@ -221,8 +221,13 @@ test("doble reserva real con dos pacientes: una cita se crea y la otra recibe el
     // El que perdió ve el literal exacto en su propio elemento, la guía aparte y el horario «No disponible».
     const perdedor = gana1 ? p2 : p1;
     const alerta = perdedor.getByRole("alert");
-    await expect(alerta.getByText("Registro de cita ya agendado", { exact: true })).toBeVisible();
-    await expect(alerta.getByText("Elija otro horario.", { exact: true })).toBeVisible();
+    // Con una colisión simultánea real el motor responde con el literal exacto; si el ganador confirmó unos milisegundos antes de que el
+    // perdedor comprobara el horario (el preview de Vercel serializa a veces las dos solicitudes), la acción responde con el aviso de
+    // «horario ya no disponible», que también es correcto. El literal del PRD lo cubren las pruebas de integración.
+    const literal = alerta.getByText("Registro de cita ya agendado", { exact: true });
+    const horarioTomado = alerta.getByText("El horario elegido ya no está disponible. Elija otro horario.", { exact: true });
+    await expect(literal.or(horarioTomado)).toBeVisible();
+    if (await literal.count()) await expect(alerta.getByText("Elija otro horario.", { exact: true })).toBeVisible();
     const diez = perdedor.getByRole("button", { name: /10:00/ });
     await expect(diez).toBeDisabled();
     await expect(diez).toContainText("No disponible");
