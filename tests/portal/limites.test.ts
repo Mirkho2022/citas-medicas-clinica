@@ -10,6 +10,7 @@ import {
   mensajeDeEspera,
   REGLAS,
   reglaDeRutaDeAutenticacion,
+  reglaDeRutaPublica,
   type Limitador,
 } from "../../lib/seguridad/limites.ts";
 
@@ -147,4 +148,11 @@ test("sin las dos credenciales, o con solo el token de solo lectura, no hay Upst
   assert.equal(credencialesDeUpstash({ KV_REST_API_URL: "https://c" }), null);
   assert.equal(credencialesDeUpstash({ KV_REST_API_URL: "https://c", KV_REST_API_READ_ONLY_TOKEN: "solo-lectura" }), null);
   assert.equal(credencialesDeUpstash({ UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" }), null);
+});
+
+test("`/api/salud` tiene su propio límite por IP y las rutas de autenticación conservan el suyo", () => {
+  assert.equal(reglaDeRutaPublica("GET", "/api/salud"), REGLAS.salud);
+  assert.equal(reglaDeRutaPublica("GET", "/api/salud/otra"), null);
+  assert.equal(reglaDeRutaPublica("POST", "/iniciar-sesion"), REGLAS.autenticacionEscritura);
+  assert.equal(reglaDeRutaPublica("GET", "/paciente"), null);
 });

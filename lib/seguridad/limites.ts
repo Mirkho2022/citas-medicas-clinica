@@ -18,6 +18,8 @@ export const REGLAS = {
   reserva: { nombre: "reserva", maximo: 10, ventanaSegundos: 10 * 60 },
   cancelacion: { nombre: "cancelacion", maximo: 10, ventanaSegundos: 10 * 60 },
   busqueda: { nombre: "busqueda", maximo: 60, ventanaSegundos: 60 },
+  // `/api/salud` es público y abre una conexión a la base de datos: sin límite se podría usar para mantener despierto el cómputo de Neon.
+  salud: { nombre: "salud", maximo: 30, ventanaSegundos: 60 },
   // Rutas de autenticación: solo lo que no es lectura cuenta contra 5 / 15 min; las lecturas tienen un límite holgado para que una
   // sala de espera que comparte la misma IP no se bloquee (D9, Q5).
   autenticacionEscritura: { nombre: "autenticacion-escritura", maximo: 5, ventanaSegundos: 15 * 60 },
@@ -130,4 +132,10 @@ export function reglaDeRutaDeAutenticacion(metodo: string, ruta: string): Regla 
   if (!esAutenticacion) return null;
   const esLectura = ["GET", "HEAD", "OPTIONS"].includes(metodo.toUpperCase());
   return esLectura ? REGLAS.autenticacionLectura : REGLAS.autenticacionEscritura;
+}
+
+// Regla para toda ruta pública que el middleware limita por IP: las de autenticación y `/api/salud`.
+export function reglaDeRutaPublica(metodo: string, ruta: string): Regla | null {
+  if (ruta === "/api/salud") return REGLAS.salud;
+  return reglaDeRutaDeAutenticacion(metodo, ruta);
 }
