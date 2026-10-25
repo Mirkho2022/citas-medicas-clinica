@@ -294,15 +294,16 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       Resultado (2026-10-25): `docs/usabilidad-portal.md` con el protocolo (tareas, reclutamiento, guion, criterio de 4 de 5, plantilla y gravedad) y la declaración explícita de que **la prueba con cinco personas de 60 años o más NO se ha ejecutado**: queda pendiente y **bloquea abrir el portal a pacientes reales**; mientras tanto, la evidencia automática de pasos y de teclado.
 ## 10. Documentación y coherencia
 
-- [ ] 10.1 Actualizar `.env.example`, `docs/pruebas-e2e.md` (specs del portal, segunda cuenta de paciente, rango `98…`, BotID en el
+- [x] 10.1 Actualizar `.env.example`, `docs/pruebas-e2e.md` (specs del portal, segunda cuenta de paciente, rango `98…`, BotID en el
       preview) y `docs/pruebas-sql.md` (pruebas 70–72), y el estado de `CLAUDE.md` (H4 aplicado). Verificar con una búsqueda que las
       rutas, nombres de variables y números de prueba coinciden con lo implementado y que ningún enlace relativo se rompe.
-- [ ] 10.2 Preparar, como commit aparte **marcado para revisión humana** (no se reabre nada en silencio), las correcciones a
+      Resultado (2026-10-25): `.env.example` (`E2E_PACIENTE2_*`, Upstash, `BOTID_EXCEPCION_E2E`), `docs/pruebas-e2e.md` (las siete specs del portal, la segunda cuenta, el rango `98…`, BotID en el preview, la revisión manual y lo aprendido), `docs/pruebas-sql.md` (pruebas 70–72 ya estaban; se añade la medición de 6.2) y el estado de `CLAUDE.md`. Comprobado con un recorrido de todos los enlaces relativos de los documentos tocados: 0 rotos. «H4 aplicado» en `CLAUDE.md` se dice como implementado y verificado en local, con los pasos de consola y la prueba de usabilidad pendientes.
+- [x] 10.2 Preparar, como commit aparte **marcado para revisión humana** (no se reabre nada en silencio), las correcciones a
       documentos compartidos: TECH-DESIGN (rutas reales del portal `/paciente/citas` y `/completar-registro` en lugar de
       `(paciente)/portal/…`, «Turnstile» → BotID en `registro/`, `completarRegistro` y `cancelarMiCita` en la tabla de Server Actions,
       criterio de vinculación del registro de paciente), una nota fechada en ADR-0026 (alcance real del límite con los componentes de
       Clerk, Q5) y en ADR-0022 (claim `email`). Verificar que el PR lista cada cambio con su motivo.
-
+      Resultado (2026-10-25): commit aparte **marcado para revisión humana**, sin reabrir nada en silencio. (1) `docs/TECH-DESIGN.md`: las rutas reales del paciente (`/completar-registro`, `/paciente`, `/paciente/citas`, `/paciente/citas/nueva`) junto al árbol ilustrativo, y en la tabla de Server Actions `completarRegistro`, `reservarCitaDelPortal` y `cancelarMiCita` con su orden de controles y el criterio de vinculación (`registrarPaciente` queda solo del administrativo). Motivo: el árbol decía `(paciente)/portal/…` y Turnstile quedó reemplazado por BotID en ADR-0026. (2) Nota fechada en ADR-0026: el alcance real del límite con los componentes de Clerk (Q5), BotID en nivel básico, el modo de excepción de las E2E y los límites por acción como valores propuestos. Motivo: precisa lo decidido, no lo cambia. (3) Nota fechada en ADR-0022: el claim `email` de la plantilla de sesión. Motivo: es lo que permite vincular una cuenta con una ficha (ADR-0037).
 ## 11. Verificación integral
 
 - [ ] 11.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:portal`,

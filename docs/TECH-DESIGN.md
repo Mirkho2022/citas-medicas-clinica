@@ -970,6 +970,18 @@ se lee en el servidor con la identidad del usuario, de modo que la RLS decide qu
 | `/administrativo/horarios` y `/administrativo/horarios/[medicoId]` | Plantilla semanal y ausencias de cada médico; citas que la plantilla ya no cubre |
 | `/administrativo/bajas` y `/administrativo/bajas/[bloqueoId]` | Bajas médicas con citas por reasignar y por contactar; reasignación al sustituto |
 
+**Rutas reales del paciente (H4, 2026-10-25).** En lugar de `(publico)/registro` y `(paciente)/portal/…` del árbol de arriba. Las páginas llaman a
+`auth.protect()`; las del portal además a `exigirPacienteRegistrado()` (un paciente sin ficha va a `/completar-registro`; otro rol va a su área). El estado de
+cada paso de la reserva vive en la URL y se lee en el servidor con la identidad del paciente (RLS y `slots_disponibles()` deciden qué existe).
+
+| Ruta | Qué hace |
+|---|---|
+| `/registro` y `/iniciar-sesion` | Alta e inicio de sesión (componentes de Clerk). Con 5 intentos / 15 min por IP para lo que no es lectura ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
+| `/completar-registro` | «Complete su registro»: espera de la cuenta en preparación, formulario con DNI o CE y vinculación con la ficha de la clínica ([ADR-0037](adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)). Anti-bots (BotID) y límite en su acción |
+| `/paciente` | «Inicio»: saludo, próxima cita y «Reservar cita» |
+| `/paciente/citas` | «Mis citas»: próximas y anteriores (`?anteriores=`), con cancelar hasta 1 hora antes |
+| `/paciente/citas/nueva` | «Reservar cita» en un paso por pantalla (`?especialidad=`, `?modo=medico`, `?medico=`, `?dia=`, `?hora=`, `?cita=`). Anti-bots (BotID) y límite en su acción; el límite de búsqueda se cuenta en la página |
+
 Cada grupo de rutas lleva un `layout.tsx` que verifica el rol en servidor y redirige si no
 corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad real es RLS.
 
@@ -980,7 +992,10 @@ corresponde. Esa comprobación es de usabilidad, no de seguridad: la autoridad r
 | `reservarCita` | paciente, administrativo | Slot vigente, sin cruce, dentro de disponibilidad |
 | `cancelarCita` | paciente, administrativo | Ventana de 1 hora (todos los roles, salvo reasignación por baja) |
 | `reprogramarCita` | administrativo | Cancela + crea en una transacción |
-| `registrarPaciente` | administrativo, público | Formato de DNI/CE, documento no duplicado |
+| `registrarPaciente` | administrativo | Formato de DNI/CE, documento no duplicado |
+| `completarRegistro` | paciente (H4) | Sesión → límite (5 / 15 min) → BotID → formato de DNI/CE y demás campos → `registrar_paciente_portal()`; crea la ficha o vincula la existente solo con el correo verificado y la fecha de nacimiento ([ADR-0037](adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)); un rechazo siempre dice lo mismo |
+| `reservarCitaDelPortal` | paciente (H4) | Sesión → límite (10 / 10 min) → BotID → horario libre (`slots_disponibles`) → `reservar_cita()` con el paciente de la sesión (`paciente_actual()`), nunca uno del argumento |
+| `cancelarMiCita` | paciente (H4) | Sesión → límite (10 / 10 min) → `UPDATE` bajo la política «paciente cancela su cita» y el disparador de la ventana de 1 hora; ajena, inexistente o ya cancelada dan el mismo resultado de cita no encontrada |
 | `registrarAtencion` | médico | Campos obligatorios, paciente a cargo |
 | `firmarAtencion` | médico | Autoría propia; vuelve la nota inmutable |
 | `agregarAddenda` | médico | Atención existente y firmada |

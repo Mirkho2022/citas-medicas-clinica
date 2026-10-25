@@ -67,3 +67,12 @@ ya lo resuelva.
   defecto. No es el mismo riesgo que P-1 (que es específicamente sobre datos clínicos), pero es un
   dato personal de pacientes peruanos alojado en un proveedor adicional a evaluar si en algún
   momento se exige residencia de datos más amplia que solo lo clínico.
+
+## Nota de implementación (2026-10-25, H4 — para revisión humana)
+
+El token de sesión de Clerk lleva ahora un segundo claim, `email` (plantilla de sesión: `"email": "{{user.primary_email_address}}"`, además de
+`publicMetadata`). Neon lo valida con el resto del JWT y `public.correo_actual()` lo lee en minúsculas; es lo que permite que
+`registrar_paciente_portal()` vincule una cuenta con una ficha existente solo si el **correo verificado** coincide ([ADR-0037](0037-verificacion-al-vincular-una-ficha-de-paciente.md)).
+Sin el claim la función rechaza (`PA004`). Se exige correo verificado con código y nombre y apellido en el alta (docs/pasos-manuales-h4.md, pasos 1 y 2).
+Comprobado de extremo a extremo por `e2e/db.spec.ts`, que lee `correo_actual()` por el token de cada paciente. No cambia la decisión de usar Clerk.
+

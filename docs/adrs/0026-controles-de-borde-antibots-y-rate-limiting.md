@@ -37,6 +37,24 @@ escaneo/inyección a nivel de borde), Turnstile (anti-bots en registro y reserva
   específico de seguridad con su propia curva de configuración, cuando BotID + Upstash ya cubren los
   dos requisitos concretos que el diseño necesita sin ese vendor extra.
 
+## Notas de implementación (2026-10-25, H4 — para revisión humana)
+
+Lo que dejó el change `portal-del-paciente` al implementar esta decisión; no cambia lo decidido, solo lo precisa:
+
+- **Alcance real del límite de 5 intentos / 15 min con los componentes de Clerk (Q5).** Los componentes de Clerk envían las credenciales a la API de
+  Clerk, no a nuestro origen: el middleware solo ve cargas de página y retornos. Por eso el 5 / 15 min por IP cuenta **lo que no es lectura** hacia
+  `/iniciar-sesion` y `/registro`, y las lecturas tienen un límite holgado (60 / 1 min); contar cargas de página con 5 / 15 min bloquearía a una sala de
+  espera que comparte IP. La defensa de credenciales es esa cuenta, BotID y el bloqueo de cuenta de Clerk. **Cuestionable:** si se quiere un tope real
+  sobre los intentos de contraseña hay que apoyarse en el bloqueo de cuenta de Clerk, que es quien ve la contraseña.
+- **BotID, nivel básico.** Es gratuito en todos los planes, incluido Hobby; el análisis profundo cuesta por llamada y no se usa. `checkLevel: "basic"` debe
+  ser idéntico en el cliente (`instrumentation-client.ts`) y en el servidor (`lib/seguridad/antibots.ts`). Se aplica a las acciones de registro y de reserva
+  (no a la búsqueda ni a la cancelación).
+- **Tráfico de pruebas.** Playwright es lo que BotID detecta como bot. `BOTID_EXCEPCION_E2E=1` lo desactiva solo en el entorno Preview y en local, y el
+  código lo ignora con `VERCEL_ENV=production`.
+- **Límites por acción** (registro 5 / 15 min, reserva y cancelación 10 / 10 min, búsqueda 60 / 1 min, por usuario y por IP): valores propuestos por el
+  change, no del ADR. **Fallo abierto:** si Upstash no responde o no está configurado, el portal sigue y se registra la clase del error; las barreras reales
+  (RLS, `EXCLUDE`, disparadores) no dependen de estos controles.
+
 ## Consecuencias
 
 - El anti-bots en registro/reserva y el límite de intentos en rutas de auth quedan cubiertos con el
