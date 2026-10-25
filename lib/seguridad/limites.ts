@@ -96,6 +96,18 @@ export function ipDelCliente(cabeceras: { get(nombre: string): string | null }, 
   return ip.length > 0 && ip.length <= 64 ? ip : "desconocida";
 }
 
+// Credenciales de Upstash Redis. El nombre documentado es `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`; la integración de Vercel con Upstash crea
+// las suyas con el prefijo que se elija al conectarla (`<PREFIJO>_REST_API_URL` y `<PREFIJO>_REST_API_TOKEN`, por defecto `KV`), así que se aceptan
+// también. Nunca el token de solo lectura (`…_READ_ONLY_TOKEN`): el límite escribe contadores.
+const NOMBRES_URL_UPSTASH = ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_API_URL", "KV_REST_API_URL"];
+const NOMBRES_TOKEN_UPSTASH = ["UPSTASH_REDIS_REST_TOKEN", "UPSTASH_REDIS_REST_API_TOKEN", "KV_REST_API_TOKEN"];
+
+export function credencialesDeUpstash(entorno: Record<string, string | undefined>): { url: string; token: string } | null {
+  const url = NOMBRES_URL_UPSTASH.map((n) => entorno[n]).find((v) => v);
+  const token = NOMBRES_TOKEN_UPSTASH.map((n) => entorno[n]).find((v) => v);
+  return url && token ? { url, token } : null;
+}
+
 export const esEntornoVercel = (entorno: Record<string, string | undefined> = process.env): boolean => entorno.VERCEL === "1";
 
 // «Espere N minutos» redondeado hacia arriba, mínimo 1.

@@ -1,15 +1,14 @@
 // Almacén real del límite de peticiones: Upstash Redis con ventana deslizante (ADR-0026). Se importa solo desde `limitador-real.ts`.
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import type { Decision, Limitador, Regla } from "./limites.ts";
+import { credencialesDeUpstash, type Decision, type Limitador, type Regla } from "./limites.ts";
 
 // `null` si faltan las variables: entonces el portal corre sin límite de peticiones (y lo dice una vez en el registro del servidor).
 export function limitadorUpstash(entorno: Record<string, string | undefined> = process.env): Limitador | null {
-  const url = entorno.UPSTASH_REDIS_REST_URL;
-  const token = entorno.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  const credenciales = credencialesDeUpstash(entorno);
+  if (!credenciales) return null;
 
-  const redis = new Redis({ url, token });
+  const redis = new Redis(credenciales);
   const porRegla = new Map<string, Ratelimit>();
   return {
     async limitar(regla: Regla, clave: string): Promise<Decision> {

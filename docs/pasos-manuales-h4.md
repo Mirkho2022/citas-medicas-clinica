@@ -90,8 +90,10 @@ consolas que solo puede hacer quien administra el proyecto de Vercel.
   `BOTID_EXCEPCION_E2E=1` **solo en el entorno Preview** de Vercel (y en `.env.local` para correr contra una build local). Con ella no se
   verifica nada, pero el código la **ignora cuando `VERCEL_ENV=production`** (probado en `tests/portal/antibots.test.ts`). Nunca en
   Production. Alternativa que ofrece Vercel: una regla de bypass en el WAF.
-- **Upstash:** Vercel → Integrations → Upstash (Redis). Conectarla al proyecto para **Production y Preview**; crea
-  `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`. Sin ellas el portal **sigue funcionando sin límite de peticiones** y lo dice una
+- **Upstash:** Vercel → Storage / Marketplace → Upstash (Redis). En «Connect a Project»: el proyecto, **Production y Preview**, *Custom Prefix* =
+  `UPSTASH_REDIS` y *Sensitive* activado. La integración crea variables con ese prefijo (`UPSTASH_REDIS_REST_API_URL` y `UPSTASH_REDIS_REST_API_TOKEN`;
+  con el prefijo por defecto serían `KV_REST_API_URL` y `KV_REST_API_TOKEN`). El código acepta esos nombres y también los documentados
+  `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` (`credencialesDeUpstash` en `lib/seguridad/limites.ts`); nunca el token de solo lectura. Sin ellas el portal **sigue funcionando sin límite de peticiones** y lo dice una
   vez en el registro del servidor (fallo abierto).
 - **Comprobación:** las variables existen en Production y Preview (`BOTID_EXCEPCION_E2E` solo en Preview), y en el preview seis `POST` a
   `/iniciar-sesion` dan 429 al sexto con `Retry-After`, mientras seis `GET` no bloquean a nadie.

@@ -12,7 +12,7 @@ export function limitadorReal(): Limitador {
   if (instancia) return instancia;
   const upstash = limitadorUpstash();
   if (!upstash) {
-    console.warn("[limites] faltan UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN: el portal corre sin límite de peticiones");
+    console.warn("[limites] faltan las variables de Upstash (UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN): el portal corre sin límite de peticiones");
     instancia = { limitar: async () => PERMITIDO };
   } else {
     instancia = conFalloAbierto(upstash, registrar);

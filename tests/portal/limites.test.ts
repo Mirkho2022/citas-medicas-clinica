@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   conFalloAbierto,
+  credencialesDeUpstash,
   ipDelCliente,
   limitadorEnMemoria,
   mensajeDeEspera,
@@ -130,4 +131,20 @@ test("el mensaje de espera dice los minutos, redondeados hacia arriba", () => {
   assert.equal(mensajeDeEspera(15 * 60), "Demasiados intentos. Espere 15 minutos e intente de nuevo.");
   assert.equal(mensajeDeEspera(61), "Demasiados intentos. Espere 2 minutos e intente de nuevo.");
   assert.equal(mensajeDeEspera(1), "Demasiados intentos. Espere 1 minuto e intente de nuevo.");
+});
+
+test("las credenciales de Upstash salen de los nombres documentados o de los que crea la integración de Vercel", () => {
+  assert.deepEqual(credencialesDeUpstash({ UPSTASH_REDIS_REST_URL: "https://a", UPSTASH_REDIS_REST_TOKEN: "t" }), { url: "https://a", token: "t" });
+  // Prefijo elegido al conectar la integración, o el que trae por defecto.
+  assert.deepEqual(credencialesDeUpstash({ UPSTASH_REDIS_REST_API_URL: "https://b", UPSTASH_REDIS_REST_API_TOKEN: "u" }), { url: "https://b", token: "u" });
+  assert.deepEqual(credencialesDeUpstash({ KV_REST_API_URL: "https://c", KV_REST_API_TOKEN: "v" }), { url: "https://c", token: "v" });
+  // El nombre documentado manda sobre los demás.
+  assert.equal(credencialesDeUpstash({ UPSTASH_REDIS_REST_URL: "https://a", UPSTASH_REDIS_REST_TOKEN: "t", KV_REST_API_URL: "https://c", KV_REST_API_TOKEN: "v" })?.url, "https://a");
+});
+
+test("sin las dos credenciales, o con solo el token de solo lectura, no hay Upstash y el portal corre sin límite", () => {
+  assert.equal(credencialesDeUpstash({}), null);
+  assert.equal(credencialesDeUpstash({ KV_REST_API_URL: "https://c" }), null);
+  assert.equal(credencialesDeUpstash({ KV_REST_API_URL: "https://c", KV_REST_API_READ_ONLY_TOKEN: "solo-lectura" }), null);
+  assert.equal(credencialesDeUpstash({ UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" }), null);
 });
