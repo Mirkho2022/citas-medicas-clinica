@@ -94,6 +94,7 @@ test("cancelar una cita lejana la pasa a «Anteriores» como «Cancelada» y su 
   // El horario quedó libre otra vez para quien lo busque.
   await page.goto(`/paciente/citas/nueva?medico=${escenario.medicoId}&dia=${DIA}`);
   await expect(page.getByRole("heading", { name: "Elija un horario" })).toBeVisible();
+  await page.getByRole("button", { name: /^Tarde/ }).click();
   await expect(page.getByRole("button", { name: /12:00/ })).toBeEnabled();
 });
 

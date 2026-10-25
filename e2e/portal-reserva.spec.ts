@@ -165,8 +165,22 @@ test("los horarios y los días se ven en hora de Lima aunque el navegador use ot
   // El médico de prueba atiende desde las 00:00 de Lima: en Tokio serían las 14:00.
   const primero = page.getByRole("group", { name: "Horarios disponibles" }).getByRole("button").first();
   await expect(primero).toContainText("00:00");
+  await page.getByRole("button", { name: /^Tarde/ }).click();
   await expect(page.getByRole("button", { name: "14:00" })).toBeVisible(); // 14:00 de Lima, no de Tokio
   await page.context().close();
+});
+
+test("los horarios se muestran por franja del día: solo los de la franja elegida", async ({ page }) => {
+  await entrar(page, 1);
+  await page.goto(urlHorarios(sumarDiasA(hoyEnLima(), 12)));
+  await expect(titulo(page, "Elija un horario")).toBeVisible();
+  const franjas = page.getByRole("group", { name: "Franja del día" });
+  await expect(franjas.getByRole("button", { name: /^Mañana/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "09:20" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "14:00" })).toHaveCount(0);
+  await franjas.getByRole("button", { name: /^Noche/ }).click();
+  await expect(page.getByRole("button", { name: "20:00" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "09:20" })).toHaveCount(0);
 });
 
 test("una cita que empieza en menos de 1 hora avisa que ya no podrá cancelarla desde el portal", async ({ page }) => {
