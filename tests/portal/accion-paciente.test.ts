@@ -5,12 +5,15 @@ import { test } from "node:test";
 import type { Rol } from "../../lib/auth/rutas.ts";
 import {
   exigirPaciente,
+  exigirPacienteControlado,
   exigirPacienteRegistrado,
   type DependenciasAccionPaciente,
   type DependenciasPaginaPaciente,
 } from "../../lib/auth/accion-paciente.ts";
 import { MENSAJE_ERROR_INTERNO, MENSAJE_NO_AUTORIZADO } from "../../lib/acciones/resultado.ts";
-import { MENSAJE_SESION_VENCIDA } from "../../lib/portal/mensajes.ts";
+import { MENSAJE_ANTIBOTS, MENSAJE_DEMASIADOS_INTENTOS, MENSAJE_SESION_VENCIDA } from "../../lib/portal/mensajes.ts";
+import type { DependenciasControles } from "../../lib/seguridad/controles.ts";
+import { limitadorEnMemoria, PERMITIDO, REGLAS, type Regla } from "../../lib/seguridad/limites.ts";
 
 function entornoAccion(opciones: { usuarioId?: string | null; rol: Rol | null; lanza?: boolean }) {
   const registrados: string[] = [];
@@ -108,4 +111,127 @@ test("el personal va a su propia área y no consulta la base", async () => {
     await assert.rejects(exigirPacienteRegistrado(dependencias), redirigeA(ruta), rol);
     assert.equal(llamadas.paciente, 0, `${rol}: no se consulta la ficha`);
   }
+});
+
+// ---- Controles de borde de las acciones (H4, tarea 4.4; design.md, D9): sesión → límite → anti-bots → validación → base de datos ----
+
+function entornoControlado(opciones: { esBot?: boolean; ip?: string } = {}) {
+  const orden: string[] = [];
+  const limitador = limitadorEnMemoria(() => 0);
+  const controles: DependenciasControles = {
+    limitador: {
+      limitar: async (regla, clave) => {
+        orden.push(`limite:${clave}`);
+        return limitador.limitar(regla, clave);
+      },
+    },
+    ip: async () => opciones.ip ?? "190.1.1.1",
+    esBot: async () => {
+      orden.push("antibots");
+      return opciones.esBot ?? false;
+    },
+  };
+  return { controles, orden };
+}
+
+// La acción completa en miniatura: la guarda controlada y, solo si pasa, «la base de datos».
+function accionDePrueba(
+  regla: Regla,
+  antibots: boolean,
+  entorno: ReturnType<typeof entornoControlado>,
+  sesion = entornoAccion({ usuarioId: "user_7", rol: "paciente" }).dependencias,
+) {
+  const base = { llamadas: 0 };
+  const ejecutar = async () => {
+    const guarda = await exigirPacienteControlado({ regla, antibots }, sesion, entorno.controles);
+    if (!guarda.ok) return guarda;
+    base.llamadas++;
+    return guarda;
+  };
+  return { ejecutar, base };
+}
+
+test("una ráfaga recibe «Demasiados intentos…» y la base de datos no es llamada", async () => {
+  const entorno = entornoControlado();
+  const { ejecutar, base } = accionDePrueba(REGLAS.reserva, true, entorno);
+  for (let i = 1; i <= REGLAS.reserva.maximo; i++) assert.equal((await ejecutar()).ok, true, `petición ${i}`);
+  assert.equal(base.llamadas, REGLAS.reserva.maximo);
+
+  const rechazada = await ejecutar();
+  assert.deepEqual(rechazada, { ok: false, codigo: "DEMASIADOS_INTENTOS", mensaje: MENSAJE_DEMASIADOS_INTENTOS });
+  assert.equal(MENSAJE_DEMASIADOS_INTENTOS, "Demasiados intentos. Espere unos minutos e intente de nuevo.");
+  assert.equal(base.llamadas, REGLAS.reserva.maximo, "la petición rechazada no llegó a la base de datos");
+});
+
+test("el límite cuenta por usuario Y por IP: otro usuario desde la misma IP también queda limitado", async () => {
+  const entorno = entornoControlado({ ip: "190.2.2.2" });
+  const a = accionDePrueba(REGLAS.registro, false, entorno, entornoAccion({ usuarioId: "user_a", rol: "paciente" }).dependencias);
+  const b = accionDePrueba(REGLAS.registro, false, entorno, entornoAccion({ usuarioId: "user_b", rol: "paciente" }).dependencias);
+  for (let i = 0; i < REGLAS.registro.maximo; i++) assert.equal((await a.ejecutar()).ok, true);
+  const desdeLaMismaIp = await b.ejecutar();
+  assert.equal(desdeLaMismaIp.ok, false);
+  assert.equal(b.base.llamadas, 0);
+});
+
+test("el orden es sesión → límite → anti-bots: sin sesión no se cuenta ni se verifica nada", async () => {
+  const entorno = entornoControlado();
+  const { ejecutar, base } = accionDePrueba(
+    REGLAS.reserva,
+    true,
+    entorno,
+    entornoAccion({ usuarioId: null, rol: "paciente" }).dependencias,
+  );
+  const r = await ejecutar();
+  assert.equal(r.ok, false);
+  assert.equal(r.ok === false && r.codigo, "SESION_VENCIDA");
+  assert.deepEqual(entorno.orden, []);
+  assert.equal(base.llamadas, 0);
+
+  const bueno = entornoControlado();
+  const { ejecutar: ok } = accionDePrueba(REGLAS.reserva, true, bueno);
+  await ok();
+  assert.deepEqual(bueno.orden.map((o) => o.split(":")[0]), ["limite", "limite", "antibots"]);
+});
+
+test("una solicitud automatizada se rechaza con el mensaje genérico y no llega a la base de datos", async () => {
+  const entorno = entornoControlado({ esBot: true });
+  const { ejecutar, base } = accionDePrueba(REGLAS.reserva, true, entorno);
+  assert.deepEqual(await ejecutar(), { ok: false, codigo: "NO_AUTORIZADO", mensaje: MENSAJE_ANTIBOTS });
+  assert.equal(MENSAJE_ANTIBOTS, "No pudimos verificar su solicitud. Intente de nuevo.");
+  assert.equal(base.llamadas, 0);
+});
+
+test("una acción sin anti-bots (cancelación) no consulta a BotID", async () => {
+  const entorno = entornoControlado({ esBot: true });
+  const { ejecutar, base } = accionDePrueba(REGLAS.cancelacion, false, entorno);
+  assert.equal((await ejecutar()).ok, true);
+  assert.ok(!entorno.orden.includes("antibots"));
+  assert.equal(base.llamadas, 1);
+});
+
+test("un paciente que reserva, cancela y vuelve a reservar varias veces no alcanza ningún límite", async () => {
+  const entorno = entornoControlado();
+  const reservar = accionDePrueba(REGLAS.reserva, true, entorno);
+  const cancelar = accionDePrueba(REGLAS.cancelacion, false, entorno);
+  for (let i = 0; i < 4; i++) {
+    assert.equal((await reservar.ejecutar()).ok, true, `reserva ${i + 1}`);
+    assert.equal((await cancelar.ejecutar()).ok, true, `cancelación ${i + 1}`);
+  }
+  assert.equal(reservar.base.llamadas, 4);
+  assert.equal(cancelar.base.llamadas, 4);
+});
+
+test("si los controles fallan (p. ej. no se puede leer la IP) la acción continúa y se registra la clase del error", async () => {
+  const registrados: string[] = [];
+  const sesion = { ...entornoAccion({ usuarioId: "user_7", rol: "paciente" }).dependencias, registrar: (c: string) => void registrados.push(c) };
+  const controles: DependenciasControles = {
+    limitador: { limitar: async () => PERMITIDO },
+    ip: async () => {
+      throw new RangeError("detalle interno");
+    },
+    esBot: async () => false,
+  };
+  const r = await exigirPacienteControlado({ regla: REGLAS.reserva, antibots: true }, sesion, controles);
+  assert.equal(r.ok, true);
+  assert.deepEqual(registrados, ["RangeError"]);
 });

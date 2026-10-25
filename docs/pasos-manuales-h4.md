@@ -23,11 +23,11 @@ repetirlos en cada una.
 
 | Paso | Estado | Comprobado con |
 |---|---|---|
-| 1. Claim `email` | ⏳ Pendiente | `GET /api/db-sesion` con sesión de paciente devuelve `correo` |
-| 2. Correo verificado y nombres | ⏳ Pendiente | Captura de la configuración de Clerk |
-| 3. Redirección del alta | ⏳ Pendiente | Un alta nueva aterriza en `/completar-registro` |
-| 4. Segunda cuenta de paciente | ⏳ Pendiente | Inicio de sesión con la cuenta nueva |
-| 5. BotID y Upstash | ⏳ Pendiente (no bloquea el registro) | Variables presentes en Production y Preview |
+| 1. Claim `email` | ✅ Hecho (2026-10-23) | `e2e/db.spec.ts` con build de producción local: `/api/db-sesion` devuelve `correo` de ambos pacientes |
+| 2. Correo verificado y nombres | ✅ Hecho (2026-10-23) | Configuración pública de la instancia: correo requerido con código, nombre y apellido requeridos |
+| 3. Redirección del alta | ✅ Variable en Production y Preview (comprobada en Vercel, 2026-10-23). Falta ver que un alta nueva aterriza en `/completar-registro`: producción aún corre `master` sin H4 y la variable solo rige tras un nuevo despliegue | Un alta nueva aterriza en `/completar-registro` |
+| 4. Segunda cuenta de paciente | ⏳ Cuenta creada y probada en local; faltan los secretos de GitHub | `e2e/db.spec.ts` inicia sesión con ambas cuentas (la segunda no tiene ficha: la app la lleva a `/completar-registro`) |
+| 5. BotID y Upstash | Código listo (2026-10-24). ⏳ Falta activarlo en Vercel y conectar Upstash (no bloquea el registro) | Variables presentes en Production y Preview; en el preview, seis `POST` a `/iniciar-sesion` dan 429 al sexto |
 | 6. Protección del alta | ⏳ Pendiente | Captura de la configuración de Clerk |
 
 ## 1. Claim `email` en la sesión (Q2 del change)
@@ -79,12 +79,49 @@ Las E2E de aislamiento y de doble reserva necesitan **dos** pacientes con sesió
 ## 5. Vercel BotID y Upstash
 
 Detalle técnico en el grupo 4 del change `portal-del-paciente` y en [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
-Es un paso que solo puede hacer quien administra el proyecto de Vercel:
+El código ya está (`lib/seguridad/`, `middleware.ts`, `instrumentation-client.ts`, `next.config.ts`); lo que sigue es configuración de
+consolas que solo puede hacer quien administra el proyecto de Vercel.
 
-- **BotID:** activar en el proyecto (Settings → Security → BotID). Confirmar si el plan Hobby ofrece el modo básico (pregunta Q6).
+- **BotID (pregunta Q6, respondida):** el nivel **básico es gratuito en todos los planes**, incluido Hobby (documentación de Vercel, «BotID →
+  Pricing»); el análisis profundo cuesta por llamada y **no se usa**. El código fija `checkLevel: "basic"` en el cliente
+  (`instrumentation-client.ts`) y en el servidor (`lib/seguridad/antibots.ts`); deben ser idénticos o la verificación falla. Activar BotID
+  en el proyecto (Settings → Security → BotID).
+- **Tráfico de las E2E:** Playwright es justo lo que BotID detecta como bot. Para las E2E contra el preview se pone
+  `BOTID_EXCEPCION_E2E=1` **solo en el entorno Preview** de Vercel (y en `.env.local` para correr contra una build local). Con ella no se
+  verifica nada, pero el código la **ignora cuando `VERCEL_ENV=production`** (probado en `tests/portal/antibots.test.ts`). Nunca en
+  Production. Alternativa que ofrece Vercel: una regla de bypass en el WAF.
 - **Upstash:** Vercel → Integrations → Upstash (Redis). Conectarla al proyecto para **Production y Preview**; crea
-  `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
-- **Comprobación:** las dos variables existen en Production y Preview (sin valor visible en el repositorio).
+  `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`. Sin ellas el portal **sigue funcionando sin límite de peticiones** y lo dice una
+  vez en el registro del servidor (fallo abierto).
+- **Comprobación:** las variables existen en Production y Preview (`BOTID_EXCEPCION_E2E` solo en Preview), y en el preview seis `POST` a
+  `/iniciar-sesion` dan 429 al sexto con `Retry-After`, mientras seis `GET` no bloquean a nadie.
+
+### Tabla de límites
+
+Una sola tabla en `lib/seguridad/limites.ts` (ventana deslizante en Upstash). Solo el primero es el valor del ADR-0026; los demás son
+valores **propuestos** del diseño (D9), holgados para el uso normal de un paciente que se equivoca o reintenta.
+
+| Regla | Máximo | Ventana | Clave | Dónde se aplica |
+|---|---|---|---|---|
+| Rutas de autenticación, lo que no es lectura | 5 | 15 min | IP | `middleware.ts`: `/iniciar-sesion` y `/registro` |
+| Rutas de autenticación, lecturas | 60 | 1 min | IP | `middleware.ts` (una sala de espera con la misma IP no se bloquea) |
+| Registro de datos | 5 | 15 min | usuario **y** IP | Server Action `completarRegistro` (+ BotID) |
+| Reserva | 10 | 10 min | usuario **y** IP | Server Action de la reserva (+ BotID) |
+| Cancelación | 10 | 10 min | usuario **y** IP | Server Action `cancelarMiCita` (sin BotID) |
+| Búsqueda de horarios | 60 | 1 min | usuario **y** IP | Página `/paciente/citas/nueva` |
+
+- Superado el límite, el middleware responde `429` con «Demasiados intentos. Espere N minutos e intente de nuevo.» y `Retry-After`; las
+  acciones responden «Demasiados intentos. Espere unos minutos e intente de nuevo.» sin tocar la base de datos.
+- **Orden en las acciones:** sesión → límite → anti-bots → validación → base de datos.
+- **La IP** sale de `x-vercel-forwarded-for`, `x-real-ip` o, en último lugar, la primera de `x-forwarded-for`, y **solo cuando la aplicación
+  corre en Vercel** (`VERCEL=1`), donde esas cabeceras las fija la plataforma. Fuera de Vercel se ignoran todas (las manda el cliente) y la
+  clave no cambia por una cabecera falsificada.
+- **Fallo abierto:** si Upstash no responde (error o más de 1,5 s), la petición pasa y se registra la clase del error, sin la IP ni el
+  usuario. Las barreras reales (RLS, `EXCLUDE`, disparadores) no dependen de estos controles.
+- **Salvedad de las rutas de Clerk (D9, Q5):** los componentes de Clerk envían las credenciales a la API de Clerk, no a este origen; el
+  middleware solo ve cargas de página y retornos. Por eso el 5 / 15 min cuenta lo que **no** es lectura hacia esas rutas y, junto con
+  BotID y el bloqueo de cuenta de Clerk (paso 6), forma la defensa de credenciales. Contar cargas de página con 5 / 15 min bloquearía a una
+  sala de espera que comparte IP. Esta lectura del ADR queda **para revisión humana**.
 
 ## 6. Protección contra bots y bloqueo por intentos del alta
 

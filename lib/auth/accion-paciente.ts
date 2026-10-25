@@ -17,7 +17,13 @@ import {
   MENSAJE_NO_AUTORIZADO,
   type ResultadoAccion,
 } from "../acciones/resultado.ts";
-import { MENSAJE_SESION_VENCIDA } from "../portal/mensajes.ts";
+import { MENSAJE_ANTIBOTS, MENSAJE_SESION_VENCIDA } from "../portal/mensajes.ts";
+import {
+  dependenciasControlesReales,
+  superaElLimite,
+  type DependenciasControles,
+} from "../seguridad/controles.ts";
+import { MENSAJE_DEMASIADOS_INTENTOS, type Regla } from "../seguridad/limites.ts";
 
 export interface SesionPaciente {
   usuarioId: string;
@@ -87,6 +93,36 @@ export async function exigirPaciente(
     (dependencias.registrar ?? registrarPorDefecto)(error instanceof Error ? error.name : typeof error);
     return fallo("ERROR_INTERNO", MENSAJE_ERROR_INTERNO);
   }
+}
+
+// Controles de borde de una acción del portal (design.md, D9; specs/proteccion-del-portal-publico). Orden fijo: SESIÓN → LÍMITE → ANTI-BOTS;
+// después, en la acción, validación y base de datos. Un rechazo por límite o por bot no toca la base de datos. El límite cuenta la petición por
+// usuario y por IP; el anti-bots se aplica solo donde el ADR-0026 lo fija (registro y reserva), no a la búsqueda ni a la cancelación.
+export interface ControlesAccion {
+  regla: Regla;
+  antibots?: boolean;
+}
+
+export async function exigirPacienteControlado(
+  controles: ControlesAccion,
+  dependencias?: DependenciasAccionPaciente,
+  dependenciasControles: DependenciasControles = dependenciasControlesReales,
+): Promise<ResultadoAccion<SesionPaciente>> {
+  const guarda = await exigirPaciente(dependencias);
+  if (!guarda.ok) return guarda;
+
+  try {
+    if (await superaElLimite(controles.regla, guarda.datos.usuarioId, dependenciasControles)) {
+      return fallo("DEMASIADOS_INTENTOS", MENSAJE_DEMASIADOS_INTENTOS);
+    }
+    if (controles.antibots && (await dependenciasControles.esBot())) {
+      return fallo("NO_AUTORIZADO", MENSAJE_ANTIBOTS);
+    }
+  } catch (error) {
+    // Un fallo al leer la IP o al armar los controles no debe tumbar la acción: las barreras reales están en la base de datos.
+    (dependencias?.registrar ?? registrarPorDefecto)(error instanceof Error ? error.name : typeof error);
+  }
+  return guarda;
 }
 
 // Uso al inicio de una página del portal (después de `await auth.protect()`, que la regla de ESLint de Clerk exige en el cuerpo de

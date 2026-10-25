@@ -9,13 +9,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { entradaDeFormulario } from "@/lib/acciones/entrada";
 import type { ResultadoAccion } from "@/lib/acciones/resultado";
-import { exigirPaciente } from "@/lib/auth/accion-paciente";
+import { exigirPacienteControlado } from "@/lib/auth/accion-paciente";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
 import { registrarPacientePortal } from "@/lib/portal/registro";
+import { REGLAS } from "@/lib/seguridad/limites";
 
 export async function completarRegistro(entrada: unknown): Promise<ResultadoAccion<void>> {
   await auth.protect();
-  const guarda = await exigirPaciente();
+  // Sesión → límite → anti-bots (BotID); la validación y la base de datos vienen después.
+  const guarda = await exigirPacienteControlado({ regla: REGLAS.registro, antibots: true });
   if (!guarda.ok) return guarda;
 
   const resultado = await registrarPacientePortal(ejecutorAutenticado, entradaDeFormulario(entrada));
