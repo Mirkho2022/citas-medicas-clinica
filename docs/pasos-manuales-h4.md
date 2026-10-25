@@ -73,7 +73,9 @@ Las E2E de aislamiento y de doble reserva necesitan **dos** pacientes con sesió
 - En Clerk, crear un usuario con un correo del patrón `…+clerk_test@…` (los correos con `+clerk_test` aceptan el código fijo
   `424242` en instancias de desarrollo) y una contraseña larga.
 - Guardarlos como `E2E_PACIENTE2_EMAIL` y `E2E_PACIENTE2_PASSWORD` en `.env.local` y como secretos del repositorio de GitHub
-  (mismo lugar que `E2E_PACIENTE_EMAIL`).
+  (mismo lugar que `E2E_PACIENTE_EMAIL`). Las E2E del portal necesitan además el secreto `E2E_DATABASE_URL`: la URL **directa** del dueño de la rama `dev` de
+  Neon (la que sirve a los previews; nunca la de producción). `node scripts/cargar-secretos-e2e.ts` sube los tres (`E2E_DATABASE_URL` la toma de
+  `DATABASE_URL_UNPOOLED` de `.env.local` y se niega si es del pooler o de producción); con `--dry-run` solo muestra qué subiría.
 - **Comprobación:** `npx playwright test db` puede iniciar sesión con ambas cuentas.
 
 ## 5. Vercel BotID y Upstash
