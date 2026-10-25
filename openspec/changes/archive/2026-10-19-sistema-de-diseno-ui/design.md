@@ -16,7 +16,7 @@ verificado en el repositorio:
   `app/*/**` y exige esa llamada en cualquier ruta nueva.
 - Las E2E de H1 (`e2e/`) buscan los encabezados «Portal del paciente» y «Panel administrativo» y los botones de Clerk
   por su texto en inglés («Continue», «Enter verification code»).
-- `docs/DESIGN.md` (formato Google DESIGN.md, alpha) ya trae los tokens en YAML, las reglas en prosa y la tabla de
+- `docs/02-diseno/DESIGN.md` (formato Google DESIGN.md, alpha) ya trae los tokens en YAML, las reglas en prosa y la tabla de
   correspondencia con las variables de shadcn/ui. La vista previa y las pantallas están en dos artefactos publicados
   (sistema de diseño y lienzo); son referencia visual, **no** fuente de verdad: la fuente es el archivo del repositorio.
 
@@ -38,7 +38,7 @@ verificado en el repositorio:
 
 ### D1. Los tokens se generan desde DESIGN.md con un script del repositorio
 
-`scripts/generar-tema.ts` lee el front matter YAML de `docs/DESIGN.md` y escribe `app/tema.generado.css` (bloque `@theme`
+`scripts/generar-tema.ts` lee el front matter YAML de `docs/02-diseno/DESIGN.md` y escribe `app/tema.generado.css` (bloque `@theme`
 de Tailwind v4: `--color-*`, `--font-*`, `--text-*` con su altura de línea, peso y tracking, `--spacing-*`, `--radius-*` y
 `--shadow-*`). `app/globals.css` lo importa. El archivo generado **se commitea**, de modo que el build no depende del
 script; `npm run tema` lo regenera y `npm run tema:comprobar` falla si DESIGN.md y el CSS difieren.
@@ -135,7 +135,7 @@ como el resto de `scripts/` y la librería `yaml` (desarrollo). Se agrega como p
 `e2e/accesibilidad.spec.ts` ejecuta axe con las etiquetas `wcag2a`, `wcag2aa`, `wcag21a` y `wcag21aa` sobre la galería y las
 páginas de `/paciente` y `/administrativo` con las cuentas de prueba de H1 (la de administrativo con TOTP), y falla ante
 cualquier violación. Las pantallas de Clerk (`/iniciar-sesion`, `/registro`) quedan fuera del recuento obligatorio porque
-su marcado no es nuestro: se revisan una vez a mano y los hallazgos propios de Clerk se anotan en `docs/pruebas-e2e.md`.
+su marcado no es nuestro: se revisan una vez a mano y los hallazgos propios de Clerk se anotan en `docs/07-testing/pruebas-e2e.md`.
 axe no mide todo (por ejemplo, el orden lógico del foco): el recorrido con teclado y la prueba con lector de pantalla
 quedan como tareas de revisión manual.
 

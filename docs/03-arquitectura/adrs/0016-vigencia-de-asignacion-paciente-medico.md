@@ -16,7 +16,7 @@ en `asignaciones_paciente_medico`, así que toda concesión real de acceso pasa 
 motivo, conserva lectura y escritura sobre toda su historia clínica para siempre. Esto contradice
 el requisito del PRD de que el médico solo acceda a "los pacientes a su cargo" y es precisamente el
 riesgo que RLS existe para prevenir — es el riesgo principal declarado del proyecto
-([CLAUDE.md](../../CLAUDE.md)).
+([CLAUDE.md](../../../CLAUDE.md)).
 
 ## Decisión
 

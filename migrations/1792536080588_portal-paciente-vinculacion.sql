@@ -8,7 +8,7 @@
 -- search_path vacío y nombres calificados (un usuario no puede secuestrar la resolución de nombres).
 --
 -- El correo sale del claim `email` del JWT que Neon valida (auth.session()), nunca de un parámetro: requiere añadir el claim a la
--- plantilla del JWT de Clerk (docs/pasos-manuales-h4.md).
+-- plantilla del JWT de Clerk (docs/09-deploy/pasos-manuales-h4.md).
 --
 -- Códigos de error propios (clase PA, reservada por el estándar a la implementación):
 --   PA001  la cuenta ya tiene ficha de paciente

@@ -1,7 +1,7 @@
 # Pruebas E2E (Playwright)
 
 Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). Código en
-[e2e/](../e2e/), configuración en [playwright.config.ts](../playwright.config.ts).
+[e2e/](../../e2e/), configuración en [playwright.config.ts](../../playwright.config.ts).
 
 ## Qué cubren
 
@@ -16,7 +16,7 @@ Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). 
 - **Local:** `npm run test:e2e`. Lee `.env.local` y levanta `next dev`; usa el Chrome instalado. Para
   probar la build de producción: `npm run build && npm start` y luego
   `PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e` (más estable que `next dev`).
-- **CI:** [e2e.yml](../.github/workflows/e2e.yml) corre contra el preview de Vercel de cada PR
+- **CI:** [e2e.yml](../../.github/workflows/e2e.yml) corre contra el preview de Vercel de cada PR
   cuando el deployment termina bien.
 
 ## Claves y cuentas
@@ -33,13 +33,13 @@ Verifican el flujo de autenticación y la redirección por rol (H1, tarea 6.4). 
 
 ## Agenda del administrativo (H3)
 
-Tres archivos de [e2e/](../e2e/) cubren las pantallas de H3 con la cuenta de administrativo (TOTP) y, en el negativo, la de paciente:
+Tres archivos de [e2e/](../../e2e/) cubren las pantallas de H3 con la cuenta de administrativo (TOTP) y, en el negativo, la de paciente:
 
 | Archivo | Qué recorre |
 |---|---|
-| [agenda.spec.ts](../e2e/agenda.spec.ts) | Registrar pacientes `99…` (un DNI de 7 dígitos muestra «El DNI debe tener 8 dígitos»; un duplicado ofrece abrir al existente), agendar 14 días adelante con la advertencia y su hora límite en Lima, **doble reserva desde un segundo contexto** (`Registro de cita ya agendado`), confirmar («No asistió» aún no se ofrece), reprogramar y cancelar (la cita queda «Cancelada» sin acciones) |
-| [bajas.spec.ts](../e2e/bajas.spec.ts) | Agendar dos citas con el titular de Medicina general, registrar una ausencia que las cubra (el aviso dice cuántas caen dentro), reasignar **una** al sustituto, confirmar la nueva y dejar la otra por reasignar; el paciente que abre las rutas del administrativo vuelve a su área |
-| [accesibilidad.spec.ts](../e2e/accesibilidad.spec.ts) (prueba de H3) | axe (WCAG 2.1 A y AA) sobre Pacientes, Agenda, Agendar, Horarios y Bajas a 1280 y 390 px y con los diálogos y el selector de fecha abiertos; el foco entra al diálogo y vuelve al botón con Escape; todo control de la consola mide 24 px o más |
+| [agenda.spec.ts](../../e2e/agenda.spec.ts) | Registrar pacientes `99…` (un DNI de 7 dígitos muestra «El DNI debe tener 8 dígitos»; un duplicado ofrece abrir al existente), agendar 14 días adelante con la advertencia y su hora límite en Lima, **doble reserva desde un segundo contexto** (`Registro de cita ya agendado`), confirmar («No asistió» aún no se ofrece), reprogramar y cancelar (la cita queda «Cancelada» sin acciones) |
+| [bajas.spec.ts](../../e2e/bajas.spec.ts) | Agendar dos citas con el titular de Medicina general, registrar una ausencia que las cubra (el aviso dice cuántas caen dentro), reasignar **una** al sustituto, confirmar la nueva y dejar la otra por reasignar; el paciente que abre las rutas del administrativo vuelve a su área |
+| [accesibilidad.spec.ts](../../e2e/accesibilidad.spec.ts) (prueba de H3) | axe (WCAG 2.1 A y AA) sobre Pacientes, Agenda, Agendar, Horarios y Bajas a 1280 y 390 px y con los diálogos y el selector de fecha abiertos; el foco entra al diálogo y vuelve al botón con Escape; todo control de la consola mide 24 px o más |
 
 - **Requieren los datos de demostración** ([datos-demo.md](datos-demo.md)): médicos con horario de lunes a viernes y dos médicos de Medicina
   general. Sin ellos `agenda.spec.ts` y `bajas.spec.ts` se **omiten con un aviso** (no fallan). Los pacientes `99…` que crean no se pueden
@@ -57,21 +57,21 @@ Tres archivos de [e2e/](../e2e/) cubren las pantallas de H3 con la cuenta de adm
 
 ## Portal del paciente (H4)
 
-Siete archivos de [e2e/](../e2e/) cubren el portal con **dos** cuentas de paciente (`E2E_PACIENTE_EMAIL` y `E2E_PACIENTE2_EMAIL`):
+Siete archivos de [e2e/](../../e2e/) cubren el portal con **dos** cuentas de paciente (`E2E_PACIENTE_EMAIL` y `E2E_PACIENTE2_EMAIL`):
 
 | Archivo | Qué recorre |
 |---|---|
-| [portal-registro.spec.ts](../e2e/portal-registro.spec.ts) | La espera de la cuenta en preparación (el formulario aparece solo cuando el perfil existe), las validaciones del documento y de los campos obligatorios, el alta con un documento nuevo, la vinculación de una ficha de la clínica (mismo correo y fecha de nacimiento: sin duplicar, sin sobrescribir y con sus citas en «Mis citas»), los tres rechazos con el mismo mensaje, la cuenta que ya tiene ficha y que ninguna dirección visitada lleve documento, correo ni nombres |
-| [portal-reserva.spec.ts](../e2e/portal-reserva.spec.ts) | Reserva completa desde «Inicio» en 5 elecciones con la advertencia y su hora límite en Lima, «atrás» que conserva la selección, horas de Lima aunque el navegador use otra zona, cita a menos de 1 hora, **doble reserva real con dos contextos y dos pacientes**, doble clic, sesión vencida a mitad del flujo, nada en el pasado |
-| [portal-cancelacion.spec.ts](../e2e/portal-cancelacion.spec.ts) | Cancelar una cita lejana (pasa a «Anteriores» y el horario vuelve a la búsqueda), sin botón a menos de 1 hora, envío forzado con la pantalla desactualizada, una cita que ya es de otro paciente, doble clic, sin «Reprogramar» |
-| [portal-aislamiento.spec.ts](../e2e/portal-aislamiento.spec.ts) | El paciente es llevado a `/paciente` desde las áreas del personal, sin enlaces a contenido clínico, títulos de pestaña sin datos personales, rutas de la API del personal sin datos |
-| [portal-accesibilidad.spec.ts](../e2e/portal-accesibilidad.spec.ts) | axe (WCAG 2.1 A y AA) sobre cada pantalla y estado del portal, a 390 y a 1280 px: registro (espera, vacío, con errores), «Inicio», «Mis citas» vacío y con datos, el diálogo de cancelación y cada paso de «Reservar» con la alerta de horario tomado |
-| [portal-responsive.spec.ts](../e2e/portal-responsive.spec.ts) | Sin desplazamiento horizontal a 320 y 390 px en todas las pantallas, objetivos táctiles de 44 × 44 px (48 px de alto en «Reservar cita» y «Confirmar cita»), reserva completa solo con teclado con el foco visible y en el `<h1>` de cada paso, y `role="alert"` / `role="status"` |
-| [db.spec.ts](../e2e/db.spec.ts) | Postgres reconoce a ambos pacientes por su token de Clerk y `correo_actual()` es el correo de la cuenta en minúsculas (el claim `email`) |
+| [portal-registro.spec.ts](../../e2e/portal-registro.spec.ts) | La espera de la cuenta en preparación (el formulario aparece solo cuando el perfil existe), las validaciones del documento y de los campos obligatorios, el alta con un documento nuevo, la vinculación de una ficha de la clínica (mismo correo y fecha de nacimiento: sin duplicar, sin sobrescribir y con sus citas en «Mis citas»), los tres rechazos con el mismo mensaje, la cuenta que ya tiene ficha y que ninguna dirección visitada lleve documento, correo ni nombres |
+| [portal-reserva.spec.ts](../../e2e/portal-reserva.spec.ts) | Reserva completa desde «Inicio» en 5 elecciones con la advertencia y su hora límite en Lima, «atrás» que conserva la selección, horas de Lima aunque el navegador use otra zona, cita a menos de 1 hora, **doble reserva real con dos contextos y dos pacientes**, doble clic, sesión vencida a mitad del flujo, nada en el pasado |
+| [portal-cancelacion.spec.ts](../../e2e/portal-cancelacion.spec.ts) | Cancelar una cita lejana (pasa a «Anteriores» y el horario vuelve a la búsqueda), sin botón a menos de 1 hora, envío forzado con la pantalla desactualizada, una cita que ya es de otro paciente, doble clic, sin «Reprogramar» |
+| [portal-aislamiento.spec.ts](../../e2e/portal-aislamiento.spec.ts) | El paciente es llevado a `/paciente` desde las áreas del personal, sin enlaces a contenido clínico, títulos de pestaña sin datos personales, rutas de la API del personal sin datos |
+| [portal-accesibilidad.spec.ts](../../e2e/portal-accesibilidad.spec.ts) | axe (WCAG 2.1 A y AA) sobre cada pantalla y estado del portal, a 390 y a 1280 px: registro (espera, vacío, con errores), «Inicio», «Mis citas» vacío y con datos, el diálogo de cancelación y cada paso de «Reservar» con la alerta de horario tomado |
+| [portal-responsive.spec.ts](../../e2e/portal-responsive.spec.ts) | Sin desplazamiento horizontal a 320 y 390 px en todas las pantallas, objetivos táctiles de 44 × 44 px (48 px de alto en «Reservar cita» y «Confirmar cita»), reserva completa solo con teclado con el foco visible y en el `<h1>` de cada paso, y `role="alert"` / `role="status"` |
+| [db.spec.ts](../../e2e/db.spec.ts) | Postgres reconoce a ambos pacientes por su token de Clerk y `correo_actual()` es el correo de la cuenta en minúsculas (el claim `email`) |
 
-[portal-pantallas.ts](../e2e/portal-pantallas.ts) es el recorrido por todas las pantallas que comparten las de accesibilidad y de diseño adaptable.
+[portal-pantallas.ts](../../e2e/portal-pantallas.ts) es el recorrido por todas las pantallas que comparten las de accesibilidad y de diseño adaptable.
 
-- **Datos de prueba** ([datos-portal.ts](../e2e/datos-portal.ts)): se siembran con la conexión del dueño sobre la base que sirve la app (la rama `dev` de
+- **Datos de prueba** ([datos-portal.ts](../../e2e/datos-portal.ts)): se siembran con la conexión del dueño sobre la base que sirve la app (la rama `dev` de
   Neon), no desde la interfaz. Un médico de prueba (`CMP-E2E-PORTAL`, «Especialista E2E Portal») con la agenda abierta las 24 horas en su propia
   especialidad, que se borra con todas sus citas al terminar, y la ficha del segundo paciente (documento `98000002`), que queda. Las pruebas de
   registro usan los documentos `9800001x` (rango `98…`, aparte de los `99…` de la demostración) y el perfil `e2e_otra_cuenta`. La URL sale de
@@ -79,12 +79,12 @@ Siete archivos de [e2e/](../e2e/) cubren el portal con **dos** cuentas de pacien
   segunda cuenta, estas specs se omiten con un aviso** (como las de H3 sin los datos de demostración).
 - **No se crean cuentas nuevas de Clerk:** cada alta dispararía el webhook de la instancia compartida (también la de producción) y dejaría perfiles de
   prueba allí. Las pruebas de registro reutilizan la cuenta del segundo paciente y cambian el estado de la base (con o sin perfil, con o sin ficha).
-- **Segunda cuenta de paciente:** `E2E_PACIENTE2_EMAIL` y `E2E_PACIENTE2_PASSWORD` (paso 4 de [pasos-manuales-h4.md](pasos-manuales-h4.md)), con el patrón
+- **Segunda cuenta de paciente:** `E2E_PACIENTE2_EMAIL` y `E2E_PACIENTE2_PASSWORD` (paso 4 de [pasos-manuales-h4.md](../09-deploy/pasos-manuales-h4.md)), con el patrón
   `…+clerk_test@…` y el código fijo `424242`.
 - **BotID y los límites en el preview:** Playwright es lo que BotID detecta como bot. Para las E2E contra una build local y contra el preview se pone
   `BOTID_EXCEPCION_E2E=1` (en `.env.local` y solo en el entorno **Preview** de Vercel); el código la ignora con `VERCEL_ENV=production`. Sin Upstash
-  configurado el portal corre sin límite de peticiones, así que ninguna E2E choca con un 429. Ver [pasos-manuales-h4.md](pasos-manuales-h4.md), paso 5, y
-  [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
+  configurado el portal corre sin límite de peticiones, así que ninguna E2E choca con un 429. Ver [pasos-manuales-h4.md](../09-deploy/pasos-manuales-h4.md), paso 5, y
+  [ADR-0026](../03-arquitectura/adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
 - **Correr en local:** solo contra la build de producción (`npm run build && npm start` y `PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test portal-`).
   Con `next dev` en Windows el inicio de sesión se queda en blanco. **No lance `next dev` en la misma carpeta mientras corre `next start`:** comparten
   `.next` y se estropean mutuamente. En Windows, para detener los servidores use `Stop-Process` (no hay `pkill`).
@@ -97,7 +97,7 @@ Siete archivos de [e2e/](../e2e/) cubren el portal con **dos** cuentas de pacien
 
 ## Interfaz: tema, componentes y galería (H2b)
 
-La interfaz sigue [DESIGN.md](DESIGN.md). Antes de abrir un PR de interfaz: `npm run test:tema` (generador y
+La interfaz sigue [DESIGN.md](../02-diseno/DESIGN.md). Antes de abrir un PR de interfaz: `npm run test:tema` (generador y
 utilidades de `lib/ui/`) y `npm run tema:comprobar` (CSS al día, sin colores literales, contraste WCAG); ambos corren
 también en el job `typecheck-lint-build` de CI.
 
@@ -109,22 +109,22 @@ también en el job `typecheck-lint-build` de CI.
   tras regenerar, `git diff components/ui/<archivo>` y reaplique los ajustes. Los componentes propios, con los nombres
   de DESIGN.md, viven en `components/clinica/` y no los toca la CLI.
 - **Galería `/guia-de-estilo`:** muestra cada componente de `components/clinica/` en todos sus estados con datos
-  sintéticos de [lib/ui/ejemplos.ts](../lib/ui/ejemplos.ts) (pacientes con documento `99…`, un «ahora» fijo para que las
+  sintéticos de [lib/ui/ejemplos.ts](../../lib/ui/ejemplos.ts) (pacientes con documento `99…`, un «ahora» fijo para que las
   citas no cambien con el tiempo). Exige sesión y **no existe en producción**: `galeriaVisible()` de
-  [lib/ui/galeria.ts](../lib/ui/galeria.ts) devuelve falso cuando `VERCEL_ENV` es `production` y la página responde
+  [lib/ui/galeria.ts](../../lib/ui/galeria.ts) devuelve falso cuando `VERCEL_ENV` es `production` y la página responde
   `notFound()`; en local con `next start` y en los previews se ve. Es el objetivo de las pruebas de accesibilidad
   (`e2e/accesibilidad.spec.ts`) y de las de componentes (`e2e/componentes.spec.ts`).
 - **Para revisar un componente nuevo:** añada su sección a la galería con todos sus estados (normal, error, vacío,
   deshabilitado, solo lectura), abra `/guia-de-estilo` en el preview del PR a 390 px y a 1280 px, recórrala con la tecla
   de tabulación y deje su prueba en `e2e/componentes.spec.ts`. Los colores, tamaños y textos salen de
-  [DESIGN.md](DESIGN.md); si algo no cabe allí, el cambio se hace primero en ese documento.
+  [DESIGN.md](../02-diseno/DESIGN.md); si algo no cabe allí, el cambio se hace primero en ese documento.
 - **Clerk en español y con la marca:** `ClerkProvider` recibe la localización `esMX` (la variante latinoamericana del
-  paquete `@clerk/localizations`; no hay variante peruana) con los textos de [lib/ui/clerk-es.ts](../lib/ui/clerk-es.ts),
+  paquete `@clerk/localizations`; no hay variante peruana) con los textos de [lib/ui/clerk-es.ts](../../lib/ui/clerk-es.ts),
   que pasan a «usted» las pantallas por las que pasa un paciente (DESIGN.md), y `appearance.variables` con variables del
   tema (`var(--color-primary)`…, sin colores literales). Lo que no está en ese archivo queda como lo trae el paquete, que
   mezcla «tú» y «usted».
 - **Selectores de Clerk en las E2E:** nunca por texto (la interfaz está en español y puede cambiar de redacción), sino por
-  atributos estables de su marcado, definidos al inicio de [e2e/helpers.ts](../e2e/helpers.ts): `input[name="identifier"]`,
+  atributos estables de su marcado, definidos al inicio de [e2e/helpers.ts](../../e2e/helpers.ts): `input[name="identifier"]`,
   `input[name="password"]`, `button.cl-formButtonPrimary` y `input[autocomplete="one-time-code"]` para el código; el error de
   un formulario se busca por `data-testid="form-feedback-error"`. Si una actualización de Clerk rompe uno, se corrige ahí.
 - **Dependencias de shadcn/ui:** la CLI actual usa el paquete `cn` (mantenedor shadcn, repo `shadcn-ui/cn`) en lugar de
@@ -132,7 +132,7 @@ también en el job `typecheck-lint-build` de CI.
 
 ## Accesibilidad (WCAG 2.1 AA)
 
-**Automática:** [e2e/accesibilidad.spec.ts](../e2e/accesibilidad.spec.ts) ejecuta axe (`@axe-core/playwright`, etiquetas
+**Automática:** [e2e/accesibilidad.spec.ts](../../e2e/accesibilidad.spec.ts) ejecuta axe (`@axe-core/playwright`, etiquetas
 `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) sobre la portada pública, la galería (a 1280 y a 390 px, también con un horario
 elegido), `/paciente` y `/administrativo`, y falla ante **cualquier** violación. Además `npm run tema:comprobar` calcula el
 contraste de los pares de DESIGN.md. Comprobado que la prueba se pone en rojo: al quitar la asociación de la etiqueta de un

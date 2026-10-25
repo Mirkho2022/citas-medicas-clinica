@@ -5,7 +5,7 @@
 H3, H4, H6 y H7 construyen pantallas reales (agenda, portal del paciente, historia clínica, turnos), pero hoy la
 aplicación tiene páginas de relleno sin estilo (`Portal del paciente` en una línea de texto), tipografía Geist por
 defecto, un modo oscuro heredado de la plantilla y formularios de Clerk en inglés y sin la marca. El sistema de diseño
-ya está aprobado ([docs/DESIGN.md](../../../docs/DESIGN.md), con su vista previa y las cuatro pantallas clave
+ya está aprobado ([docs/02-diseno/DESIGN.md](../../../../docs/02-diseno/DESIGN.md), con su vista previa y las cuatro pantallas clave
 publicadas), así que conviene convertirlo en código **una sola vez**, antes de que cada hito invente sus propios
 colores, botones y estados.
 
@@ -14,7 +14,7 @@ mayor use sin ayuda; el contraste, el tamaño y la claridad no pueden quedar a c
 
 ## What Changes
 
-- **Tema como código:** los tokens de `docs/DESIGN.md` (colores, tipografía, espaciado, radios, sombras) pasan a un
+- **Tema como código:** los tokens de `docs/02-diseno/DESIGN.md` (colores, tipografía, espaciado, radios, sombras) pasan a un
   tema de Tailwind CSS v4 en `app/globals.css`, generado por un script del repositorio a partir del front matter de
   DESIGN.md (así hay una sola fuente de verdad y no se transcribe a mano).
 - **Tipografía:** Plus Jakarta Sans (títulos) e Inter (cuerpo y tablas) con `next/font/google`, en lugar de Geist. Se
@@ -60,7 +60,7 @@ mayor use sin ayuda; el contraste, el tamaño y la claridad no pueden quedar a c
 - **Sin cambios** en base de datos, RLS, historias clínicas ni lógica de negocio. `AtencionFirmada` es un componente
   visual con datos sintéticos: **no** toca el acceso a historias clínicas y no depende de la decisión legal P-1; no
   muestra datos clínicos reales.
-- **ADR:** no requiere una ADR nueva; implementa [ADR-0004](../../../docs/adrs/0004-stack-de-frontend-y-validacion.md)
+- **ADR:** no requiere una ADR nueva; implementa [ADR-0004](../../../../docs/03-arquitectura/adrs/0004-stack-de-frontend-y-validacion.md)
   (Tailwind + shadcn/ui). La elección de generar el tema desde DESIGN.md se razona en `design.md`.
 - **Fuera de alcance:** modo oscuro, ilustraciones, gráficos analíticos y cualquier pantalla con datos reales (las
   construyen H3–H7 sobre esta base).

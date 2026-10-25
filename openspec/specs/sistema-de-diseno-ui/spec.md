@@ -2,7 +2,7 @@
 
 ## Purpose
 
-La interfaz de la aplicación se ve y se comporta como define el sistema de diseño aprobado (docs/DESIGN.md): una sola
+La interfaz de la aplicación se ve y se comporta como define el sistema de diseño aprobado (docs/02-diseno/DESIGN.md): una sola
 marca, estados de cita siempre legibles sin depender del color, accesibilidad WCAG 2.1 AA y textos en español, de modo
 que un paciente use el portal sin ayuda y el personal trabaje rápido sobre la misma base visual.
 
@@ -10,12 +10,12 @@ que un paciente use el portal sin ayuda y el personal trabaje rápido sobre la m
 
 ### Requirement: La interfaz usa solo los valores del sistema de diseño
 Todo color, tipografía, espaciado, radio de borde y sombra que se muestre en la aplicación SHALL provenir de los
-tokens definidos en `docs/DESIGN.md`. Un cambio en esos tokens SHALL reflejarse en la interfaz regenerando el tema, sin
+tokens definidos en `docs/02-diseno/DESIGN.md`. Un cambio en esos tokens SHALL reflejarse en la interfaz regenerando el tema, sin
 editar valores a mano en cada pantalla. La interfaz SHALL tener una sola marca (el verde azulado `primary`) y no
 SHALL introducir otros colores de acento.
 
 #### Scenario: El tema coincide con el documento
-- **WHEN** se compara el tema aplicado en la aplicación con los tokens de `docs/DESIGN.md`
+- **WHEN** se compara el tema aplicado en la aplicación con los tokens de `docs/02-diseno/DESIGN.md`
 - **THEN** cada color, tamaño de texto, espaciado, radio y sombra del tema tiene el mismo valor que su token
 
 #### Scenario: Un valor ajeno al sistema se detecta

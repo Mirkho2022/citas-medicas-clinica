@@ -44,7 +44,7 @@ sobre todo el diff: `tasks.md`, 11.5), además de la verificación por mutación
   firma lógica cumpla la norma: eso es P-1.
 - **Guarda contra datos clínicos reales (P-1)**: modo de datos `demostracion`/`real` guardado en la base y exigido por
   disparadores, más una variable de entorno que debe coincidir y un aviso visible (`design.md`, D1). Los datos
-  sintéticos de [docs/datos-demo.md](../../../docs/datos-demo.md) siguen permitidos; los reales, no.
+  sintéticos de [docs/07-testing/datos-demo.md](../../../docs/07-testing/datos-demo.md) siguen permitidos; los reales, no.
 - **Indicador de digitalización** (ADR-0013): una función que devuelve solo conteos al administrativo, sin pantalla.
 - **Migraciones nuevas** (nunca editar las de H2): catálogo y validación CIE-10, sello y huella, coherencia de cita,
   `medico_tiene_paciente()` también exige `perfiles.activo`, tipo de recurso en `accesos_historia`, `adjuntos_historia`,
@@ -95,17 +95,17 @@ los refina sin contradecirlos y, al archivarse H2, hay que revisar el solapamien
   proveedor de firma se reemplaza sin rediseñar el flujo) y de P-10 (MFA de personal requiere Clerk Pro en producción).
 - **ADR a crear antes de implementar** (skill `architecture`, revisión humana; no se deciden en este proposal):
   *modo de datos clínicos (demostración/real)* y *sello de tiempo y huella de la firma lógica*. Se apoyan en
-  [ADR-0003](../../../docs/adrs/0003-control-de-acceso-a-historias-clinicas.md),
-  [ADR-0006](../../../docs/adrs/0006-contratos-de-api-via-server-actions.md),
-  [ADR-0008](../../../docs/adrs/0008-resiliencia-y-manejo-de-errores.md),
-  [ADR-0013](../../../docs/adrs/0013-definicion-de-historia-clinica-digitalizada.md),
-  [ADR-0014](../../../docs/adrs/0014-catalogo-cie-10.md),
-  [ADR-0015](../../../docs/adrs/0015-modelo-de-antecedentes-del-paciente.md),
-  [ADR-0016](../../../docs/adrs/0016-vigencia-de-asignacion-paciente-medico.md),
-  [ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md),
-  [ADR-0024](../../../docs/adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) y
-  [ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md); ninguno se reabre.
-- **ADR ya redactada y aceptada por el usuario (2026-10-10):** [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md),
+  [ADR-0003](../../../docs/03-arquitectura/adrs/0003-control-de-acceso-a-historias-clinicas.md),
+  [ADR-0006](../../../docs/03-arquitectura/adrs/0006-contratos-de-api-via-server-actions.md),
+  [ADR-0008](../../../docs/03-arquitectura/adrs/0008-resiliencia-y-manejo-de-errores.md),
+  [ADR-0013](../../../docs/03-arquitectura/adrs/0013-definicion-de-historia-clinica-digitalizada.md),
+  [ADR-0014](../../../docs/03-arquitectura/adrs/0014-catalogo-cie-10.md),
+  [ADR-0015](../../../docs/03-arquitectura/adrs/0015-modelo-de-antecedentes-del-paciente.md),
+  [ADR-0016](../../../docs/03-arquitectura/adrs/0016-vigencia-de-asignacion-paciente-medico.md),
+  [ADR-0023](../../../docs/03-arquitectura/adrs/0023-contexto-de-usuario-para-rls.md),
+  [ADR-0024](../../../docs/03-arquitectura/adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) y
+  [ADR-0027](../../../docs/03-arquitectura/adrs/0027-herramienta-de-migraciones.md); ninguno se reabre.
+- **ADR ya redactada y aceptada por el usuario (2026-10-10):** [ADR-0029](../../../docs/03-arquitectura/adrs/0029-datos-clinicos-por-especialidad.md),
   *datos clínicos por especialidad* (D15). No resuelve la cuestión abierta de los profesionales que no son médicos.
 - **Código nuevo:** `migrations/*.sql`; `lib/historias/`, `lib/firma/`, `lib/cie10/`, `lib/schemas/historia-clinica.ts`;
   `app/medico/pacientes/**`, `app/administrativo/{asignaciones,accesos-historia}/`, `app/api/{cie10,historias}/**`;

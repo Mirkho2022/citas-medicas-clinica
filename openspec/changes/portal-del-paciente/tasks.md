@@ -8,7 +8,7 @@ migraciones y las acciones del portal pasan por una revisión explícita aparte 
 en `tests/portal/` (`node --test`, script `test:portal`); las de SQL, en `tests/pgtap/70`–`72`; las de comportamiento del
 navegador, en `e2e/portal-*.spec.ts`. Cada grupo deja sus pruebas y su documentación; el último grupo solo integra. Las
 dependencias nuevas se instalan con la autorización del usuario. Las E2E requieren el branch con datos de demostración
-(`docs/datos-demo.md`) y usan documentos del rango `98…` (los de demostración son `99…`). H3 (`agenda-y-reserva`) y H2b
+(`docs/07-testing/datos-demo.md`) y usan documentos del rango `98…` (los de demostración son `99…`). H3 (`agenda-y-reserva`) y H2b
 (`sistema-de-diseno-ui`) deben estar aplicados antes del grupo 2.
 
 ## 1. Prerrequisitos, decisión de seguridad y pasos manuales
@@ -25,13 +25,13 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       `CampoDocumento`, `Alerta` y `PortalLayout`. H3 está archivado y en producción (PR #13/#20); H2b, archivado. `npm run test:pgtap` en verde.
 - [x] 1.2 Redactar con la skill `architecture` el ADR de **verificación al vincular una ficha existente** (correo verificado de la
       cuenta + fecha de nacimiento; alternativas y riesgo residual de `design.md` D3) con el siguiente número libre de
-      `docs/adrs/` (el change `notificaciones-email` ya propone el 0029) y presentarlo al usuario. Verificar que el archivo
+      `docs/03-arquitectura/adrs/` (el change `notificaciones-email` ya propone el 0029) y presentarlo al usuario. Verificar que el archivo
       existe con estado «Aceptado» o «Propuesto», que enlaza a ADR-0003, 0022 y 0023, y que **la migración 2.2 no se aplica
       mientras no esté aceptado** (si el usuario decide otra cosa, cambian 2.2, 2.3 y la spec `registro-del-paciente`, no el resto).
-      Resultado (2026-10-20): `docs/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md`, **Aceptado** por el cliente el mismo día (aceptó la
+      Resultado (2026-10-20): `docs/03-arquitectura/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md`, **Aceptado** por el cliente el mismo día (aceptó la
       propuesta de D3: correo verificado + fecha de nacimiento). Enlaza a ADR-0003, 0022 y 0023. Se usó el 0037 porque el PR #9 (borrador) ya
       reserva 0030–0036 y el 0029 está ocupado.
-- [ ] 1.3 Crear `docs/pasos-manuales-h4.md` con los pasos de consola que no se pueden versionar y pedirle al usuario que los ejecute
+- [ ] 1.3 Crear `docs/09-deploy/pasos-manuales-h4.md` con los pasos de consola que no se pueden versionar y pedirle al usuario que los ejecute
       en **desarrollo y en producción** (instancias de Clerk distintas): Clerk — añadir a la plantilla del JWT el claim `email`
       (`{{user.primary_email_address}}`), exigir correo verificado y nombres en el alta, redirigir el alta a `/completar-registro`,
       revisar la protección contra bots del alta y el bloqueo de cuenta por intentos fallidos; Vercel — activar BotID en el
@@ -42,10 +42,10 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 ## 2. Base de datos: vinculación del paciente y cancelación propia
 
 - [x] 2.1 Extender `scripts/ejecutar-pgtap.ts` para que cada identidad de prueba lleve el claim `email`
-      (`<identidad>@pruebas.invalid`) y documentarlo en `docs/pruebas-sql.md`. Verificar que toda la suite existente sigue en
+      (`<identidad>@pruebas.invalid`) y documentarlo en `docs/07-testing/pruebas-sql.md`. Verificar que toda la suite existente sigue en
       verde y que una prueba mínima lee `auth.session() ->> 'email'` de `paciente_a`.
       Resultado (2026-10-20): `scripts/ejecutar-pgtap.ts` firma `email` = `<identidad>@pruebas.invalid` en cada token y añade la identidad
-      `paciente_sin_correo` (sin ese claim); `tests/concurrencia/_sesion.ts` acepta `email`. Documentado en `docs/pruebas-sql.md`. Suite completa
+      `paciente_sin_correo` (sin ese claim); `tests/concurrencia/_sesion.ts` acepta `email`. Documentado en `docs/07-testing/pruebas-sql.md`. Suite completa
       en verde y `70_portal_registro` lee `auth.session() ->> 'email'` de `paciente_a`.
 - [x] 2.2 Crear la migración nueva `portal-paciente-vinculacion` con `public.correo_actual()` y
       `public.registrar_paciente_portal(...)` según `design.md` D3 (ambas `SECURITY DEFINER`, `search_path` vacío, `EXECUTE`
@@ -88,7 +88,7 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
 - [x] 2.7 Extender `app/api/db-sesion/route.ts` para devolver también `correo_actual()` y `e2e/db.spec.ts` para comprobar que es el
       correo de la cuenta de prueba, en minúsculas. Verificar con la E2E contra un branch con la plantilla de Clerk ya actualizada
       (tarea 1.3); es la prueba de extremo a extremo del claim `email`.
-      Resultado (2026-10-25): `app/api/db-sesion/route.ts` devuelve `correo` (`public.correo_actual()`) y `e2e/db.spec.ts` comprueba, con la sesión de cada uno de los dos pacientes, que es su correo en minúsculas: 2 pruebas en verde contra la build de producción local y la plantilla de Clerk con el claim `email` (paso 1 de docs/pasos-manuales-h4.md).
+      Resultado (2026-10-25): `app/api/db-sesion/route.ts` devuelve `correo` (`public.correo_actual()`) y `e2e/db.spec.ts` comprueba, con la sesión de cada uno de los dos pacientes, que es su correo en minúsculas: 2 pruebas en verde contra la build de producción local y la plantilla de Clerk con el claim `email` (paso 1 de docs/09-deploy/pasos-manuales-h4.md).
 ## 3. Esquemas, textos y guarda de acciones
 
 - [x] 3.1 Crear `lib/schemas/paciente-portal.ts` componiendo `lib/schemas/documento.ts` (documento, nombres, apellidos, fecha de
@@ -120,7 +120,7 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       variable, nunca activo en producción). Verificar con `tests/portal/antibots.test.ts` (doble de `checkBotId`: bot rechazado sin
       llegar a la base, humano pasa, el modo de excepción no se aplica con `VERCEL_ENV=production`) y `npm run build`. Dejar la respuesta
       de la pregunta Q6 en el PR.
-      Resultado (2026-10-25): `botid` instalado; `withBotId` en `next.config.ts`, `initBotId` en `instrumentation-client.ts` (`/completar-registro` y `/paciente/citas/nueva`, `checkLevel: "basic"`) y `lib/seguridad/antibots.ts` con el modo de excepción `BOTID_EXCEPCION_E2E` (ignorado con `VERCEL_ENV=production`); `tests/portal/antibots.test.ts` (6 casos) y `npm run build` en verde. **Q6:** el nivel básico es gratuito en todos los planes, incluido Hobby; el análisis profundo no se usa (respuesta en `design.md` y en docs/pasos-manuales-h4.md, paso 5). Falta activar BotID en el panel de Vercel (paso manual 5).
+      Resultado (2026-10-25): `botid` instalado; `withBotId` en `next.config.ts`, `initBotId` en `instrumentation-client.ts` (`/completar-registro` y `/paciente/citas/nueva`, `checkLevel: "basic"`) y `lib/seguridad/antibots.ts` con el modo de excepción `BOTID_EXCEPCION_E2E` (ignorado con `VERCEL_ENV=production`); `tests/portal/antibots.test.ts` (6 casos) y `npm run build` en verde. **Q6:** el nivel básico es gratuito en todos los planes, incluido Hobby; el análisis profundo no se usa (respuesta en `design.md` y en docs/09-deploy/pasos-manuales-h4.md, paso 5). Falta activar BotID en el panel de Vercel (paso manual 5).
 - [x] 4.2 Instalar `@upstash/ratelimit` y `@upstash/redis` y crear `lib/seguridad/limites.ts`: una tabla única de límites (registro
       5 / 15 min, reserva 10 / 10 min, cancelación 10 / 10 min, búsqueda 60 / 1 min, rutas de autenticación 5 / 15 min por IP para
       peticiones que no son lectura y 60 / 1 min para lecturas), ventana deslizante, clave por usuario más IP, y **fallo abierto** con
@@ -138,25 +138,25 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       intentos. Espere unos minutos e intente de nuevo.» y el doble de la base **no** es llamado; un paciente que reserva, cancela y
       vuelve a reservar varias veces no alcanza ningún límite.
       Resultado (2026-10-25): `exigirPacienteControlado` en `lib/auth/accion-paciente.ts` (sesión → límite por usuario y por IP → BotID) usada por `completarRegistro` (registro 5 / 15 min + BotID), `reservarCitaDelPortal` (10 / 10 min + BotID) y `cancelarMiCita` (10 / 10 min, sin BotID); la búsqueda se cuenta en la página `/paciente/citas/nueva`. `tests/portal/accion-paciente.test.ts` (+7 casos): una ráfaga recibe «Demasiados intentos…» y la base de datos no es llamada, el orden es sesión → límite → anti-bots, un bot se rechaza sin tocar la base y reservar, cancelar y volver a reservar varias veces no alcanza ningún límite.
-- [x] 4.5 Documentar en `docs/pasos-manuales-h4.md` la tabla de límites, el modo de excepción de BotID para las E2E en el preview y
+- [x] 4.5 Documentar en `docs/09-deploy/pasos-manuales-h4.md` la tabla de límites, el modo de excepción de BotID para las E2E en el preview y
       la salvedad de las rutas de Clerk (D9, Q5). Verificar que el documento enlaza a ADR-0026 y que `.env.example` lista las variables
       nuevas (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` y las de BotID) sin valores.
-      Resultado (2026-10-25): docs/pasos-manuales-h4.md, paso 5, con la tabla de límites, el modo de excepción de BotID, el origen de la IP, el fallo abierto y la salvedad de las rutas de Clerk (D9, Q5; enlaza a ADR-0026); `.env.example` lista `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` y `BOTID_EXCEPCION_E2E` sin valores.
+      Resultado (2026-10-25): docs/09-deploy/pasos-manuales-h4.md, paso 5, con la tabla de límites, el modo de excepción de BotID, el origen de la IP, el fallo abierto y la salvedad de las rutas de Clerk (D9, Q5; enlaza a ADR-0026); `.env.example` lista `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` y `BOTID_EXCEPCION_E2E` sin valores.
 ## 5. Registro del paciente
 
 - [x] 5.1 Apuntar el alta a `/completar-registro` (`forceRedirectUrl` de `<SignUp />` y
       `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`) y cambiar `app/page.tsx` para que quien tiene sesión pero aún no tiene rol
       vaya a `/completar-registro` en lugar de ver la portada de visitantes. Verificar con `npm run build` y con la E2E 5.6: tras crear
       la cuenta nunca se muestra el enlace «Registrarme» de la portada.
-      Estado (2026-10-20): hecho `forceRedirectUrl="/completar-registro"` en `<SignUp />`, `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` en `.env.example` y `app/page.tsx` (con sesión y sin rol va a `/completar-registro`); `npm run build` en verde. Falta la E2E 5.6 y poner la variable en Vercel (docs/pasos-manuales-h4.md, paso 3).
-      Resultado (2026-10-25): `e2e/portal-registro.spec.ts` (9 pruebas en verde): una cuenta en preparación ve «Estamos preparando su cuenta…» y nunca el enlace «Registrarme». Falta ver un alta real en producción (paso manual 3 de docs/pasos-manuales-h4.md; producción aún corre `master` sin H4).
+      Estado (2026-10-20): hecho `forceRedirectUrl="/completar-registro"` en `<SignUp />`, `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` en `.env.example` y `app/page.tsx` (con sesión y sin rol va a `/completar-registro`); `npm run build` en verde. Falta la E2E 5.6 y poner la variable en Vercel (docs/09-deploy/pasos-manuales-h4.md, paso 3).
+      Resultado (2026-10-25): `e2e/portal-registro.spec.ts` (9 pruebas en verde): una cuenta en preparación ve «Estamos preparando su cuenta…» y nunca el enlace «Registrarme». Falta ver un alta real en producción (paso manual 3 de docs/09-deploy/pasos-manuales-h4.md; producción aún corre `master` sin H4).
 - [x] 5.2 Crear `app/completar-registro/page.tsx` (`auth.protect()`; decide entre redirigir a otra área, redirigir a `/paciente`, mostrar
       el formulario o mostrar la espera) y el componente de cliente `EsperarCuenta`: confirmar primero en la documentación de Clerk
       la API para refrescar el token (`session.reload()` / `getToken({ skipCache: true })`), refrescar cada 2 s hasta 30 s con
       `router.refresh()`, región `aria-live="polite"` «Estamos preparando su cuenta…» y, pasados 30 s, «Reintentar» y el texto de
       contacto; nunca redirige a `/`. Verificar con la E2E 5.6 (la pantalla aparece y se resuelve sola) y revisando que un usuario de
       personal que abre la ruta va a su área.
-      Estado (2026-10-20): hecho `app/completar-registro/{layout,page,esperar-cuenta}.tsx`. API confirmada en los tipos de la versión instalada (`@clerk/nextjs` 7.9.9): `useAuth().getToken({ skipCache: true })`. Falta la E2E 5.6 (necesita el claim `email` en la plantilla de Clerk: paso 1 de docs/pasos-manuales-h4.md).
+      Estado (2026-10-20): hecho `app/completar-registro/{layout,page,esperar-cuenta}.tsx`. API confirmada en los tipos de la versión instalada (`@clerk/nextjs` 7.9.9): `useAuth().getToken({ skipCache: true })`. Falta la E2E 5.6 (necesita el claim `email` en la plantilla de Clerk: paso 1 de docs/09-deploy/pasos-manuales-h4.md).
       Resultado (2026-10-25): `e2e/portal-registro.spec.ts`: la espera aparece y se resuelve sola cuando el perfil existe (sin recargar), y una cuenta con ficha va a `/paciente`. Un usuario de personal que abre la ruta va a su área (`e2e/portal-aislamiento.spec.ts`).
 - [x] 5.3 Crear el formulario de registro (`react-hook-form` + `zodResolver` con el esquema 3.1): `CampoDocumento` DNI/CE con su
       ayuda, nombres y apellidos prellenados desde `perfiles`, fecha de nacimiento, sexo («Otro o prefiero no indicarlo»), teléfono y
@@ -192,15 +192,15 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       paciente no se ve y su horario no se ofrece; el horario que cruza una cita propia se marca; los días sin horarios se cuentan en cero.
       Resultado (2026-10-24): `lib/portal/consultas.ts` y `tests/integracion/portal-consultas.test.ts`, 14 pruebas en verde sobre el branch `dev` (`DATABASE_URL_PRUEBAS` = la URL directa de `dev`, nunca producción): médico inactivo fuera, bloqueo sin motivo, cita ajena no visible y su horario no se ofrece, cruce propio marcado, días sin horarios en cero, partición próximas/anteriores y «Ver más».
 - [x] 6.2 Medir el rendimiento de la consulta de días y del próximo horario con `EXPLAIN (ANALYZE)` sobre un volumen sintético en un
-      branch de desarrollo (objetivo p95 < 500 ms de TECH-DESIGN) y anotar el resultado en `docs/pruebas-sql.md`. Si no se cumple,
+      branch de desarrollo (objetivo p95 < 500 ms de TECH-DESIGN) y anotar el resultado en `docs/07-testing/pruebas-sql.md`. Si no se cumple,
       reducir el horizonte a 14 días o pedir a H3 una función agregada, y registrar la decisión. Verificar con el plan de ejecución
       adjunto al PR.
-      Resultado (2026-10-25): `scripts/medir-busqueda-portal.ts` sobre 40 médicos, 4 000 pacientes y 44 200 citas en `dev` (todo en una transacción con `ROLLBACK`): «días» p95 48,5 ms; «próximo horario de los 40 médicos» p95 413,5 ms (crece ~10 ms por médico de la especialidad); ambos bajo los 500 ms. Plan y decisión (se mantienen los 30 días) en `docs/pruebas-sql.md`. La latencia de red hacia Neon se mide en el preview.
+      Resultado (2026-10-25): `scripts/medir-busqueda-portal.ts` sobre 40 médicos, 4 000 pacientes y 44 200 citas en `dev` (todo en una transacción con `ROLLBACK`): «días» p95 48,5 ms; «próximo horario de los 40 médicos» p95 413,5 ms (crece ~10 ms por médico de la especialidad); ambos bajo los 500 ms. Plan y decisión (se mantienen los 30 días) en `docs/07-testing/pruebas-sql.md`. La latencia de red hacia Neon se mide en el preview.
 - [x] 6.3 Crear `/paciente/citas/nueva` con los pasos especialidad → médico (con «Ya sé con qué médico») → día → horario, el estado en
       `searchParams`, `SelectorHorario` de H2b, el componente de cliente que mueve el foco al `<h1 tabIndex={-1}>` del paso y los
       esqueletos con «Buscando horarios…». Verificar con la E2E 6.6: el botón «atrás» conserva la selección, los días sin horarios están
       deshabilitados con «Sin horarios» y todas las horas se ven en Lima aunque el navegador use otra zona.
-      Resultado (2026-10-24): `/paciente/citas/nueva` con el estado en `searchParams`; E2E 6.6 en verde (atrás conserva la selección, «Sin horarios» deshabilitado, horas de Lima con otra zona del navegador). Hallazgo: con un `loading.tsx` en `app/paciente/citas/`, la navegación por enlace entre pasos y `router.refresh()` dejaban a veces la pantalla anterior aunque la respuesta del servidor era correcta (Next 15.5.26, build de producción; ver docs/pruebas-e2e.md, «Cosas que aprendimos»). Los esqueletos («Buscando horarios…», «Cargando sus citas…», con `aria-busy`) viven ahora en un `<Suspense>` propio dentro de cada página con una `key` que cambia en cada paso (y en cada lectura de «Mis citas»).
+      Resultado (2026-10-24): `/paciente/citas/nueva` con el estado en `searchParams`; E2E 6.6 en verde (atrás conserva la selección, «Sin horarios» deshabilitado, horas de Lima con otra zona del navegador). Hallazgo: con un `loading.tsx` en `app/paciente/citas/`, la navegación por enlace entre pasos y `router.refresh()` dejaban a veces la pantalla anterior aunque la respuesta del servidor era correcta (Next 15.5.26, build de producción; ver docs/07-testing/pruebas-e2e.md, «Cosas que aprendimos»). Los esqueletos («Buscando horarios…», «Cargando sus citas…», con `aria-busy`) viven ahora en un `<Suspense>` propio dentro de cada página con una `key` que cambia en cada paso (y en cada lectura de «Mis citas»).
 - [x] 6.4 Crear el paso de confirmación (resumen con médico, especialidad, fecha y hora; `Alerta` de advertencia con la hora límite o
       el aviso de cita en menos de 1 hora; sin campo de motivo) y la Server Action `reservarCitaPortal` con `lib/portal/reserva.ts`:
       buscar el `fin` del slot en `slots_disponibles`, llamar a `reservar_cita` con `paciente_actual()` de la base, reintento idempotente
@@ -256,14 +256,14 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       datos personales. Verificar con `npx playwright test portal-aislamiento`.
       Resultado (2026-10-21): `e2e/portal-aislamiento.spec.ts`, 4 pruebas en verde contra la build de producción local
       (`npm run build && npm start` y `PLAYWRIGHT_BASE_URL=http://localhost:3000`). Con `next dev` en Windows el inicio de sesión se queda en `/` con el
-      cuerpo vacío (también falla la spec `roles` existente), como ya advertía `docs/pruebas-e2e.md`: no es un fallo de la spec. La clave `correo` de
+      cuerpo vacío (también falla la spec `roles` existente), como ya advertía `docs/07-testing/pruebas-e2e.md`: no es un fallo de la spec. La clave `correo` de
       `/api/db-sesion` se comprueba solo como presente; su valor depende de que la plantilla del JWT de Clerk lleve el claim `email` (1.3, pendiente).
 - [x] 8.4 Dejar medible la autogestión (D10): prueba `tests/integracion/autogestion.test.ts` que reserva y cancela como paciente y
       comprueba `origen = 'portal'`, `creada_por` y `cancelada_por` = perfil del paciente (y que una cancelación del administrativo se
-      distingue), y documentar en `docs/pruebas-sql.md` las dos consultas de la métrica (reservas por `origen`, cancelaciones por rol de
+      distingue), y documentar en `docs/07-testing/pruebas-sql.md` las dos consultas de la métrica (reservas por `origen`, cancelaciones por rol de
       `cancelada_por`) sin construir ninguna pantalla. Verificar con `npm run test:integracion` y ejecutando las consultas sobre los
       datos de demostración.
-      Resultado (2026-10-21): `tests/integracion/autogestion.test.ts` y consultas en `docs/pruebas-sql.md`; `npm run test:integracion` 67 pruebas en verde
+      Resultado (2026-10-21): `tests/integracion/autogestion.test.ts` y consultas en `docs/07-testing/pruebas-sql.md`; `npm run test:integracion` 67 pruebas en verde
       (la de `reservas.test.ts` que decía «el paciente no cancela hasta H4» se actualizó a la política nueva). Sobre `dev`: 156 citas de origen
       `administrativo` y 140 cancelaciones del rol administrativo, ninguna del portal (los datos de demostración son todos administrativos). La
       concurrencia de registro (`30_registro_portal`) se movió a documentos `7391…` para no chocar con los `7350…` de `tests/integracion/horarios.test.ts`, que los borra al empezar y al terminar, y sigue en verde.
@@ -283,27 +283,27 @@ dependencias nuevas se instalan con la autorización del usuario. Las E2E requie
       teclado con el foco visible; el foco pasa al `<h1>` en cada cambio de paso; los errores usan `role="alert"` y las confirmaciones
       `role="status"`. Verificar con `npx playwright test portal-responsive`.
       Resultado (2026-10-25): `e2e/portal-responsive.spec.ts`, 9 pruebas en verde: sin desplazamiento horizontal a 320 y 390 px en todas las pantallas, objetivos de 44 × 44 px (48 px de alto en «Reservar cita» y «Confirmar cita»), reserva completa solo con teclado con el foco visible y en el `<h1>` de cada paso, `role="alert"` / `role="status"`. Encontró y corrigió el botón del avatar de Clerk (28 × 28 px): `components/clinica/portal-layout.tsx` lo lleva a 44 × 44 px.
-- [ ] 9.4 Ampliar la lista de revisión manual de `docs/pruebas-e2e.md` con los ítems del portal (NVDA/VoiceOver sobre el registro, la
+- [ ] 9.4 Ampliar la lista de revisión manual de `docs/07-testing/pruebas-e2e.md` con los ítems del portal (NVDA/VoiceOver sobre el registro, la
       reserva y la cancelación; zoom 200 %; teclado) y ejecutarla una vez sobre el preview anotando el resultado en el PR. Verificar que
       el documento tiene la lista y que el PR trae el resultado de cada ítem.
-      Estado (2026-10-25): la lista de revisión manual del portal está en `docs/pruebas-e2e.md` («Revisión manual del portal del paciente»). Falta ejecutarla sobre el preview con un lector de pantalla (NVDA/VoiceOver) y anotar el resultado en el PR: es manual.
-- [x] 9.5 Escribir `docs/usabilidad-portal.md` (protocolo: tareas «registrarse», «reservar» y «cancelar», guion sin ayuda, criterio de
+      Estado (2026-10-25): la lista de revisión manual del portal está en `docs/07-testing/pruebas-e2e.md` («Revisión manual del portal del paciente»). Falta ejecutarla sobre el preview con un lector de pantalla (NVDA/VoiceOver) y anotar el resultado en el PR: es manual.
+- [x] 9.5 Escribir `docs/07-testing/usabilidad-portal.md` (protocolo: tareas «registrarse», «reservar» y «cancelar», guion sin ayuda, criterio de
       4 de 5, plantilla de registro) y ejecutarlo con al menos cinco personas de 60 años o más; corregir los hallazgos de gravedad alta.
       Si no es posible reclutarlas, dejarlo declarado en el documento con la alternativa usada y marcado como pendiente antes de abrir
       el portal a pacientes reales. Verificar que el documento existe con los resultados o con esa declaración explícita.
-      Resultado (2026-10-25): `docs/usabilidad-portal.md` con el protocolo (tareas, reclutamiento, guion, criterio de 4 de 5, plantilla y gravedad) y la declaración explícita de que **la prueba con cinco personas de 60 años o más NO se ha ejecutado**: queda pendiente y **bloquea abrir el portal a pacientes reales**; mientras tanto, la evidencia automática de pasos y de teclado.
+      Resultado (2026-10-25): `docs/07-testing/usabilidad-portal.md` con el protocolo (tareas, reclutamiento, guion, criterio de 4 de 5, plantilla y gravedad) y la declaración explícita de que **la prueba con cinco personas de 60 años o más NO se ha ejecutado**: queda pendiente y **bloquea abrir el portal a pacientes reales**; mientras tanto, la evidencia automática de pasos y de teclado.
 ## 10. Documentación y coherencia
 
-- [x] 10.1 Actualizar `.env.example`, `docs/pruebas-e2e.md` (specs del portal, segunda cuenta de paciente, rango `98…`, BotID en el
-      preview) y `docs/pruebas-sql.md` (pruebas 70–72), y el estado de `CLAUDE.md` (H4 aplicado). Verificar con una búsqueda que las
+- [x] 10.1 Actualizar `.env.example`, `docs/07-testing/pruebas-e2e.md` (specs del portal, segunda cuenta de paciente, rango `98…`, BotID en el
+      preview) y `docs/07-testing/pruebas-sql.md` (pruebas 70–72), y el estado de `CLAUDE.md` (H4 aplicado). Verificar con una búsqueda que las
       rutas, nombres de variables y números de prueba coinciden con lo implementado y que ningún enlace relativo se rompe.
-      Resultado (2026-10-25): `.env.example` (`E2E_PACIENTE2_*`, Upstash, `BOTID_EXCEPCION_E2E`), `docs/pruebas-e2e.md` (las siete specs del portal, la segunda cuenta, el rango `98…`, BotID en el preview, la revisión manual y lo aprendido), `docs/pruebas-sql.md` (pruebas 70–72 ya estaban; se añade la medición de 6.2) y el estado de `CLAUDE.md`. Comprobado con un recorrido de todos los enlaces relativos de los documentos tocados: 0 rotos. «H4 aplicado» en `CLAUDE.md` se dice como implementado y verificado en local, con los pasos de consola y la prueba de usabilidad pendientes.
+      Resultado (2026-10-25): `.env.example` (`E2E_PACIENTE2_*`, Upstash, `BOTID_EXCEPCION_E2E`), `docs/07-testing/pruebas-e2e.md` (las siete specs del portal, la segunda cuenta, el rango `98…`, BotID en el preview, la revisión manual y lo aprendido), `docs/07-testing/pruebas-sql.md` (pruebas 70–72 ya estaban; se añade la medición de 6.2) y el estado de `CLAUDE.md`. Comprobado con un recorrido de todos los enlaces relativos de los documentos tocados: 0 rotos. «H4 aplicado» en `CLAUDE.md` se dice como implementado y verificado en local, con los pasos de consola y la prueba de usabilidad pendientes.
 - [x] 10.2 Preparar, como commit aparte **marcado para revisión humana** (no se reabre nada en silencio), las correcciones a
       documentos compartidos: TECH-DESIGN (rutas reales del portal `/paciente/citas` y `/completar-registro` en lugar de
       `(paciente)/portal/…`, «Turnstile» → BotID en `registro/`, `completarRegistro` y `cancelarMiCita` en la tabla de Server Actions,
       criterio de vinculación del registro de paciente), una nota fechada en ADR-0026 (alcance real del límite con los componentes de
       Clerk, Q5) y en ADR-0022 (claim `email`). Verificar que el PR lista cada cambio con su motivo.
-      Resultado (2026-10-25): commit aparte **marcado para revisión humana**, sin reabrir nada en silencio. (1) `docs/TECH-DESIGN.md`: las rutas reales del paciente (`/completar-registro`, `/paciente`, `/paciente/citas`, `/paciente/citas/nueva`) junto al árbol ilustrativo, y en la tabla de Server Actions `completarRegistro`, `reservarCitaDelPortal` y `cancelarMiCita` con su orden de controles y el criterio de vinculación (`registrarPaciente` queda solo del administrativo). Motivo: el árbol decía `(paciente)/portal/…` y Turnstile quedó reemplazado por BotID en ADR-0026. (2) Nota fechada en ADR-0026: el alcance real del límite con los componentes de Clerk (Q5), BotID en nivel básico, el modo de excepción de las E2E y los límites por acción como valores propuestos. Motivo: precisa lo decidido, no lo cambia. (3) Nota fechada en ADR-0022: el claim `email` de la plantilla de sesión. Motivo: es lo que permite vincular una cuenta con una ficha (ADR-0037).
+      Resultado (2026-10-25): commit aparte **marcado para revisión humana**, sin reabrir nada en silencio. (1) `docs/03-arquitectura/TECH-DESIGN.md`: las rutas reales del paciente (`/completar-registro`, `/paciente`, `/paciente/citas`, `/paciente/citas/nueva`) junto al árbol ilustrativo, y en la tabla de Server Actions `completarRegistro`, `reservarCitaDelPortal` y `cancelarMiCita` con su orden de controles y el criterio de vinculación (`registrarPaciente` queda solo del administrativo). Motivo: el árbol decía `(paciente)/portal/…` y Turnstile quedó reemplazado por BotID en ADR-0026. (2) Nota fechada en ADR-0026: el alcance real del límite con los componentes de Clerk (Q5), BotID en nivel básico, el modo de excepción de las E2E y los límites por acción como valores propuestos. Motivo: precisa lo decidido, no lo cambia. (3) Nota fechada en ADR-0022: el claim `email` de la plantilla de sesión. Motivo: es lo que permite vincular una cuenta con una ficha (ADR-0037).
 ## 11. Verificación integral
 
 - [ ] 11.1 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:portal`,

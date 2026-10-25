@@ -4,7 +4,7 @@
 @import "./tema.generado.css";
 @import "./movimiento.css";
 
-/* Los valores (colores, tipografía, espaciado, radios y sombras) vienen de docs/DESIGN.md vía tema.generado.css:
+/* Los valores (colores, tipografía, espaciado, radios y sombras) vienen de docs/02-diseno/DESIGN.md vía tema.generado.css:
    cámbielos allí y ejecute `npm run tema`. Este archivo no declara ningún color. */
 
 /* Solo tema claro (DESIGN.md): no hay modo oscuro en esta versión. */

@@ -3,7 +3,7 @@ import { cabecerasBypass, esperarArea, iniciarSesion, prepararPagina, variable }
 
 // ADR-0023 de extremo a extremo (H2, tarea 8.2): Neon valida el JWT de Clerk y Postgres reconoce al usuario.
 // Requiere DATABASE_AUTHENTICATED_URL en el entorno que sirve la app, apuntando a un branch con las migraciones
-// de H2 y la JWKS de la instancia de Clerk registrada para ese branch (docs/spike-rls-h2.md).
+// de H2 y la JWKS de la instancia de Clerk registrada para ese branch (docs/03-arquitectura/spike-rls-h2.md).
 
 test.beforeEach(async ({ page }) => {
   await prepararPagina(page);
@@ -16,7 +16,7 @@ test("sin sesión, /api/db-sesion no devuelve la identidad de nadie", async ({ r
   expect(await respuesta.text()).not.toContain("clerk_user_id");
 });
 
-// H4: las E2E de aislamiento y de doble reserva necesitan dos pacientes con sesión (docs/pasos-manuales-h4.md, paso 4).
+// H4: las E2E de aislamiento y de doble reserva necesitan dos pacientes con sesión (docs/09-deploy/pasos-manuales-h4.md, paso 4).
 // El segundo no tiene ficha hasta que una E2E del portal la siembra (e2e/datos-portal.ts) y la ficha queda después: según el orden de las
 // corridas, la app lo lleva a `/paciente` o a `/completar-registro`. Esta prueba solo comprueba que Postgres lo reconoce.
 const PACIENTES = [

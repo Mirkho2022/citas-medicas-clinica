@@ -1,5 +1,5 @@
 // Datos de las E2E del portal del paciente (H4, tareas 5.6, 6.6 y 7.3). Se siembran con la conexión del DUEÑO sobre la misma base que sirve la
-// app que se prueba (por defecto la rama `dev` de Neon: ver docs/pruebas-e2e.md), porque desde la interfaz no se puede crear a un médico con
+// app que se prueba (por defecto la rama `dev` de Neon: ver docs/07-testing/pruebas-e2e.md), porque desde la interfaz no se puede crear a un médico con
 // la agenda abierta las 24 horas ni sembrar una cita a 40 minutos de ahora.
 //
 // La URL sale de `E2E_DATABASE_URL` (o, en local, de `DATABASE_URL_PRUEBAS` / `DATABASE_URL_UNPOOLED` de .env.local). Se niega a usar el pooler

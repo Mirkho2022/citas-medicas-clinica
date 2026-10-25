@@ -5,7 +5,7 @@ import { esperarArea, iniciarSesion, prepararPagina, variable } from "./helpers"
 // con el mensaje propio del solape (nunca el de la doble reserva), y la advertencia al eliminar un tramo con una cita futura encima:
 // la página muestra la cita fuera del horario SIN cancelarla. Se usa el domingo (los médicos de demostración atienden de lunes a
 // viernes), así que no toca los horarios de las demás pruebas; la cita y el paciente `97…` se limpian o quedan como dato sintético.
-// Necesita los datos de demostración (docs/datos-demo.md); sin ellos se omite con un aviso.
+// Necesita los datos de demostración (docs/07-testing/datos-demo.md); sin ellos se omite con un aviso.
 test.describe.configure({ mode: "serial" });
 
 const hoyEnLima = () => new Date(Date.now() - 5 * 3600_000).toISOString().slice(0, 10);
@@ -37,7 +37,7 @@ test("horarios: alta de un tramo, rechazo del solape y aviso de la cita que qued
     (os as HTMLOptionElement[]).map((o) => ({ valor: o.value, texto: o.textContent ?? "" })).filter((o) => o.valor),
   );
   const generales = medicos.filter((m) => m.texto.includes("Medicina general"));
-  test.skip(generales.length < 2, "Sin datos de demostración (hacen falta dos médicos de Medicina general): ver docs/datos-demo.md");
+  test.skip(generales.length < 2, "Sin datos de demostración (hacen falta dos médicos de Medicina general): ver docs/07-testing/datos-demo.md");
   const medico = generales[1]!;
   const nombre = medico.texto.split(" · ")[0]!;
   const url = `/administrativo/horarios/${medico.valor}`;

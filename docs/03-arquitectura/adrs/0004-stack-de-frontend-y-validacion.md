@@ -31,5 +31,5 @@ independientemente de lo que el formulario del cliente ya haya validado.
   al cliente mostrando un mensaje que el servidor luego contradice.
 
 > **Nota (2026-10-09):** la identidad visual (colores, tipografía, espaciado, radios y sombras) se define en
-> [DESIGN.md](../DESIGN.md) y se genera como tema de Tailwind v4 con `npm run tema`; shadcn/ui queda como base de los
+> [DESIGN.md](../../02-diseno/DESIGN.md) y se genera como tema de Tailwind v4 con `npm run tema`; shadcn/ui queda como base de los
 > componentes, ajustada a esos tokens (change `sistema-de-diseno-ui`, H2b). La decisión de este ADR no cambia.

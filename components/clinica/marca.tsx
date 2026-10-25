@@ -2,7 +2,7 @@ import { HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Marca de la aplicación: icono y nombre en el verde de marca (DESIGN.md). Sin logotipo: es texto con un icono genérico.
-// Mientras la clínica no tenga marca propia, lleva la etiqueta provisional DEMO (docs/diseno/BRIEF-DISENO.md, sección 1): se
+// Mientras la clínica no tenga marca propia, lleva la etiqueta provisional DEMO (docs/02-diseno/BRIEF-DISENO.md, sección 1): se
 // retira aquí, en un solo sitio, cuando exista.
 export function Marca({ className }: { className?: string }) {
   return (

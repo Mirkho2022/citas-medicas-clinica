@@ -2,7 +2,7 @@
 
 Cómo se prueban el esquema, las políticas RLS y las reglas que viven en la base de datos (H2). Las
 pruebas E2E del navegador están en [pruebas-e2e.md](pruebas-e2e.md). El porqué del mecanismo de
-autenticación de pruebas está en [spike-rls-h2.md](spike-rls-h2.md).
+autenticación de pruebas está en [spike-rls-h2.md](../03-arquitectura/spike-rls-h2.md).
 
 ## Qué hay
 
@@ -99,7 +99,7 @@ node --test tests/concurrencia/20_reservar_cita_funcion.test.ts    # solo esa
 
 | Archivo | Qué prueba |
 |---|---|
-| `70_portal_registro` | `correo_actual()` y `registrar_paciente_portal()` ([ADR-0037](adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)): el claim `email` del token, alta con documento nuevo (CE guardado en mayúsculas, espacios recortados, correo tomado del token), vinculación solo con correo y fecha correctos sin sobrescribir la ficha, y los rechazos `PA002` (fecha distinta, correo distinto, ficha de otra cuenta, documento ya vinculado), `PA001` (cuenta con ficha), `PA003` (sin perfil), `PA004` (sin claim `email`) y `42501` (administrativo, médico, enfermera, sin rol); `EXECUTE` solo para `authenticated` |
+| `70_portal_registro` | `correo_actual()` y `registrar_paciente_portal()` ([ADR-0037](../03-arquitectura/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)): el claim `email` del token, alta con documento nuevo (CE guardado en mayúsculas, espacios recortados, correo tomado del token), vinculación solo con correo y fecha correctos sin sobrescribir la ficha, y los rechazos `PA002` (fecha distinta, correo distinto, ficha de otra cuenta, documento ya vinculado), `PA001` (cuenta con ficha), `PA003` (sin perfil), `PA004` (sin claim `email`) y `42501` (administrativo, médico, enfermera, sin rol); `EXECUTE` solo para `authenticated` |
 | `71_portal_cancelacion` | política «paciente cancela su cita»: cancela a 61 minutos y a 59 recibe `P0001`; cero filas sobre citas ajenas, ya canceladas o atendidas (también con una política de lectura temporal abierta, para que la política se defienda sola); no edita ninguna columna ni se confirma, atiende o marca «No asistió»; `cancelada_por` y `cancelada_en` los fija el servidor; los demás roles y la ventana del administrativo no cambian |
 | `72_portal_aislamiento` | el rol paciente tras registrarse: ve su ficha, sus citas y los perfiles de los médicos y nada más; cero filas en las once tablas clínicas y administrativas (incluida su historia recién creada); no inserta ni actualiza pacientes, no crea citas de origen administrativo, de otro paciente ni en el pasado, no cambia su rol (RLS y, con una política temporal, el disparador) y recibe `42501` en las funciones del personal |
 

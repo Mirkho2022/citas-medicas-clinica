@@ -6,13 +6,13 @@ import { iniciarSesion, prepararPagina, variable } from "./helpers";
 
 // Accesibilidad del portal del paciente (H4, tarea 9.1; specs/usabilidad-y-accesibilidad-del-portal): axe (WCAG 2.1 A y AA) sobre cada pantalla y
 // estado del portal, a 390 px (el uso real del paciente) y a 1280 px. Falla ante CUALQUIER violación. axe no mide todo (orden lógico del foco,
-// lector de pantalla…): la revisión manual está en docs/pruebas-e2e.md. Las pantallas de Clerk quedan fuera: su marcado no es nuestro.
+// lector de pantalla…): la revisión manual está en docs/07-testing/pruebas-e2e.md. Las pantallas de Clerk quedan fuera: su marcado no es nuestro.
 //
 // Usa el escenario de e2e/datos-portal.ts: sin `E2E_DATABASE_URL` (ni `DATABASE_URL_UNPOOLED` en .env.local) o sin la segunda cuenta se omite con aviso.
 test.describe.configure({ mode: "serial" });
 
 const faltaAlgo = !hayBaseDeDatos() || !process.env.E2E_PACIENTE2_EMAIL || !process.env.E2E_PACIENTE2_PASSWORD;
-test.skip(faltaAlgo, "Necesitan E2E_DATABASE_URL (o DATABASE_URL_UNPOOLED) y E2E_PACIENTE2_EMAIL/E2E_PACIENTE2_PASSWORD: ver docs/pruebas-e2e.md");
+test.skip(faltaAlgo, "Necesitan E2E_DATABASE_URL (o DATABASE_URL_UNPOOLED) y E2E_PACIENTE2_EMAIL/E2E_PACIENTE2_PASSWORD: ver docs/07-testing/pruebas-e2e.md");
 
 const ETIQUETAS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const PANTALLAS = [

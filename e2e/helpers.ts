@@ -6,7 +6,7 @@ export function variable(nombre: string): string {
   const valor = process.env[nombre];
   if (!valor) {
     throw new Error(
-      `Falta la variable ${nombre} (ver .env.example y docs/verificacion-h1.md)`,
+      `Falta la variable ${nombre} (ver .env.example y docs/07-testing/verificacion-h1.md)`,
     );
   }
   return valor;
@@ -44,7 +44,7 @@ export async function prepararPagina(page: Page): Promise<void> {
 
 // Selectores estables de los formularios de Clerk (H2b, D7): atributos y clases del marcado de Clerk, no textos. Así un
 // cambio de idioma o de redacción (la interfaz está en español) no rompe las pruebas. Si Clerk cambia su marcado, se
-// actualizan aquí; la lista de lo que se verificó está en docs/pruebas-e2e.md.
+// actualizan aquí; la lista de lo que se verificó está en docs/07-testing/pruebas-e2e.md.
 const BOTON_PRINCIPAL_CLERK = "button.cl-formButtonPrimary";
 const CAMPO_CODIGO_CLERK = 'input[autocomplete="one-time-code"]';
 

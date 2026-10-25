@@ -102,7 +102,7 @@ async function comoDueno<T>(fn: (c: pg.Client) => Promise<T>): Promise<T> {
 const fila = (id: string) =>
   comoDueno(async (c) => (await c.query(`select estado::text as estado, origen, creada_por, cancelada_por, cancelada_en from public.citas where id = $1`, [id])).rows[0]);
 
-// Las dos consultas de la métrica (docs/pruebas-sql.md, «Autogestión medible»), acotadas a los pacientes de esta prueba.
+// Las dos consultas de la métrica (docs/07-testing/pruebas-sql.md, «Autogestión medible»), acotadas a los pacientes de esta prueba.
 const RESERVAS_POR_ORIGEN = `
   select c.origen, count(*)::int as n
     from public.citas c join public.pacientes p on p.id = c.paciente_id

@@ -59,7 +59,7 @@ no se pierde información; la fecha de corte la fija la clínica.
   resolver la bandeja de revisión manual ni en qué plazo — sin un dueño y un SLA, los registros
   con documento inválido pueden acumularse indefinidamente sin que nadie los revise, y esos
   pacientes quedan fuera del sistema mientras tanto. Es una decisión operativa del cliente, no
-  técnica: no se resuelve inventando una respuesta aquí (ver [CLAUDE.md](../../CLAUDE.md), "Decisiones
+  técnica: no se resuelve inventando una respuesta aquí (ver [CLAUDE.md](../../../CLAUDE.md), "Decisiones
   aún abiertas: no las inventes, pregunta"). **Cómo avanzar:** antes de H8 (migración de datos en
   el plan de implementación), preguntar al cliente quién en el personal administrativo asume esa
   bandeja y cada cuánto se revisa.

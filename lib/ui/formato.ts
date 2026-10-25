@@ -1,4 +1,4 @@
-// Formato de fechas y horas de la interfaz (docs/DESIGN.md): siempre en America/Lima, `dd/MM/yyyy` y `HH:mm` de 24 horas,
+// Formato de fechas y horas de la interfaz (docs/02-diseno/DESIGN.md): siempre en America/Lima, `dd/MM/yyyy` y `HH:mm` de 24 horas,
 // sin importar la zona del navegador o del servidor. En la base de datos las fechas son `timestamptz`.
 import { subHours } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";

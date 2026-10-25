@@ -71,13 +71,13 @@ personal actúe. Todo lo demás (promedios, históricos, tendencias) es analíti
 - **Decisión legal P-1:** no depende de ella. No maneja datos clínicos. Los datos que muestra son logísticos (nombre,
   documento, hora, estado); aun así, antes de usarlo con pacientes reales rige lo de siempre: el sistema es un proyecto de
   muestra y solo usa datos sintéticos de demostración.
-- **ADR relevantes (sin decisión nueva):** [ADR-0003](../../../docs/adrs/0003-control-de-acceso-a-historias-clinicas.md)
-  (RLS como autoridad), [ADR-0006](../../../docs/adrs/0006-contratos-de-api-via-server-actions.md) (Server Actions con
-  resultado tipado), [ADR-0008](../../../docs/adrs/0008-resiliencia-y-manejo-de-errores.md) (SQLSTATE a mensaje en
-  español), [ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (flujo de baja, que es de H3),
-  [ADR-0016](../../../docs/adrs/0016-vigencia-de-asignacion-paciente-medico.md) (por qué el médico ve al paciente de una
-  cita confirmada), [ADR-0018](../../../docs/adrs/0018-visibilidad-de-notificaciones-fallidas.md) (la vista de detalle de
-  fallidas) y [ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md) (contexto de usuario). **No requiere una
+- **ADR relevantes (sin decisión nueva):** [ADR-0003](../../../docs/03-arquitectura/adrs/0003-control-de-acceso-a-historias-clinicas.md)
+  (RLS como autoridad), [ADR-0006](../../../docs/03-arquitectura/adrs/0006-contratos-de-api-via-server-actions.md) (Server Actions con
+  resultado tipado), [ADR-0008](../../../docs/03-arquitectura/adrs/0008-resiliencia-y-manejo-de-errores.md) (SQLSTATE a mensaje en
+  español), [ADR-0011](../../../docs/03-arquitectura/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (flujo de baja, que es de H3),
+  [ADR-0016](../../../docs/03-arquitectura/adrs/0016-vigencia-de-asignacion-paciente-medico.md) (por qué el médico ve al paciente de una
+  cita confirmada), [ADR-0018](../../../docs/03-arquitectura/adrs/0018-visibilidad-de-notificaciones-fallidas.md) (la vista de detalle de
+  fallidas) y [ADR-0023](../../../docs/03-arquitectura/adrs/0023-contexto-de-usuario-para-rls.md) (contexto de usuario). **No requiere una
   ADR nueva:** implementa la sección «Dashboard operativo» de TECH-DESIGN, que ya decide «vistas de Postgres sin
   materialización». Lo que sí la exigiría (una columna de llegada del paciente, o que el médico vea a la enfermera
   asignada) está anotado como pregunta abierta en `design.md`, no decidido aquí.

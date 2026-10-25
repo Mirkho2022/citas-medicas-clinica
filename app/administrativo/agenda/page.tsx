@@ -17,7 +17,7 @@ import type { FilaVista } from "./tipos";
 
 const RUTA = "/administrativo/agenda";
 
-// Agenda del día del administrativo (specs/gestion-de-citas; docs/diseno/BRIEF-DISENO.md, «Consola · Agenda del día»). Un Server
+// Agenda del día del administrativo (specs/gestion-de-citas; docs/02-diseno/BRIEF-DISENO.md, «Consola · Agenda del día»). Un Server
 // Component que lee la fecha de Lima y el médico de la URL (`?fecha=`, `?medico=`), trae las citas con los huecos libres intercalados
 // con la identidad del usuario (la RLS decide qué filas existen) y decide en el servidor qué acciones ofrece cada fila. Las acciones
 // las ejecuta `./acciones` (cada una vuelve a comprobar rol y MFA) y refrescan esta ruta.

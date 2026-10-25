@@ -16,7 +16,7 @@
 //   Las cuentas reales de prueba de la instancia de desarrollo de Clerk (E2E_*_EMAIL) se asocian a personas de
 //   demostración para poder entrar con cada rol (se resuelven por la API de Clerk con CLERK_SECRET_KEY).
 // - No borra nada: las atenciones firmadas no se pueden eliminar por diseño. Para reiniciar una demostración se
-//   recrea un branch de desarrollo. Ver docs/datos-demo.md.
+//   recrea un branch de desarrollo. Ver docs/07-testing/datos-demo.md.
 import { createClerkClient } from "@clerk/backend";
 import pg from "pg";
 

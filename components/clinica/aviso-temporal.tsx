@@ -3,7 +3,7 @@
 import { CircleCheck } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
-// Aviso temporal (docs/diseno/BRIEF-DISENO.md, sección 5; componente `toast` de DESIGN.md: fondo `ink`, texto `surface`).
+// Aviso temporal (docs/02-diseno/BRIEF-DISENO.md, sección 5; componente `toast` de DESIGN.md: fondo `ink`, texto `surface`).
 // Confirma una acción hecha («Cita confirmada»). La región `role="status"` existe siempre, vacía, para que el lector de pantalla
 // anuncie el texto cuando aparece sin quitarle el foco al usuario. Dura 5 s: no pide ninguna acción y no es el único camino
 // para saber el resultado (la fila de la agenda cambia de estado).

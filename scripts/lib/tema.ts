@@ -1,4 +1,4 @@
-// Lectura de docs/DESIGN.md y generación del tema de Tailwind v4 (H2b, grupo 1). Funciones puras, sin acceso a disco:
+// Lectura de docs/02-diseno/DESIGN.md y generación del tema de Tailwind v4 (H2b, grupo 1). Funciones puras, sin acceso a disco:
 // las usan scripts/generar-tema.ts, scripts/comprobar-tema.ts y las pruebas de tests/tema/.
 import { parse } from "yaml";
 
@@ -202,7 +202,7 @@ export function generarTema(md: string): { css: string; avisos: string[] } {
   const variables = SHADCN.map(([n, token]) => `--${n}: var(--color-${token});`);
 
   const css = [
-    "/* Archivo generado por scripts/generar-tema.ts a partir de docs/DESIGN.md.",
+    "/* Archivo generado por scripts/generar-tema.ts a partir de docs/02-diseno/DESIGN.md.",
     "   No editar a mano: cambie DESIGN.md y ejecute `npm run tema`. */",
     "",
     "@theme static {",
@@ -226,7 +226,7 @@ export function generarTema(md: string): { css: string; avisos: string[] } {
   return { css, avisos };
 }
 
-// Reglas del movimiento aprobado (docs/diseno/BRIEF-DISENO.md, sección 6) que comprueba `npm run tema:comprobar`:
+// Reglas del movimiento aprobado (docs/02-diseno/BRIEF-DISENO.md, sección 6) que comprueba `npm run tema:comprobar`:
 //  - una curva es `cubic-bezier(a, b, c, d)` y toda otra medida de tiempo, un entero en milisegundos;
 //  - nada dura más de 320 ms, salvo el ciclo del esqueleto de carga (`skeleton`), que es un bucle y no una transición;
 //  - salir es más rápido que entrar: cada `<x>-out` dura menos que su `<x>-in`.

@@ -1,7 +1,7 @@
 # Guion de verificación manual de H1 (autenticación y roles)
 
 Cierra las tareas 3.1–3.6 y 5.1–5.3 de
-[tasks.md](../openspec/changes/archive/2026-10-07-esqueleto-app-vercel-neon-clerk/tasks.md), que tienen el código
+[tasks.md](../../openspec/changes/archive/2026-10-07-esqueleto-app-vercel-neon-clerk/tasks.md), que tienen el código
 commiteado pero no se han probado con cuentas reales. Los escenarios citados están en la spec
 `autenticacion-roles` del mismo change. Esta sesión también deja listas las cuentas para 6.4
 (Playwright).
@@ -70,7 +70,7 @@ correo e imprime el enlace de la invitación; ese enlace se abre en el navegador
 **Punto de riesgo a mirar en 3.1/3.2:** si el rol queda en `paciente` en vez del invitado, el
 webhook `user.created` no recibió el `public_metadata` de la invitación y lo trató como
 autorregistro. Anotar el resultado exacto antes de corregir
-([app/api/webhooks/clerk/route.ts](../app/api/webhooks/clerk/route.ts)).
+([app/api/webhooks/clerk/route.ts](../../app/api/webhooks/clerk/route.ts)).
 
 ## 4. Revocación de acceso (5.3)
 
@@ -112,7 +112,7 @@ Ejecutado sobre `localhost:3000` con la instancia de desarrollo de Clerk. Cuenta
 
 Observaciones:
 
-- **Las áreas no comprobaban el rol (resuelto).** `/administrativo`, `/medico`, `/enfermera` y `/paciente` solo exigían sesión (y MFA en las de personal): un paciente que entraba era enviado a `/configurar-mfa` y, con TOTP activo, habría visto el panel de personal; cualquier rol veía `/paciente`. Corregido con `exigirRol` en [lib/auth/rol.ts](../lib/auth/rol.ts), que lleva a cada rol a su propia área. Reverificado en `localhost`: el paciente es devuelto a `/paciente` desde las tres áreas de personal, la enfermera ya no ve `/paciente` y el administrativo (login con TOTP) es devuelto a `/administrativo` desde las demás.
+- **Las áreas no comprobaban el rol (resuelto).** `/administrativo`, `/medico`, `/enfermera` y `/paciente` solo exigían sesión (y MFA en las de personal): un paciente que entraba era enviado a `/configurar-mfa` y, con TOTP activo, habría visto el panel de personal; cualquier rol veía `/paciente`. Corregido con `exigirRol` en [lib/auth/rol.ts](../../lib/auth/rol.ts), que lleva a cada rol a su propia área. Reverificado en `localhost`: el paciente es devuelto a `/paciente` desde las tres áreas de personal, la enfermera ya no ve `/paciente` y el administrativo (login con TOTP) es devuelto a `/administrativo` desde las demás.
 - **TOTP:** el administrativo quedó con TOTP activo (`/administrativo` muestra el panel). Médico y enfermera no lo configuraron.
 - **Revocación:** el baneo ya invalida las sesiones, por eso el script informa 0 sesiones activas revocadas. El token de Clerk sigue aceptándose hasta ~60 s.
 - **Anti-bots:** tras varios registros seguidos Clerk mostró un CAPTCHA de Cloudflare; la prueba de Playwright (6.4) necesitará testing tokens de Clerk.

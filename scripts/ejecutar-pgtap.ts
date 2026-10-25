@@ -8,7 +8,7 @@
 // branch de desarrollo o efímero — nunca production. Variables opcionales: ENV_FILE (por defecto
 // .env.local) y DATABASE_URL_PRODUCCION (si coincide el host, el script se niega a correr).
 //
-// Cómo funciona (mecanismo validado en docs/spike-rls-h2.md):
+// Cómo funciona (mecanismo validado en docs/03-arquitectura/spike-rls-h2.md):
 //  - Genera un par Ed25519 efímero por ejecución. pg_session_jwt solo acepta una JWK Ed25519 y solo
 //    como opción de arranque de la conexión, que el pooler rechaza: por eso la URL debe ser directa.
 //  - Firma tokens EdDSA por identidad de prueba (sub + publicMetadata.rol) con `jti` creciente y los

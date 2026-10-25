@@ -18,7 +18,7 @@ import type { CitaVista, FilaVista } from "./tipos";
 
 type Contenido = { tipo: "cancelar" | "no_asistio"; cita: CitaVista } | { tipo: "agendar"; hueco: HuecoLibre };
 
-// Tabla de la agenda del día (docs/diseno/BRIEF-DISENO.md, «Consola · Agenda del día»): las citas con los huecos libres
+// Tabla de la agenda del día (docs/02-diseno/BRIEF-DISENO.md, «Consola · Agenda del día»): las citas con los huecos libres
 // intercalados. Cada fila ofrece solo lo que corresponde a su estado y hora (lib/citas/acciones-visibles.ts); la autoridad
 // son los disparadores de la base de datos. «Confirmar» es directo (y avisa con un aviso temporal); «Cancelar» y «No asistió»
 // piden confirmación en un diálogo; «Reprogramar» lleva a la pantalla de agendar con la cita elegida; «Agendar» abre un diálogo

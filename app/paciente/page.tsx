@@ -9,7 +9,7 @@ import { nombreDelPaciente, proximaCita } from "@/lib/portal/consultas";
 import { RUTA_MIS_CITAS, RUTA_RESERVAR } from "@/lib/portal/pasos-reserva";
 import { BotonCancelarCita } from "./citas/boton-cancelar";
 
-// «Inicio» del portal (specs/mis-citas-y-cancelacion; docs/diseno/BRIEF-DISENO.md, «Portal · Inicio»): saludo, la próxima cita y la
+// «Inicio» del portal (specs/mis-citas-y-cancelacion; docs/02-diseno/BRIEF-DISENO.md, «Portal · Inicio»): saludo, la próxima cita y la
 // acción principal «Reservar cita» (48 px). El encabezado «Portal del paciente» se conserva: lo usan las E2E de H1 y H2b.
 export default async function PaginaPaciente() {
   await auth.protect();

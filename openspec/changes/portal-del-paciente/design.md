@@ -304,7 +304,7 @@ documentadas y se comprueban con datos de demostración; no se construye pantall
 1. Antes de desplegar: en **Clerk** (desarrollo y producción) añadir el claim `email` a la plantilla del JWT, exigir correo
    verificado en el alta, apuntar el redirect del alta a `/completar-registro` y revisar la protección contra bots y el bloqueo
    de cuenta; en **Vercel** activar BotID y conectar Upstash (variables en Production y Preview); crear la segunda cuenta de paciente de pruebas.
-   Pasos documentados en `docs/pasos-manuales-h4.md` (tarea 1.3).
+   Pasos documentados en `docs/09-deploy/pasos-manuales-h4.md` (tarea 1.3).
 2. Rama de trabajo con commits locales por grupo de tareas (como en H2). Migraciones nuevas creadas con `npm run migrate create`
    después de las de H3 (el orden lo da la marca de tiempo); nunca se edita una ya aplicada.
 3. PR: el workflow crea el branch efímero de Neon, aplica las migraciones y corre pgTAP y concurrencia; las E2E corren contra el preview.
@@ -330,7 +330,7 @@ Las que cambian el diseño o las tareas se señalan: no se pudieron preguntar al
 - **Q6.** ¿BotID (modo básico) está disponible en el plan Hobby y cómo se trata el tráfico de las E2E en el preview?
   *Respuesta (2026-10-24, documentación de Vercel):* sí, el nivel básico es gratuito en todos los planes y el análisis profundo no se usa. Las E2E
   (Playwright) se detectan como bot: se resuelve con `BOTID_EXCEPCION_E2E=1`, solo en Preview y en local, ignorada con `VERCEL_ENV=production`
-  (docs/pasos-manuales-h4.md, paso 5).
+  (docs/09-deploy/pasos-manuales-h4.md, paso 5).
 - **Q7.** Datos de contacto de la clínica (teléfono o dirección) que puedan mostrarse en los mensajes «avise a la clínica».
 - **Q8.** Pacientes menores de edad o sin correo propio: el PRD supone correo propio; hoy los agenda el administrativo fuera del portal.
 - **Q9.** Cuando el correo o la fecha de una ficha existente no coinciden, ¿qué herramienta tiene el administrativo para corregirlos

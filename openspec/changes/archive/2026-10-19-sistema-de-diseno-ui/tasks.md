@@ -8,12 +8,12 @@ instalan o ejecutan con la autorización del usuario.
 
 ## 1. Tokens: de DESIGN.md al tema (fuente única)
 
-- [x] 1.1 Añadir a `docs/DESIGN.md` el grupo `shadows` en el front matter (`shadow-popover`, `shadow-dialog`,
+- [x] 1.1 Añadir a `docs/02-diseno/DESIGN.md` el grupo `shadows` en el front matter (`shadow-popover`, `shadow-dialog`,
       `focus-ring`, con los valores de la tabla «Elevation & Depth» y del anillo de foco) y su nota en «Cómo se usa»;
       verificar que el YAML sigue parseando, que los enlaces no se rompen y que las tres sombras coinciden con las del
       sistema de diseño publicado.
 - [x] 1.2 Instalar `yaml` (desarrollo) y escribir `scripts/generar-tema.ts` (Node, eliminación de tipos) que lee el
-      front matter de `docs/DESIGN.md` y escribe `app/tema.generado.css`: `@theme` con `--color-*`, `--font-display` y
+      front matter de `docs/02-diseno/DESIGN.md` y escribe `app/tema.generado.css`: `@theme` con `--color-*`, `--font-display` y
       `--font-sans`, `--text-*` (con `--line-height`, `--font-weight` y `--letter-spacing`), `--space-*` (no `--spacing-*`: en Tailwind v4 redefiniría `max-w-md`, `w-lg`…; la escala de 4 px ya coincide con `p-1`…`p-12`), `--radius-*`,
       `--shadow-*`, y el bloque `:root` con las variables de shadcn/ui de D2; añadir `npm run tema`. Verificar que genera
       el archivo con los 22 colores, los 10 estilos de texto y las 3 sombras, y que ejecutarlo dos veces no produce
@@ -43,7 +43,7 @@ instalan o ejecutan con la autorización del usuario.
       `colorScheme: "dark"` y comprueba que el fondo calculado es el de `canvas` (`rgb(244, 247, 247)`).
 - [x] 2.3 Añadir con la CLI (o a mano) los componentes `button`, `input`, `label`, `textarea`, `alert`, `badge`, `card` y
       `table` en `components/ui/`. Verificar que `npm run lint`, `npm run typecheck` y `npm run tema:comprobar` pasan
-      (sin colores literales en lo generado) y anotar en `docs/pruebas-e2e.md` cómo regenerar `components/ui/`.
+      (sin colores literales en lo generado) y anotar en `docs/07-testing/pruebas-e2e.md` cómo regenerar `components/ui/`.
 
 ## 3. Datos de ejemplo, utilidades y galería
 
@@ -57,7 +57,7 @@ instalan o ejecutan con la autorización del usuario.
       `VERCEL_ENV === "production"`, y secciones vacías por componente. Verificar con `e2e/galeria.spec.ts`: sin sesión
       redirige a iniciar sesión; con sesión de paciente responde 200; y una prueba de la regla `notFound` sobre la función
       que decide si la ruta se muestra (`tests/tema/`).
-- [x] 3.3 Documentar en `docs/pruebas-e2e.md` la galería, cómo se oculta en producción y cómo usarla para revisar un
+- [x] 3.3 Documentar en `docs/07-testing/pruebas-e2e.md` la galería, cómo se oculta en producción y cómo usarla para revisar un
       componente nuevo. Verificar que el documento enlaza a DESIGN.md y que no quedan enlaces rotos.
 
 ## 4. Componentes del sistema de diseño
@@ -106,7 +106,7 @@ instalan o ejecutan con la autorización del usuario.
       (`input[name=…]`, `button[type=submit]`, clases `cl-…`) y centrar las páginas de `iniciar-sesion`, `registro` y
       `configurar-mfa` con el mismo fondo y marca. Verificar que toda la suite E2E de H1 y H2 pasa contra una build de
       producción local y que no queda ningún selector con texto de un idioma concreto.
-- [x] 6.3 Actualizar `docs/pruebas-e2e.md` y `docs/verificacion-h1.md` donde nombren los textos en inglés de Clerk.
+- [x] 6.3 Actualizar `docs/07-testing/pruebas-e2e.md` y `docs/07-testing/verificacion-h1.md` donde nombren los textos en inglés de Clerk.
       Verificar con una búsqueda de «Continue» y «Enter verification code» en `docs/` y `e2e/` que no queda ninguna
       mención desactualizada.
 
@@ -118,17 +118,17 @@ instalan o ejecutan con la autorización del usuario.
       en rojo cuando se quita a propósito la etiqueta de un campo en un cambio temporal revertido.
 - [x] 7.2 Corregir las violaciones que axe encuentre en componentes y estructuras. Verificar que la prueba de 7.1 queda en
       verde y que cada corrección tiene su explicación en el mensaje del commit.
-- [x] 7.3 Documentar en `docs/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
+- [x] 7.3 Documentar en `docs/07-testing/pruebas-e2e.md` la lista de revisión manual que axe no cubre (recorrido con teclado, lector
       de pantalla, 200 % de zoom, objetivos táctiles) y ejecutarla una vez sobre el preview anotando el resultado en el
       PR; las pantallas de Clerk se revisan a mano y los hallazgos de su propio marcado se anotan ahí. Verificar que el
       documento tiene la lista y que el PR trae el resultado de cada ítem. *Evidencia: la lista está en
-      `docs/pruebas-e2e.md`; el usuario la ejecutó sobre el preview y dio su conformidad el 2026-10-18 («listo»), sin
+      `docs/07-testing/pruebas-e2e.md`; el usuario la ejecutó sobre el preview y dio su conformidad el 2026-10-18 («listo»), sin
       hallazgos. No dio el resultado por ítem: el lector de pantalla (NVDA) no consta aparte y se vuelve a revisar con las
       pantallas de H3 (13.3).*
 
 ## 8. Documentación y coherencia
 
-- [x] 8.1 Actualizar `CLAUDE.md` (estado y convención «la UI sigue `docs/DESIGN.md`; un cambio de color o tipografía se
+- [x] 8.1 Actualizar `CLAUDE.md` (estado y convención «la UI sigue `docs/02-diseno/DESIGN.md`; un cambio de color o tipografía se
       hace allí y se regenera con `npm run tema`»), la fila de UI y la de accesibilidad de TECH-DESIGN, una fila **H2b**
       en el plan por hitos y la fila de pruebas (axe), y una nota fechada en ADR-0004 que enlaza DESIGN.md. Verificar con
       una búsqueda que los cuatro textos dicen lo mismo y que ningún enlace relativo se rompe.

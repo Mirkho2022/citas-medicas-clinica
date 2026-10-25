@@ -7,7 +7,7 @@ fecha: "2026-09-21"
 # Technical Design Document: Sistema de Gestión de Citas e Historias Clínicas Electrónicas
 
 **Tipo de proyecto:** Greenfield — no existe código ni repositorio git todavía (ver
-[CLAUDE.md](../CLAUDE.md)). Este documento define arquitectura, modelo de datos, seguridad, reglas de
+[CLAUDE.md](../../CLAUDE.md)). Este documento define arquitectura, modelo de datos, seguridad, reglas de
 negocio, superficie de la aplicación y plan de implementación, y formaliza las decisiones de
 arquitectura como ADRs trazables.
 
@@ -104,13 +104,13 @@ sistema existente).
 | Autenticación | `@clerk/nextjs` | MFA/TOTP, invitaciones, sesión ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md)) |
 | Almacenamiento | `@vercel/blob` | Adjuntos clínicos vía URL firmada ([ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md)) |
 | Anti-bots / rate limiting | Vercel BotID, Upstash Ratelimit + Redis | ([ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md)) |
-| UI | Tailwind CSS v4, shadcn/ui, `react-hook-form` | Tokens de [DESIGN.md](DESIGN.md) → `app/tema.generado.css` (`npm run tema`); componentes propios en `components/clinica/` |
+| UI | Tailwind CSS v4, shadcn/ui, `react-hook-form` | Tokens de [DESIGN.md](../02-diseno/DESIGN.md) → `app/tema.generado.css` (`npm run tema`); componentes propios en `components/clinica/` |
 | Validación | Zod | Esquemas en `lib/schemas/`, compartidos |
 | Fechas | `date-fns` + `date-fns-tz` | Formateo siempre con zona `America/Lima` |
 | Correo | Resend SDK | Detrás de `lib/notificaciones/proveedor.ts` |
 | Cron | Vercel Cron Jobs (`vercel.json`) | Un solo cron diario, plan Hobby ([ADR-0028](adrs/0028-notificaciones-cron-unico-plan-hobby.md)) |
 | Migraciones | `node-pg-migrate` (`migrations/*.sql`) | Versionadas en git; nunca cambios manuales en producción ([ADR-0027](adrs/0027-herramienta-de-migraciones.md)) |
-| Tests | pgTAP, `node:test`, Playwright con axe-core (Vitest para unitarias cuando haya lógica de aplicación) | pgTAP es obligatorio para políticas RLS ([pruebas-sql.md](pruebas-sql.md)) |
+| Tests | pgTAP, `node:test`, Playwright con axe-core (Vitest para unitarias cuando haya lógica de aplicación) | pgTAP es obligatorio para políticas RLS ([pruebas-sql.md](../07-testing/pruebas-sql.md)) |
 
 ## Decisiones de arquitectura
 
@@ -143,7 +143,7 @@ sistema existente).
 Solo se listan los ADR vigentes — los que describen lo que realmente se va a construir. El diseño
 pasó antes por un stack distinto (Cloudflare Workers + Supabase, con planes de pago de Vercel para
 el cron); esas decisiones descartadas no se mantienen como ADRs activos, pero siguen accesibles en
-el historial de git (`git log --all -- adrs/ docs/adrs/`) para quien necesite el porqué de un número salteado
+el historial de git (`git log --all -- adrs/ docs/03-arquitectura/adrs/`) para quien necesite el porqué de un número salteado
 en la numeración.
 
 Los ADR 0003–0006, 0008 y 0010–0011 registran las decisiones de arquitectura base del proyecto que
@@ -1129,7 +1129,7 @@ previo en producción destruye datos clínicos: la operación queda prohibida ma
 
 **pgTAP para RLS — obligatorio.** Cada política tiene una prueba negativa que verifica que el rol equivocado *no*
 ve el dato. Neon valida el contexto con un JWT real, no con un `set_config()`; la suite lo resuelve (receta
-validada en [spike-rls-h2.md](spike-rls-h2.md), uso en [pruebas-sql.md](pruebas-sql.md)): un runner Node
+validada en [spike-rls-h2.md](spike-rls-h2.md), uso en [pruebas-sql.md](../07-testing/pruebas-sql.md)): un runner Node
 (`scripts/ejecutar-pgtap.ts`) genera por ejecución un par Ed25519 efímero, firma tokens EdDSA por identidad de
 prueba (con `jti` creciente) y abre una conexión **directa** con la JWK pública como opción de arranque
 (`pg_session_jwt.jwk`); cada archivo corre en una transacción que instala `pgtap`, las ayudas y se revierte, de modo
@@ -1152,7 +1152,7 @@ select is((select count(*)::int from public.atenciones where id in (select id fr
 select * from finish();
 ```
 
-Las pruebas **no asumen tablas vacías** (puede haber datos de demostración, ver [datos-demo.md](datos-demo.md)) y
+Las pruebas **no asumen tablas vacías** (puede haber datos de demostración, ver [datos-demo.md](../07-testing/datos-demo.md)) y
 se verificó por mutación que pueden fallar: debilitar la política de lectura de `atenciones` hace fallar cinco de
 ellas.
 
@@ -1323,7 +1323,7 @@ pierde información. La fecha de corte la fija la clínica.
 - [ ] Confirmar una cita nueva con un médico distinto extiende el acceso a ese médico; no revive
       el acceso del médico anterior cuya asignación ya venció.
 - [ ] Cada tabla nueva del esquema `public` tiene RLS activada y al menos una prueba pgTAP negativa
-      que confirma que el rol equivocado no ve el dato (regla de [CLAUDE.md](../CLAUDE.md)).
+      que confirma que el rol equivocado no ve el dato (regla de [CLAUDE.md](../../CLAUDE.md)).
 
 ## Riesgos técnicos abiertos
 
@@ -1341,7 +1341,7 @@ pierde información. La fecha de corte la fija la clínica.
   plan de implementación (ver «Plan de implementación sugerido» más abajo) ya aísla esto: todo lo
   demás (H1-H5, H7) puede construirse y probarse en paralelo; solo H6 no debe entrar en producción
   con datos reales de pacientes antes de tener respuesta. Al ser un proyecto de muestra se permiten datos
-  **sintéticos** de demostración ([datos-demo.md](datos-demo.md)): P-1 bloquea los datos reales, no estos.
+  **sintéticos** de demostración ([datos-demo.md](../07-testing/datos-demo.md)): P-1 bloquea los datos reales, no estos.
   **Nota (2026-09-28):** el cambio a Clerk ([ADR-0022](adrs/0022-autenticacion-y-sesion-clerk.md))
   agrega una pregunta relacionada pero distinta: Clerk aloja datos de *identidad* (nombre, email,
   teléfono de pacientes peruanos) fuera de Perú por defecto — no es dato clínico, pero conviene
@@ -1400,12 +1400,12 @@ pierde información. La fecha de corte la fija la clínica.
 - **Adjuntos clínicos fuera de la autoridad de RLS (Vercel Blob):** ver el trade-off explícito en
   [ADR-0024](adrs/0024-almacenamiento-de-adjuntos-vercel-blob.md) — para los adjuntos, la
   autoridad de acceso es la Server Action que firma la URL, no una política RLS de Postgres. Es
-  una excepción puntual a la regla no negociable de [CLAUDE.md](../CLAUDE.md) ("el aislamiento... debe
+  una excepción puntual a la regla no negociable de [CLAUDE.md](../../CLAUDE.md) ("el aislamiento... debe
   aplicarse en la base de datos"), inherente a salir de un storage sobre Postgres — ningún storage
   de blobs (Vercel Blob, S3, R2) tiene RLS a nivel de fila. La función que firma URLs de adjuntos
   merece la misma revisión explícita que las políticas RLS de `atenciones`.
 - **P-6 (excluido a propósito, no acción requerida ahora):** gestión de consultorios no está en el
-  PRD — no construir esto hoy (regla de [CLAUDE.md](../CLAUDE.md), "Alcance — no lo amplíes"). Si en el
+  PRD — no construir esto hoy (regla de [CLAUDE.md](../../CLAUDE.md), "Alcance — no lo amplíes"). Si en el
   futuro la clínica confirma que tiene menos consultorios que médicos, la extensión es mecánica y ya
   conocida: tabla `consultorios` + columna `consultorio_id` en `citas` + una restricción
   `EXCLUDE USING gist (consultorio_id with =, rango with &&)` análoga a `citas_sin_cruce_medico`

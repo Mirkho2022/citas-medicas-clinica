@@ -11,7 +11,7 @@ clínicas (H6) ni turnos de enfermería (H7).
 **Este change toca RLS y el aislamiento de historias clínicas, el riesgo principal declarado del
 proyecto, y merece revisión explícita aparte.** Además, el mecanismo que lleva la identidad del
 usuario hasta las políticas RLS (Neon RLS Authorize: `pg_session_jwt` + JWT de Clerk,
-[ADR-0023](../../../docs/adrs/0023-contexto-de-usuario-para-rls.md)) se decidió solo por
+[ADR-0023](../../../docs/03-arquitectura/adrs/0023-contexto-de-usuario-para-rls.md)) se decidió solo por
 documentación y **nunca se ha ejecutado**: ni la extensión, ni el rol `authenticated`, ni
 `clienteAutenticado()` existen en el repositorio, y las pruebas pgTAP no tienen aún una receta
 confirmada para inyectar un JWT firmado. Por eso la primera tarea es un spike que lo valide antes
@@ -26,7 +26,7 @@ de escribir el esquema grande.
   documentación de `pg_session_jwt` el nombre y la forma exactos de la función de inicialización
   de sesión (no se inventa). **Si el spike falla, se detiene el change y se consulta al
   usuario**: el plan B (`SET LOCAL` casero) reabre ADR-0023 y no se adopta por cuenta propia.
-- **Esquema completo** como migraciones nuevas en `migrations/*.sql` ([ADR-0027](../../../docs/adrs/0027-herramienta-de-migraciones.md)),
+- **Esquema completo** como migraciones nuevas en `migrations/*.sql` ([ADR-0027](../../../docs/03-arquitectura/adrs/0027-herramienta-de-migraciones.md)),
   según el modelo de datos de TECH-DESIGN: extensiones y tipos; identidad (`perfiles`,
   `pacientes`, `especialidades`, `medicos`, `enfermeras`); agenda (`disponibilidades`,
   `bloqueos_agenda`, `citas` con las dos restricciones `EXCLUDE`); historias clínicas
@@ -34,8 +34,8 @@ de escribir el esquema grande.
   `antecedentes`, `cie10`); `turnos_enfermeria`; `notificaciones`, `auditoria` y
   `accesos_historia`.
 - **Reglas de negocio ancladas en la base de datos**: doble reserva por `EXCLUDE` (médico y
-  paciente), `validar_cancelacion()` ([ADR-0012](../../../docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)),
-  inmutabilidad de atenciones firmadas, `extender_asignacion_por_cita()` ([ADR-0016](../../../docs/adrs/0016-vigencia-de-asignacion-paciente-medico.md))
+  paciente), `validar_cancelacion()` ([ADR-0012](../../../docs/03-arquitectura/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)),
+  inmutabilidad de atenciones firmadas, `extender_asignacion_por_cita()` ([ADR-0016](../../../docs/03-arquitectura/adrs/0016-vigencia-de-asignacion-paciente-medico.md))
   y `bloquear_cambio_de_rol()`; `CHECK` de formato DNI/Carné de Extranjería y de campos clínicos
   no vacíos.
 - **RLS activada en todas las tablas de `public`** con sus políticas por rol, las funciones de

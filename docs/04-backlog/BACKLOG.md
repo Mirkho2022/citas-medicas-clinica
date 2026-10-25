@@ -1,7 +1,7 @@
 # Backlog: Sistema de Gestión de Citas e Historias Clínicas Electrónicas
 
-Generado el 2026-10-08 con la skill `generar-backlog` a partir de [PRD.md](PRD.md), [TECH-DESIGN.md](TECH-DESIGN.md) y
-[docs/adrs/](adrs/). Fuente de verdad ante cualquier contradicción: el PRD, luego los ADR vigentes, luego TECH-DESIGN.
+Generado el 2026-10-08 con la skill `generar-backlog` a partir de [PRD.md](../01-producto/PRD.md), [TECH-DESIGN.md](../03-arquitectura/TECH-DESIGN.md) y
+[docs/03-arquitectura/adrs/](../03-arquitectura/adrs/). Fuente de verdad ante cualquier contradicción: el PRD, luego los ADR vigentes, luego TECH-DESIGN.
 
 **Estado al generar:** 35 ítems. 2 hechos (H1, H2), 1 propuesto (H2b) y 32 pendientes (H3 a H8). Este backlog no
 contiene código ni decisiones nuevas: despieza lo que los tres documentos ya establecen. Lo que no está resuelto en
@@ -17,7 +17,7 @@ grande para un solo ciclo, se parte por filas de este backlog (el tamaño se dis
 |---|---|---|---|---|---|
 | 1 | Esqueleto con autenticación y roles | H1 · `esqueleto-app-vercel-neon-clerk` (HECHO, archivado 2026-10-07) | Next.js 15 en Vercel, Neon, Clerk, rol en `publicMetadata`, webhook de alta, invitación y revocación de personal, CI | — | — |
 | 2 | Esquema completo, RLS, pgTAP y datos de demostración | H2 · `esquema-rls-pgtap` (HECHO, PR #5; quedan los pasos manuales 8.4 y 10.7) | Tablas del modelo con RLS y GRANT explícito, disparadores, suite pgTAP y de concurrencia, sembrado sintético | 1 | — |
-| 3 | Sistema de diseño UI | H2b · `sistema-de-diseno-ui` (PROPUESTO) | Tema Tailwind v4 desde DESIGN.md, componentes base, layouts del portal y la consola, Clerk en español, pruebas axe | 1 | `docs/DESIGN.md` (aprobado) |
+| 3 | Sistema de diseño UI | H2b · `sistema-de-diseno-ui` (PROPUESTO) | Tema Tailwind v4 desde DESIGN.md, componentes base, layouts del portal y la consola, Clerk en español, pruebas axe | 1 | `docs/02-diseno/DESIGN.md` (aprobado) |
 | 4 | Fundamentos de las acciones de servidor | H3 · `agenda-y-reserva` | Tipo `Resultado`, mapeo central de SQLSTATE a mensajes en español, envoltorio del cliente autenticado, utilidades de fecha `America/Lima` | 2 | — |
 | 5 | Registro y búsqueda de pacientes (administrativo) | H3 · `agenda-y-reserva` | `registrarPaciente` con validación DNI/CE, documento único, búsqueda y edición de contacto en `pacientes/` | 2, 4 | — |
 | 6 | Gestión de especialidades y personal clínico | H3 · `agenda-y-reserva` | Altas de médico y enfermera por invitación ligadas a `medicos`/`enfermeras`, especialidades, baja con revocación de sesión | 2, 4 | — |
@@ -60,7 +60,7 @@ la spec, no el proyecto completo. Reglas del repositorio que cada ítem hereda:
 - Indicar en el proposal a qué hito corresponde y, si toca acceso a historias clínicas o RLS, decirlo explícitamente
   (marca `[RLS]` y `[HC]` en las notas).
 - Toda tabla nueva en `public` nace con RLS activada y con su prueba pgTAP negativa (marca `[TABLA]`).
-- Los textos de cara al usuario van en español, con el diseño de [DESIGN.md](DESIGN.md) y las fechas en `America/Lima`.
+- Los textos de cara al usuario van en español, con el diseño de [DESIGN.md](../02-diseno/DESIGN.md) y las fechas en `America/Lima`.
 - Si la columna «Contexto extra requerido» marca **Dominio**, antes de generar la spec de ese ítem comparte la
   documentación de reglas de negocio de ese dominio como contexto, si la tienes. El backlog no la genera ni la pide.
 - Si un ítem exige una decisión de arquitectura nueva (por ejemplo Q4, Q10), se crea como ADR aparte y se enlaza; no se

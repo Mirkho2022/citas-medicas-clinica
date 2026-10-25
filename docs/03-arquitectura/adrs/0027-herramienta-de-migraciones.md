@@ -3,7 +3,7 @@
 ## Estado
 
 Aceptado — reemplaza el flujo de migraciones vía Supabase CLI mencionado en TECH-DESIGN.md y
-[CLAUDE.md](../../CLAUDE.md), a partir de un cambio de stack decidido por el cliente.
+[CLAUDE.md](../../../CLAUDE.md), a partir de un cambio de stack decidido por el cliente.
 
 ## Contexto
 

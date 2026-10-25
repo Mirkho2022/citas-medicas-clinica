@@ -7,7 +7,7 @@ export interface OpcionSegmentada {
   texto: string;
 }
 
-// Control segmentado (docs/diseno/BRIEF-DISENO.md, sección 5): una opción entre pocas, a la vista (sexo, filtros). Son botones de
+// Control segmentado (docs/02-diseno/BRIEF-DISENO.md, sección 5): una opción entre pocas, a la vista (sexo, filtros). Son botones de
 // radio nativos con aspecto de segmentos: se envían con el formulario, se operan con las flechas del teclado y el lector de
 // pantalla los anuncia como un grupo. La opción marcada no se distingue solo por el color: lleva el fondo de selección Y un borde
 // de marca. Un error se muestra debajo, con icono y como alerta (DESIGN.md, «Campo de formulario»).

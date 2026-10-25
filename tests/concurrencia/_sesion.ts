@@ -1,6 +1,6 @@
 // Sesiones autenticadas para las pruebas de concurrencia (node --test): llamar a las funciones de la aplicación
 // (reservar_cita, reprogramar_cita…) COMO `authenticated`, con la identidad y el rol de un usuario, igual que hace
-// lib/db/cliente-autenticado.ts. Es el mismo mecanismo de scripts/ejecutar-pgtap.ts (validado en docs/spike-rls-h2.md):
+// lib/db/cliente-autenticado.ts. Es el mismo mecanismo de scripts/ejecutar-pgtap.ts (validado en docs/03-arquitectura/spike-rls-h2.md):
 //  - un par Ed25519 efímero por proceso; la JWK pública va en la opción de arranque pg_session_jwt.jwk de la conexión
 //    (el pooler la rechaza: la URL debe ser directa);
 //  - un token EdDSA firmado por sesión, con `sub`, `publicMetadata.rol` y `jti` creciente;
@@ -37,7 +37,7 @@ export async function abrirSesion(identidad: Identidad): Promise<pg.Client> {
   const cliente = new pg.Client({ connectionString: urlDePruebas(), options: `-c pg_session_jwt.jwk=${jwkPublica}` });
   await cliente.connect();
   try {
-    // Carga pg_session_jwt antes de cualquier función con cláusula SET (ver docs/pruebas-sql.md, «Límites conocidos»).
+    // Carga pg_session_jwt antes de cualquier función con cláusula SET (ver docs/07-testing/pruebas-sql.md, «Límites conocidos»).
     await cliente.query("select auth.user_id()");
     await cliente.query("select auth.jwt_session_init($1)", [firmar(identidad, 1)]);
     await cliente.query("set role authenticated");

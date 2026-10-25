@@ -24,7 +24,7 @@ export default async function PaginaMisCitas({
 }) {
   await auth.protect();
   const consulta = await searchParams;
-  // `Suspense` propio en vez de `loading.tsx`: ver docs/pruebas-e2e.md, «Cosas que aprendimos». La clave cambia en CADA lectura de la página (no solo
+  // `Suspense` propio en vez de `loading.tsx`: ver docs/07-testing/pruebas-e2e.md, «Cosas que aprendimos». La clave cambia en CADA lectura de la página (no solo
   // con la dirección): un `router.refresh()` (al cerrar el diálogo de una cancelación rechazada) tiene que montar un límite nuevo; sobre el mismo
   // límite, la pantalla anterior se quedaba a la vista aunque llegara la lista nueva.
   return (

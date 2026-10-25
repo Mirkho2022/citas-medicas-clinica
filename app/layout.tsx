@@ -4,7 +4,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { localizacionClerk } from "@/lib/ui/clerk-es";
 import "./globals.css";
 
-// Tipografías de docs/DESIGN.md: títulos en Plus Jakarta Sans y cuerpo en Inter. next/font las aloja con la propia
+// Tipografías de docs/02-diseno/DESIGN.md: títulos en Plus Jakarta Sans y cuerpo en Inter. next/font las aloja con la propia
 // aplicación; el tema (tema.generado.css) las toma de estas variables.
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -20,7 +20,7 @@ const inter = Inter({
   display: "swap",
 });
 
-// Apariencia de los formularios de Clerk con los tokens de docs/DESIGN.md. Se usan variables CSS del tema (no colores
+// Apariencia de los formularios de Clerk con los tokens de docs/02-diseno/DESIGN.md. Se usan variables CSS del tema (no colores
 // literales): un cambio en DESIGN.md y `npm run tema` también los alcanza. Solo tema claro.
 const apariencia = {
   variables: {

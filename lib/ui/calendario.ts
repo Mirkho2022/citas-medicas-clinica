@@ -1,4 +1,4 @@
-// Cálculo del calendario del selector de fecha (docs/diseno/BRIEF-DISENO.md, sección 5; DESIGN.md). Funciones puras sobre fechas
+// Cálculo del calendario del selector de fecha (docs/02-diseno/BRIEF-DISENO.md, sección 5; DESIGN.md). Funciones puras sobre fechas
 // de calendario `YYYY-MM-DD` (las «fechas de Lima» de lib/fechas/lima.ts): aritmética en UTC, así que no dependen de la zona del
 // proceso ni del navegador. La semana empieza en lunes, como en el lienzo aprobado.
 export const NOMBRES_MES = [

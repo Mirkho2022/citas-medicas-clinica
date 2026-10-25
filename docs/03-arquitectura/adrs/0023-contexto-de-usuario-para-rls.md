@@ -126,7 +126,7 @@ implementación difiere de lo que esta ADR suponía en cuatro puntos, ya refleja
 - **JWKS:** se registra por la API de Neon (`POST /projects/{id}/jwks` con `branch_id`), no se hereda a branches
   nuevos y no se necesita ninguna JWKS de prueba para pgTAP.
 - **pgTAP:** `pg_session_jwt` solo acepta una JWK Ed25519 como opción de arranque de una conexión directa; la suite
-  firma tokens EdDSA efímeros (receta en [pruebas-sql.md](../pruebas-sql.md)).
+  firma tokens EdDSA efímeros (receta en [pruebas-sql.md](../../07-testing/pruebas-sql.md)).
 
 También se encontró que Neon dejó privilegios por defecto abiertos para `authenticated` sobre toda tabla nueva; la
 primera migración de H2 los revoca.

@@ -4,7 +4,7 @@ Lo que **no** hacen las migraciones ni el código: configuración de consolas (N
 **antes de mergear H2 a `master`** (salvo lo que depende de las migraciones, ver «Orden»). Un merge sin estos pasos no rompe la base (las migraciones son aditivas), pero deja la
 aplicación desplegada con dos fallos visibles: el webhook de Clerk responde 500 y `/api/db-sesion` no puede consultar la base.
 
-Contexto: al hacer merge, [migrar-produccion.yml](../.github/workflows/migrar-produccion.yml) aplica las migraciones al branch
+Contexto: al hacer merge, [migrar-produccion.yml](../../.github/workflows/migrar-produccion.yml) aplica las migraciones al branch
 `production` de Neon y, **en paralelo**, la integración Git de Vercel despliega el código. Por eso la configuración de abajo
 tiene que existir antes, no después.
 
@@ -64,7 +64,7 @@ Production de Vercel y `.env.local` pueden apuntar a instancias distintas.
 ## 2. JWKS en Neon, por branch
 
 Neon valida el JWT de Clerk contra una JWKS registrada **por branch** y esa configuración **no se hereda** a branches nuevos
-([spike-rls-h2.md](spike-rls-h2.md), hallazgo 4). Se registra por la API de Neon, no desde la consola:
+([spike-rls-h2.md](../03-arquitectura/spike-rls-h2.md), hallazgo 4). Se registra por la API de Neon, no desde la consola:
 
 ```
 POST https://console.neon.tech/api/v2/projects/wild-pine-78612869/jwks
@@ -152,7 +152,7 @@ tiene ambos eventos y nombre y apellido son obligatorios. Falta repetirlo si Pro
 
 ## 6. Secretos de GitHub para CI
 
-Los pasos nuevos de [neon-branch-pr.yml](../.github/workflows/neon-branch-pr.yml) (pgTAP, concurrencia, integración) usan el
+Los pasos nuevos de [neon-branch-pr.yml](../../.github/workflows/neon-branch-pr.yml) (pgTAP, concurrencia, integración) usan el
 branch efímero `preview/pr-N` que el workflow crea por PR (no necesitan JWKS: la suite firma sus propios tokens) y no
 requieren secretos nuevos: usan `NEON_API_KEY` y `DATABASE_URL_PRODUCCION`, que ya existen (esta última solo como guarda: los
 ejecutores se niegan a correr contra `production`). `migrar-produccion.yml` usa ese mismo `DATABASE_URL_PRODUCCION`, URL
@@ -176,7 +176,7 @@ que tocar las migraciones.
 
 ## Lo que sigue siendo una acción aparte
 
-- **Sembrar datos de demostración en producción** ([datos-demo.md](datos-demo.md)): no forma parte del merge; exige
+- **Sembrar datos de demostración en producción** ([datos-demo.md](../07-testing/datos-demo.md)): no forma parte del merge; exige
   `--confirmar` y `--incluir-produccion`.
-- **Datos reales de pacientes:** siguen bloqueados por P-1 (marco legal peruano, [TECH-DESIGN.md](TECH-DESIGN.md)).
+- **Datos reales de pacientes:** siguen bloqueados por P-1 (marco legal peruano, [TECH-DESIGN.md](../03-arquitectura/TECH-DESIGN.md)).
 - **ADR-0020:** su nota de revisión pendiente (`app_user` y `sync_identidad`) espera decisión humana; no condiciona el merge.

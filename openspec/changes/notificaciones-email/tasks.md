@@ -213,7 +213,7 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       y con sus columnas; con 26 filas ve dos páginas y el total; sin filas ve el mensaje vacío; **negativas:** sin sesión va al inicio
       de sesión; paciente, médico y enfermera son devueltos a su área y no ven nada; una consulta directa de esos roles
       devuelve 0 filas. Limpia las filas sembradas. Verificar con `npm run test:e2e`.
-- [ ] 8.4 Documentar en `docs/pruebas-e2e.md` cómo sembrar y limpiar notificaciones de prueba y qué cubren las E2E de los grupos 6
+- [ ] 8.4 Documentar en `docs/07-testing/pruebas-e2e.md` cómo sembrar y limpiar notificaciones de prueba y qué cubren las E2E de los grupos 6
       y 8; verificar que los enlaces no están rotos.
 
 ## 9. Entregabilidad y prueba de humo con correo real (manual, riesgo P-7)
@@ -250,8 +250,8 @@ su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» d
       acceso a `armar_contenido_aviso`), y las secciones «Notificaciones», criterios de aceptación y riesgo P-7 de TECH-DESIGN,
       el estado de CLAUDE.md y la línea de estado de `openspec/config.yaml`. Verificar con una lista de ediciones propuestas
       en el PR y aprobadas por el usuario antes de aplicarlas.
-- [ ] 10.4 Añadir a `docs/datos-demo.md` la advertencia de que sembrar citas crea recordatorios con `@demo.invalid` y que el cron real
-      no debe correr sobre datos de demostración, y a `docs/pruebas-sql.md` los archivos `80`–`85`. Verificar que los enlaces no
+- [ ] 10.4 Añadir a `docs/07-testing/datos-demo.md` la advertencia de que sembrar citas crea recordatorios con `@demo.invalid` y que el cron real
+      no debe correr sobre datos de demostración, y a `docs/07-testing/pruebas-sql.md` los archivos `80`–`85`. Verificar que los enlaces no
       están rotos.
 - [ ] 10.5 Cobertura de la spec: tabla en el PR de cada escenario de `specs/*/spec.md` con la prueba que lo cubre (pgTAP, unitaria,
       integración, concurrencia, E2E o manual del grupo 9) y ninguno sin cubrir; `openspec validate notificaciones-email --strict`

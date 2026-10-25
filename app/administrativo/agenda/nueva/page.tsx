@@ -29,7 +29,7 @@ const HORIZONTE_DIAS = 90;
 type Consulta = { paciente?: string | string[]; medico?: string | string[]; fecha?: string | string[]; reprogramar?: string | string[] };
 const una = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-// Agendar y reprogramar una cita (specs/gestion-de-citas; docs/diseno/BRIEF-DISENO.md, «Portal · Reservar cita» adaptado a la
+// Agendar y reprogramar una cita (specs/gestion-de-citas; docs/02-diseno/BRIEF-DISENO.md, «Portal · Reservar cita» adaptado a la
 // consola): tres pasos visibles en una sola página (paciente → médico y fecha → horario y confirmación). El estado de los pasos
 // vive en la URL (`?paciente=`, `?medico=`, `?fecha=`) y se lee en el servidor con la identidad del usuario; solo la
 // confirmación (último paso) es un componente de cliente. `?reprogramar=<cita>` reutiliza la pantalla: el paciente queda fijo y la

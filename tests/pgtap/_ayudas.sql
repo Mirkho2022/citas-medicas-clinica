@@ -3,7 +3,7 @@
 --
 -- Antes de cargar este archivo el runner crea pg_temp.tokens (identidad, sub, rol, jti, jwt) con
 -- tokens EdDSA firmados por una clave Ed25519 efímera; la JWK pública va en la opción de arranque
--- pg_session_jwt.jwk de la conexión. Mecanismo y límites: docs/spike-rls-h2.md.
+-- pg_session_jwt.jwk de la conexión. Mecanismo y límites: docs/03-arquitectura/spike-rls-h2.md.
 
 create schema tests;
 grant usage on schema tests to authenticated;

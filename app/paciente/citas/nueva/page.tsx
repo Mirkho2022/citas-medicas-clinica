@@ -55,14 +55,14 @@ import { TituloDelPaso } from "./titulo-del-paso";
 
 type Consulta = Record<string, string | string[] | undefined>;
 
-// «Reservar cita» (specs/busqueda-y-reserva-de-cita; design.md, D6 y D7; docs/diseno/BRIEF-DISENO.md, «Portal · Reservar cita»): un
+// «Reservar cita» (specs/busqueda-y-reserva-de-cita; design.md, D6 y D7; docs/02-diseno/BRIEF-DISENO.md, «Portal · Reservar cita»): un
 // paso por pantalla con el estado en la dirección. El servidor decide el paso por los parámetros válidos (lib/portal/pasos-reserva.ts) y
 // lee todo con la identidad del paciente: la RLS y `slots_disponibles()` deciden qué existe. Solo el último paso es un formulario.
 export default async function PaginaReservar({ searchParams }: { searchParams: Promise<Consulta> }) {
   const { userId } = await auth.protect();
   const consulta = await searchParams;
   // Cada paso tiene su propio `Suspense` (clave = los parámetros): mientras se buscan los horarios se ve el esqueleto con «Buscando horarios…».
-  // No se usa `loading.tsx`: ver docs/pruebas-e2e.md, «Cosas que aprendimos».
+  // No se usa `loading.tsx`: ver docs/07-testing/pruebas-e2e.md, «Cosas que aprendimos».
   return (
     <Suspense key={JSON.stringify(consulta)} fallback={<CargandoReservar />}>
       <PasoDeLaReserva userId={userId} consulta={consulta} />

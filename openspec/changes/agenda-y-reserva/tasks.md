@@ -109,7 +109,7 @@ empieza cuando H2b está aplicado.
       mismo horario confirman exactamente una cita y los demás reciben `23P01` o `40P01`; dos reprogramaciones simultáneas de la
       misma cita dejan una sola cita nueva y la otra recibe `UC002`. Las filas de prueba se limpian al empezar y al terminar.
       Verificar con `npm run test:concurrencia`, y que el helper se niega a correr si el destino es producción.
-- [x] 4.5 Documentar en `docs/pruebas-sql.md` el helper `_sesion.ts`, los archivos 34 a 37 y cómo correr una sola prueba.
+- [x] 4.5 Documentar en `docs/07-testing/pruebas-sql.md` el helper `_sesion.ts`, los archivos 34 a 37 y cómo correr una sola prueba.
       Verificar que los comandos del documento corren tal como están escritos.
 
 ## 5. Migración 4: reasignación por baja
@@ -132,7 +132,7 @@ empieza cuando H2b está aplicado.
       `99_rls_en_todas_las_tablas` en verde.
 - [x] 5.4 Ampliar `scripts/sembrar-datos-demo.ts` (idempotente, sin desactivar triggers) con un segundo médico de Medicina
       general (`CMP-DEMO-005`, perfil `mock_`) y su disponibilidad de lunes a viernes, para que exista un sustituto de la misma
-      especialidad; actualizar `docs/datos-demo.md` (conteos y nota). Verificar ejecutándolo dos veces en un branch de
+      especialidad; actualizar `docs/07-testing/datos-demo.md` (conteos y nota). Verificar ejecutándolo dos veces en un branch de
       desarrollo con los mismos conteos, y `node scripts/comprobar-datos-demo.ts` y la suite pgTAP completa en verde.
       Resultado: dos ejecuciones dan los mismos conteos (5 médicos, 25 disponibilidades, 14 citas…); el comprobador pasa y la suite
       completa da 680 pruebas, 0 fallos con los datos sembrados. Nota: sin `CLERK_SECRET_KEY` el paciente 99000001 queda sin
@@ -176,7 +176,7 @@ empieza cuando H2b está aplicado.
       de `medico_b`, y quitar `now() < fin` de la confirmación hace fallar la de la cita terminada.
       Resultado: 56 pruebas, 0 fallos. Mutaciones: sin `medico_id = v_medico` en `marcar_cita_atendida` falla la de `medico_b` (34); sin
       `now() >= old.fin` fallan «confirmar una cita que ya terminó» (17) y «alargar el fin en el mismo UPDATE» (33). Ambas restauradas.
-- [x] 6.3 Completar `docs/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
+- [x] 6.3 Completar `docs/07-testing/pruebas-sql.md` con los archivos 38, 39 y 61, la matriz de transiciones y la nota de que el disparador
       no actúa sobre el dueño de la base. Verificar que los comandos del documento corren tal como están escritos.
 - [x] 6.4 Revisar el SQL de las cinco migraciones con el agente `code-review` (funciones `SECURITY DEFINER`, `search_path`,
       `EXECUTE`, guardas de rol, vista `security_invoker`, orden cancelar-antes-de-insertar, disparador de transiciones y
@@ -512,14 +512,14 @@ empieza cuando H2b está aplicado.
 ## 13. Documentación y verificación integral
 
 - [x] 13.1 Actualizar `CLAUDE.md` (estado: H3), la tabla de Server Actions y el árbol de rutas de TECH-DESIGN (incluidas
-      `confirmarCita`, `marcarNoAsistio` y `marcarAtendida`), `docs/pruebas-e2e.md` (nuevas E2E y su requisito de datos de
+      `confirmarCita`, `marcarNoAsistio` y `marcarAtendida`), `docs/07-testing/pruebas-e2e.md` (nuevas E2E y su requisito de datos de
       demostración) y añadir las notas fechadas propuestas en ADR-0008 (códigos `UC001`–`UC004`), ADR-0011 (dirección de
       `reprogramada_de`) y ADR-0016 (quién confirma: la recepción), **marcadas para revisión humana** y sin cambiar el texto de la
       decisión. Verificar con una búsqueda que todos los documentos citan el mismo mensaje exacto, los mismos códigos y las rutas
       reales, y que ningún enlace relativo se rompe.
-      Resultado (2026-10-20): `CLAUDE.md` (estado H3), la tabla de Server Actions de `docs/TECH-DESIGN.md` (con una nota del cierre de citas vencidas),
-      `docs/pruebas-e2e.md` y las notas fechadas, marcadas para revisión humana, de ADR-0008, ADR-0011 y ADR-0016. Búsqueda: el mensaje «Registro de cita ya agendado»
-      aparece con un único texto en todo el repositorio y no hay enlaces relativos rotos en `CLAUDE.md`, `docs/` ni `docs/adrs/`.
+      Resultado (2026-10-20): `CLAUDE.md` (estado H3), la tabla de Server Actions de `docs/03-arquitectura/TECH-DESIGN.md` (con una nota del cierre de citas vencidas),
+      `docs/07-testing/pruebas-e2e.md` y las notas fechadas, marcadas para revisión humana, de ADR-0008, ADR-0011 y ADR-0016. Búsqueda: el mensaje «Registro de cita ya agendado»
+      aparece con un único texto en todo el repositorio y no hay enlaces relativos rotos en `CLAUDE.md`, `docs/` ni `docs/03-arquitectura/adrs/`.
 
 - [x] 13.2 Ejecutar en limpio `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:agenda`, la suite pgTAP
       completa, `npm run test:concurrencia`, `npm run test:integracion` y la E2E completa; verificar que todo pasa en el PR
@@ -543,7 +543,7 @@ empieza cuando H2b está aplicado.
       Resultado (2026-10-20): el cliente dio su visto bueno y decidió el punto (3): **ocultar las columnas secundarias bajo `md` (768 px)** (Agenda: Documento
       y Médico y servicio; Bajas: Periodo y Motivo; Horarios: Servicio y Estado), sin tarjetas. Hecho (`hidden md:table-cell` en cabeceras y celdas; en la
       agenda, Estado y Acciones dejan de tener ancho fijo bajo `md`; el relleno horizontal de las celdas baja de 16 a 6 px, los títulos numéricos se parten
-      en dos líneas y «Ver horarios» se muestra como «Ver») y anotado en `docs/DESIGN.md`. El escritorio no cambia. Verificado en el preview (2026-10-20):
+      en dos líneas y «Ver horarios» se muestra como «Ver») y anotado en `docs/02-diseno/DESIGN.md`. El escritorio no cambia. Verificado en el preview (2026-10-20):
       a 390 px las tres tablas caben sin desplazarse por dentro (se midió el ancho de cada una contra su caja) y a 1280 px conservan todas sus columnas;
       el E2E del CI sigue en verde; hay capturas de las tres. Los puntos (1) y (2) ya estaban corregidos; las sugerencias de (4) quedan a criterio del cliente.
 - [x] 13.4 Tras el merge, comprobar que `migrar-produccion.yml` aplicó las nueve migraciones, que el deployment de producción está

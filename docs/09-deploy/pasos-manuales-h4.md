@@ -33,7 +33,7 @@ repetirlos en cada una.
 ## 1. Claim `email` en la sesión (Q2 del change)
 
 `public.correo_actual()` lee el correo del **token que Neon valida** (`auth.session() ->> 'email'`), nunca de un parámetro, y con
-él `registrar_paciente_portal` decide si una cuenta puede vincular una ficha existente ([ADR-0037](adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)).
+él `registrar_paciente_portal` decide si una cuenta puede vincular una ficha existente ([ADR-0037](../03-arquitectura/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)).
 Sin este claim la función rechaza con `PA004`.
 
 - En el panel de Clerk: **Configure → Sessions → Customize session token**. Añadir `email` al JSON que ya existe, **sin quitar**
@@ -80,7 +80,7 @@ Las E2E de aislamiento y de doble reserva necesitan **dos** pacientes con sesió
 
 ## 5. Vercel BotID y Upstash
 
-Detalle técnico en el grupo 4 del change `portal-del-paciente` y en [ADR-0026](adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
+Detalle técnico en el grupo 4 del change `portal-del-paciente` y en [ADR-0026](../03-arquitectura/adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
 El código ya está (`lib/seguridad/`, `middleware.ts`, `instrumentation-client.ts`, `next.config.ts`); lo que sigue es configuración de
 consolas que solo puede hacer quien administra el proyecto de Vercel.
 

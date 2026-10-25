@@ -91,12 +91,12 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
 - **Decisión legal (P-1):** no depende de ella. Sin datos clínicos en el correo ni en el cron, H5 puede llegar a
   producción sin esperar a H6. Sí hay datos personales de identidad (nombre y correo del paciente) que viajan a Resend; se
   menciona junto con la consulta legal ya abierta sobre Clerk (nota 2026-09-28 de P-1) y no la bloquea.
-- **ADR:** implementa [ADR-0017](../../../docs/adrs/0017-disparo-de-notificaciones-transaccionales.md),
-  [ADR-0018](../../../docs/adrs/0018-visibilidad-de-notificaciones-fallidas.md),
-  [ADR-0028](../../../docs/adrs/0028-notificaciones-cron-unico-plan-hobby.md) y
-  [ADR-0020](../../../docs/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md); toca
-  [ADR-0008](../../../docs/adrs/0008-resiliencia-y-manejo-de-errores.md) (reintento) y
-  [ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (aviso de reprogramación). **Dos puntos
+- **ADR:** implementa [ADR-0017](../../../docs/03-arquitectura/adrs/0017-disparo-de-notificaciones-transaccionales.md),
+  [ADR-0018](../../../docs/03-arquitectura/adrs/0018-visibilidad-de-notificaciones-fallidas.md),
+  [ADR-0028](../../../docs/03-arquitectura/adrs/0028-notificaciones-cron-unico-plan-hobby.md) y
+  [ADR-0020](../../../docs/03-arquitectura/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md); toca
+  [ADR-0008](../../../docs/03-arquitectura/adrs/0008-resiliencia-y-manejo-de-errores.md) (reintento) y
+  [ADR-0011](../../../docs/03-arquitectura/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (aviso de reprogramación). **Dos puntos
   rozan lo ya decidido y no se resuelven aquí:** (a) la regla de `programada_para` (08:00 del día anterior en vez de
   `inicio - 1 día`) y (b) escribir `notificaciones` con un disparador y una función en lugar de un `INSERT` de la Server
   Action. Ninguno cambia una garantía (idempotencia, credencial mínima, envío síncrono); se proponen como ADR-0029 y notas

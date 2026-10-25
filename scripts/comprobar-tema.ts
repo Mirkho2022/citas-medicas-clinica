@@ -1,4 +1,4 @@
-// Comprueba que la interfaz no se separa de docs/DESIGN.md (H2b, tarea 1.4). Tres verificaciones:
+// Comprueba que la interfaz no se separa de docs/02-diseno/DESIGN.md (H2b, tarea 1.4). Tres verificaciones:
 //   1. app/tema.generado.css coincide con lo que generaría DESIGN.md ahora mismo.
 //   2. Ningún archivo bajo app/ ni components/ (salvo el CSS generado) declara un color literal.
 //   3. El contraste WCAG de cada par de texto y fondo de DESIGN.md y de una lista de pares adicionales.
@@ -13,7 +13,7 @@ import { ESTILOS_TEXTO } from "../lib/ui/estilos-texto.ts";
 import { contraste } from "./lib/contraste.ts";
 import { generarTema, leerDesign, validarKeyframes, validarMovimiento } from "./lib/tema.ts";
 
-const DESIGN = "docs/DESIGN.md";
+const DESIGN = "docs/02-diseno/DESIGN.md";
 const CSS_GENERADO = "app/tema.generado.css";
 const CARPETAS = ["app", "components"];
 const EXTENSIONES = [".ts", ".tsx", ".css", ".mdx"];

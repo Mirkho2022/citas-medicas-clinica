@@ -1,6 +1,6 @@
 # Datos de demostración
 
-Datos **sintéticos** para probar y mostrar el sistema (H2, [design.md D10](../openspec/changes/esquema-rls-pgtap/design.md)).
+Datos **sintéticos** para probar y mostrar el sistema (H2, [design.md D10](../../openspec/changes/esquema-rls-pgtap/design.md)).
 Proyecto de muestra: se permiten datos mock, **nunca datos reales de pacientes**; la decisión legal P-1
 (NTS del MINSA) sigue bloqueándolos.
 
@@ -20,7 +20,7 @@ Proyecto de muestra: se permiten datos mock, **nunca datos reales de pacientes**
 | Atenciones | 6 | Firmadas, una por cita atendida; más una addenda |
 | Antecedentes | 5 | Variados |
 | Turnos de enfermería | 14 | Próximos 7 días, mañana y tarde |
-| CIE-10 | 12 | Subconjunto con capítulo `DEMO`; el catálogo completo es de H6 ([ADR-0014](adrs/0014-catalogo-cie-10.md)) |
+| CIE-10 | 12 | Subconjunto con capítulo `DEMO`; el catálogo completo es de H6 ([ADR-0014](../03-arquitectura/adrs/0014-catalogo-cie-10.md)) |
 
 **Marcadores:** personas sin cuenta con `clerk_user_id` de prefijo `mock_`, correos `@demo.invalid`, nombres
 ficticios y documentos `99…` / `CEDEMO…`. Las cuatro cuentas reales de prueba de la instancia de desarrollo de

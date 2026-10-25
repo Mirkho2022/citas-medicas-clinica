@@ -1,4 +1,4 @@
-// Cliente de base de datos con la identidad del usuario (ADR-0023; docs/spike-rls-h2.md; design.md, D9).
+// Cliente de base de datos con la identidad del usuario (ADR-0023; docs/03-arquitectura/spike-rls-h2.md; design.md, D9).
 //
 // Este módulo es una CONVENIENCIA, no el límite de seguridad: Neon valida el JWT de Clerk contra la JWKS y las
 // políticas RLS deciden dentro de Postgres. Lo que sí impone, por cómo funciona Neon:

@@ -68,4 +68,4 @@ referenciado por hash/fecha de descarga en el propio archivo de migración) y un
 `INSERT ... ON CONFLICT (codigo) DO NOTHING` para que sea repetible sin duplicar filas. Una
 actualización futura del catálogo (nueva revisión de la OMS/MINSA) se aplica como una migración
 adicional, nunca editando la de carga inicial — regla general de
-[CLAUDE.md](../../CLAUDE.md) para el esquema `public`.
+[CLAUDE.md](../../../CLAUDE.md) para el esquema `public`.

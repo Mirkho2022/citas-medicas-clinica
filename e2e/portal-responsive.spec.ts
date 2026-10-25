@@ -26,7 +26,7 @@ import { iniciarSesion, prepararPagina, variable } from "./helpers";
 test.describe.configure({ mode: "serial" });
 
 const faltaAlgo = !hayBaseDeDatos() || !process.env.E2E_PACIENTE2_EMAIL || !process.env.E2E_PACIENTE2_PASSWORD;
-test.skip(faltaAlgo, "Necesitan E2E_DATABASE_URL (o DATABASE_URL_UNPOOLED) y E2E_PACIENTE2_EMAIL/E2E_PACIENTE2_PASSWORD: ver docs/pruebas-e2e.md");
+test.skip(faltaAlgo, "Necesitan E2E_DATABASE_URL (o DATABASE_URL_UNPOOLED) y E2E_PACIENTE2_EMAIL/E2E_PACIENTE2_PASSWORD: ver docs/07-testing/pruebas-e2e.md");
 
 const ANCHOS = [320, 390];
 const ALTO = 800;

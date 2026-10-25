@@ -231,7 +231,7 @@ los atiende con **un solo sistema y dos densidades**:
 «alarma» ni el azul genérico de «banco»), neutros con un matiz verdoso muy suave y color solo cuando significa algo: el
 estado de una cita, un aviso, un error. Sin ilustraciones decorativas en las pantallas de trabajo.
 
-**Reglas que el diseño debe hacer visibles** (de [CLAUDE.md](../CLAUDE.md) y [PRD.md](PRD.md)):
+**Reglas que el diseño debe hacer visibles** (de [CLAUDE.md](../../CLAUDE.md) y [PRD.md](../01-producto/PRD.md)):
 
 - Al reservar se muestra la advertencia de que solo se puede cancelar hasta **1 hora antes** (`alert-warning`).
 - El rechazo de doble reserva se muestra con el texto exacto `Registro de cita ya agendado` (`alert-error`).
@@ -335,7 +335,7 @@ Plano por defecto: la jerarquía la dan el color de fondo y el borde, no la somb
 
 ## Motion
 
-Aprobado el 2026-10-18 en la revisión visual ([BRIEF-DISENO.md](diseno/BRIEF-DISENO.md), sección 6) y fijado aquí el
+Aprobado el 2026-10-18 en la revisión visual ([BRIEF-DISENO.md](BRIEF-DISENO.md), sección 6) y fijado aquí el
 2026-10-19. Es una herramienta de trabajo: el movimiento es corto, responde de inmediato y solo explica un cambio de estado.
 **Solo se animan `transform` y `opacity`.** Los valores de la cabecera (`motion`) son normativos; `npm run tema` los expone
 como `--ease-*` (las curvas, que Tailwind usa como `ease-salida-rapida` y `ease-cajon`) y `--motion-*` (las duraciones).
@@ -378,7 +378,7 @@ Anillo de foco visible en todo elemento interactivo: 2 px de `primary` con 2 px 
 
 ## Components
 
-La base es **shadcn/ui** sobre **Tailwind CSS v4** ([ADR-0004](adrs/0004-stack-de-frontend-y-validacion.md)); los tokens
+La base es **shadcn/ui** sobre **Tailwind CSS v4** ([ADR-0004](../03-arquitectura/adrs/0004-stack-de-frontend-y-validacion.md)); los tokens
 de la cabecera se mapean a las variables de shadcn:
 
 | Variable de shadcn/ui | Token |
@@ -435,7 +435,7 @@ Reglas de los componentes principales:
 - No mostrar datos clínicos en notificaciones, títulos de pestaña, URLs ni mensajes de error.
 - No usar modo oscuro como requisito de esta versión: queda fuera de alcance salvo que el cliente lo pida.
 - No añadir gráficos, paneles analíticos ni ilustraciones decorativas en la consola: el dashboard es una vista operativa
-  (agenda y estado), no un módulo de analítica ([CLAUDE.md](../CLAUDE.md), «Alcance»).
+  (agenda y estado), no un módulo de analítica ([CLAUDE.md](../../CLAUDE.md), «Alcance»).
 - No copiar de ninguna referencia su identidad (logotipo, ilustraciones, textos): solo se toman principios.
 
 ## Referencias de mercado
@@ -459,7 +459,7 @@ de software; sin referentes de salud).
 
 1. Los tokens de la cabecera son la fuente de verdad. Los componentes nuevos se diseñan con ellos y con los textos de arriba.
 2. Para generar el tema de Tailwind v4 (`@theme` en `app/globals.css`) y comprobar el contraste, la especificación ofrece
-   `npx @google/design.md export --format css-tailwind docs/DESIGN.md` y `npx @google/design.md lint docs/DESIGN.md`.
+   `npx @google/design.md export --format css-tailwind docs/02-diseno/DESIGN.md` y `npx @google/design.md lint docs/02-diseno/DESIGN.md`.
 3. Cualquier cambio de color o tipografía se hace aquí primero y se propaga al código con `npm run tema`; no al revés.
    Los grupos `shadows` (menú, diálogo y anillo de foco) y `motion` (curvas y duraciones) de la cabecera no están definidos
    por el formato alpha: el generador del tema los lee igualmente y `npm run tema:comprobar` falla si el CSS se separa de este

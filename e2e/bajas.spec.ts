@@ -6,7 +6,7 @@ import { esperarArea, iniciarSesion, prepararPagina, variable } from "./helpers"
 // el médico de Medicina general 14 días adelante, registrar una ausencia que las cubra (el aviso dice cuántas caen dentro y enlaza a
 // reasignar), reasignar UNA al sustituto sembrado (el segundo médico de Medicina general), confirmar la cita nueva y dejar la otra
 // por reasignar; al terminar se cancelan las citas y se borra la ausencia. Negativo: un paciente que abre /administrativo/bajas es
-// devuelto a su área sin ver el contenido. Necesita los datos de demostración (docs/datos-demo.md); sin ellos se omite con un aviso.
+// devuelto a su área sin ver el contenido. Necesita los datos de demostración (docs/07-testing/datos-demo.md); sin ellos se omite con un aviso.
 // La marca «Contactar al paciente» (cita sin ningún sustituto libre) no se puede provocar desde la interfaz sin dar de baja al
 // sustituto: la cubre tests/integracion/consultas.test.ts contra la base real.
 //
@@ -71,7 +71,7 @@ test("bajas: una ausencia cubre dos citas, se reasigna una al sustituto y la otr
     (os as HTMLOptionElement[]).map((o) => ({ valor: o.value, texto: o.textContent ?? "" })).filter((o) => o.valor),
   );
   const generales = medicos.filter((m) => m.texto.includes("Medicina general"));
-  test.skip(generales.length < 2, "Sin datos de demostración (hacen falta dos médicos de Medicina general): ver docs/datos-demo.md");
+  test.skip(generales.length < 2, "Sin datos de demostración (hacen falta dos médicos de Medicina general): ver docs/07-testing/datos-demo.md");
   const [titular, sustituto] = generales as [(typeof generales)[number], (typeof generales)[number]];
   const nombreTitular = titular.texto.split(" · ")[0]!;
   const nombreSustituto = sustituto.texto.split(" · ")[0]!;

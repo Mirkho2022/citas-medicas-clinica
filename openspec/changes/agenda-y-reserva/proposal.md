@@ -20,8 +20,8 @@ reasignación cuando un médico se da de baja, identificación del paciente por 
 - **Disponibilidades y bloqueos** (panel administrativo): el administrativo define la plantilla semanal de cada médico y
   sus ausencias (`bloqueos_agenda`). Nueva restricción en la base de datos para que dos horarios vigentes del mismo médico
   no se solapen (hoy nada lo impide y duplicaría los slots), y auditoría de los bloqueos por su efecto sobre la ventana de
-  cancelación ([ADR-0012](../../../docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md), riesgo residual).
-- **Cálculo de slots en consulta** ([ADR-0010](../../../docs/adrs/0010-calculo-de-disponibilidad-de-slots.md)):
+  cancelación ([ADR-0012](../../../docs/03-arquitectura/adrs/0012-alcance-de-la-ventana-de-cancelacion.md), riesgo residual).
+- **Cálculo de slots en consulta** ([ADR-0010](../../../docs/03-arquitectura/adrs/0010-calculo-de-disponibilidad-de-slots.md)):
   `slots_disponibles(médico, fecha)` como función `SECURITY DEFINER` (el paciente no puede leer `bloqueos_agenda`, así que
   H2 dejó este cálculo a cargo de H3/H4), más `horario_en_agenda()` para validar en la base de datos que una reserva cae
   exactamente en un slot de la plantilla y fuera de los bloqueos.
@@ -40,7 +40,7 @@ reasignación cuando un médico se da de baja, identificación del paciente por 
 - **Ventana de 1 hora y advertencia**: el formulario de reserva muestra, antes de confirmar, que la cita solo puede
   cancelarse hasta 1 hora antes (con la hora límite en Lima); `cancelarCita` y `reprogramarCita` traducen el rechazo del
   trigger `validar_cancelacion()`.
-- **Reasignación por baja o emergencia** ([ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md)): este
+- **Reasignación por baja o emergencia** ([ADR-0011](../../../docs/03-arquitectura/adrs/0011-reasignacion-de-citas-por-baja-medica.md)): este
   change **posee** el flujo completo (H7 no lo duplica): registrar la baja, listar las citas afectadas
   (`citas_por_reasignar`), proponer sustitutos de la misma especialidad (`propuestas_reasignacion()`), reasignar cada
   cita en su propia transacción (`reasignar_cita_por_baja()`), y dejar **marcadas para contacto manual** las que no tengan
@@ -49,8 +49,8 @@ reasignación cuando un médico se da de baja, identificación del paciente por 
   alfanuméricos, normalizado a mayúsculas), búsqueda de pacientes por documento o apellido y registro de pacientes por el
   administrativo (`buscarPacientes`, `registrarPaciente`). El registro público y la vinculación con una cuenta del portal
   son de H4.
-- **Contratos de aplicación** ([ADR-0006](../../../docs/adrs/0006-contratos-de-api-via-server-actions.md),
-  [ADR-0008](../../../docs/adrs/0008-resiliencia-y-manejo-de-errores.md)): resultado tipado
+- **Contratos de aplicación** ([ADR-0006](../../../docs/03-arquitectura/adrs/0006-contratos-de-api-via-server-actions.md),
+  [ADR-0008](../../../docs/03-arquitectura/adrs/0008-resiliencia-y-manejo-de-errores.md)): resultado tipado
   `{ ok, datos } | { ok: false, mensaje, codigo }`, traducción central de `SQLSTATE` a mensajes en español (nunca texto
   crudo de Postgres) y un punto de extensión **sin efecto** para eventos de cita que H5 conectará a Resend.
 - **Pantallas del administrativo** sobre los componentes de H2b (`TablaAgenda`, `SelectorHorario`, `InsigniaEstado`,

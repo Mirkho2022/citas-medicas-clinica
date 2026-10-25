@@ -1,5 +1,5 @@
 -- Up Migration
--- H2 (esquema-rls-pgtap): privilegios base y roles de servicio. Ver design.md, D4, y docs/spike-rls-h2.md.
+-- H2 (esquema-rls-pgtap): privilegios base y roles de servicio. Ver design.md, D4, y docs/03-arquitectura/spike-rls-h2.md.
 
 -- 1) Privilegios por defecto. Neon dejó ALTER DEFAULT PRIVILEGES que dan a `authenticated`
 --    INSERT/SELECT/UPDATE/DELETE sobre toda tabla nueva de `public`, USAGE de secuencias y EXECUTE de

@@ -1,7 +1,7 @@
 # Brief de diseño de la interfaz (aprobado el 2026-10-18)
 
 Registro de lo que se aprobó en la revisión visual: qué pantallas existen, para quién, cómo se comportan y cómo se mueven. Es el
-puente entre el sistema de diseño ([DESIGN.md](../DESIGN.md), que define *cómo se ve*) y las pantallas de los hitos H3 a H7
+puente entre el sistema de diseño ([DESIGN.md](DESIGN.md), que define *cómo se ve*) y las pantallas de los hitos H3 a H7
 (que definen *qué hacen*, en `openspec/changes/`). Lo visual vive en el lienzo de [lienzo/](lienzo/); este documento explica
 lo que el lienzo no puede decir.
 
@@ -11,11 +11,11 @@ lo que el lienzo no puede decir.
 |---|---|---|
 | Aprobación de los diseños | La da el propietario del proyecto, solo | Propietario |
 | Marca | No hay marca real: toda pantalla lleva la etiqueta **DEMO** junto al nombre «Citas Médicas». Se retira cuando exista la marca de la clínica | Propietario |
-| Identidad visual | Sin cambios sobre [DESIGN.md](../DESIGN.md): verde azulado `#0F766E`, Plus Jakarta Sans + Inter, tema claro único, «usted» | Aprobado |
+| Identidad visual | Sin cambios sobre [DESIGN.md](DESIGN.md): verde azulado `#0F766E`, Plus Jakarta Sans + Inter, tema claro único, «usted» | Aprobado |
 | Movimiento | Se aprueba la propuesta de la sección 6 (no estaba en DESIGN.md) | Aprobado |
 | Pantallas de referencia | Las nueve del lienzo (sección 3) | Aprobado |
 
-Todo dato del lienzo es ficticio y sigue la convención de [datos-demo.md](../datos-demo.md): documentos `99…`, correos
+Todo dato del lienzo es ficticio y sigue la convención de [datos-demo.md](../07-testing/datos-demo.md): documentos `99…`, correos
 `@demo.invalid`, «ahora» fijo el 10/10/2026 a las 10:00 de Lima.
 
 ## 2. Contexto y superficies
@@ -38,7 +38,7 @@ solo para la revisión y **no** se copia a la aplicación.
 
 | Lámina | Qué demuestra | Se implementa en |
 |---|---|---|
-| 1 · Fundamentos (`Main`) | Paleta con contrastes, tipografías, esquinas, espaciado, sombras, foco, estados de cita | Ya en H2b ([DESIGN.md](../DESIGN.md)) |
+| 1 · Fundamentos (`Main`) | Paleta con contrastes, tipografías, esquinas, espaciado, sombras, foco, estados de cita | Ya en H2b ([DESIGN.md](DESIGN.md)) |
 | 2 · Componentes (`Componentes`) | Botones y sus estados, campos con validación (DNI / Carné de Extranjería), alertas, insignias, selector de horario, navegación, esqueleto y estado vacío | H2b y los componentes nuevos de la sección 5 |
 | 3 · Movimiento (`Movimiento`) | Laboratorio de transiciones con cámara lenta y «Reducir movimiento» | Sección 6 |
 | Portal · Inicio | Próxima cita, acción principal «Reservar cita», navegación inferior | H4 (`portal-del-paciente`) |
@@ -107,7 +107,7 @@ Reglas: nada dura más de 320 ms y salir es más rápido que entrar; las accione
 dispositivos con puntero; las transiciones son interrumpibles (no secuencias fijas).
 
 Estado: **aprobado y fijado en el sistema (2026-10-19).** Las curvas y duraciones son el grupo `motion` de la cabecera de
-[DESIGN.md](../DESIGN.md) (con su sección «Motion»), `npm run tema` las expone como `--ease-*` y `--motion-*` en
+[DESIGN.md](DESIGN.md) (con su sección «Motion»), `npm run tema` las expone como `--ease-*` y `--motion-*` en
 `app/tema.generado.css`, `npm run tema:comprobar` falla si algo pasa de 320 ms o si salir no es más rápido que entrar, y
 `app/globals.css` acota todo a un fundido de 150 ms con «Reducir movimiento» (y `tema:comprobar` también falla si un
 `@keyframes` anima algo distinto de `transform` u `opacity`). **Lo que sigue pendiente** es aplicar el movimiento

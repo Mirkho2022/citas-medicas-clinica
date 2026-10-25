@@ -12,7 +12,7 @@ import { fechaLima, horaLima } from "@/lib/ui/formato";
 import { reservarCita } from "./acciones";
 import { ElegirPaciente } from "./elegir-paciente";
 
-// Agendar desde un hueco libre de la agenda del día (docs/diseno/BRIEF-DISENO.md, «Consola · Agenda del día»): se elige al
+// Agendar desde un hueco libre de la agenda del día (docs/02-diseno/BRIEF-DISENO.md, «Consola · Agenda del día»): se elige al
 // paciente por su documento; el médico, la fecha y la hora vienen del hueco (solo lectura). Antes del botón se muestra la
 // advertencia de la ventana de 1 hora con la hora límite. Un horario tomado entretanto da exactamente
 // `Registro de cita ya agendado`, como alerta de error dentro del diálogo.

@@ -1,4 +1,4 @@
--- Humo: el mecanismo de autenticación de pruebas funciona (ver _ayudas.sql y docs/spike-rls-h2.md).
+-- Humo: el mecanismo de autenticación de pruebas funciona (ver _ayudas.sql y docs/03-arquitectura/spike-rls-h2.md).
 -- El runner envuelve este archivo en una transacción que se revierte; aquí solo va el cuerpo pgTAP.
 select plan(7);
 
