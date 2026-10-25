@@ -68,7 +68,7 @@ política escrita); probar solo en local (la validación de JWKS ocurre en Neon,
 Postgres local).
 
 **Resultado (2026-10-08): superado, sin plan B.** Detalle, evidencia y hallazgos en
-[docs/spike-rls-h2.md](../../../docs/spike-rls-h2.md). El criterio 5 se resolvió con una JWK
+[docs/03-arquitectura/spike-rls-h2.md](../../../docs/03-arquitectura/spike-rls-h2.md). El criterio 5 se resolvió con una JWK
 Ed25519 por sesión (D7), no con una JWKS de prueba registrada en Neon. Los hallazgos ajustaron D4,
 D5, D7, D9 y D11.
 
@@ -262,7 +262,7 @@ dejaría datos de demostración en todas partes y, al ser solo-adelante, sin ret
 - **Contenido** suficiente para tocar cada regla: ambos tipos de documento, pacientes con y sin
   cuenta, citas en todos los estados, un bloqueo de agenda, atenciones firmadas y sin firmar,
   addenda, antecedentes y turnos. El CIE-10 sembrado es un subconjunto marcado como demostración; el
-  catálogo completo sigue siendo de H6 ([ADR-0014](../../../docs/adrs/0014-catalogo-cie-10.md)).
+  catálogo completo sigue siendo de H6 ([ADR-0014](../../../docs/03-arquitectura/adrs/0014-catalogo-cie-10.md)).
 - **Limpieza.** Las atenciones firmadas no se pueden eliminar por diseño, de modo que el script no
   borra: para reiniciar una demostración se recrea un branch de desarrollo. En el branch principal
   de producción sigue prohibido restaurarlo.
@@ -292,7 +292,7 @@ distinta de la de `.env.local`.
 ## Risks / Trade-offs
 
 - **El spike falla o `pg_session_jwt` no se comporta como documenta** → resuelto: superado (D1,
-  [docs/spike-rls-h2.md](../../../docs/spike-rls-h2.md)); si una versión futura de la extensión cambia
+  [docs/03-arquitectura/spike-rls-h2.md](../../../docs/03-arquitectura/spike-rls-h2.md)); si una versión futura de la extensión cambia
   el comportamiento, las pruebas pgTAP y la E2E lo detectan.
 - **El token vencido se acepta unas decenas de segundos** (tolerancia del proxy de Neon) → el token
   solo viaja entre el servidor y Neon y nunca se guarda ni se envía al navegador.

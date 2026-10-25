@@ -98,7 +98,7 @@ rol de usuario SHALL poder eliminarlo.
 ### Requirement: Asignación automática paciente-médico al confirmar una cita
 Cuando una cita entra por primera vez al estado `confirmada` o `atendida`, la base de datos SHALL
 crear una asignación paciente-médico vigente desde ese día hasta 6 meses después del inicio de la
-cita ([ADR-0016](../../../../../docs/adrs/0016-vigencia-de-asignacion-paciente-medico.md)). No SHALL
+cita ([ADR-0016](../../../../../docs/03-arquitectura/adrs/0016-vigencia-de-asignacion-paciente-medico.md)). No SHALL
 duplicarla en transiciones posteriores ni revocarla al cancelar la cita.
 
 #### Scenario: Primera confirmación otorga acceso

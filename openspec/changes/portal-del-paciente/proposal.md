@@ -8,7 +8,7 @@ de datos le deja dos huecos que H2 difirió a propósito a este hito: un pacient
 en `pacientes`** (solo el administrativo puede insertarla o vincularla) y **no puede cancelar su cita** (la política de
 actualización de `citas` para el paciente «la añadirá el flujo de cancelación del portal», migración
 `politicas-citas`). Además, el portal es la única superficie pública del sistema y aún no tiene los controles de borde que
-fija [ADR-0026](../../../docs/adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
+fija [ADR-0026](../../../docs/03-arquitectura/adrs/0026-controles-de-borde-antibots-y-rate-limiting.md).
 
 H3 (`agenda-y-reserva`) ya entrega la agenda y la reserva para el administrativo, y H2b (`sistema-de-diseno-ui`) los
 componentes y la estructura de pantalla del portal; este change los **reutiliza** para que el paciente haga lo mismo por sí
@@ -30,7 +30,7 @@ mismo, con un flujo pensado para un adulto mayor sin ayuda.
   `Registro de cita ya agendado` (mapeo de `23P01` y `40P01` de H3); un reintento del mismo paciente es idempotente. No se
   pide «motivo de consulta» en texto libre (el administrativo lee `citas` y no debe ver contenido clínico).
 - **«Mis citas» y cancelación propia.** Próximas y anteriores con `TarjetaCita`/`InsigniaEstado` de DESIGN.md. Cancelar solo
-  cuando faltan 1 h o más ([ADR-0012](../../../docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)), con confirmación.
+  cuando faltan 1 h o más ([ADR-0012](../../../docs/03-arquitectura/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)), con confirmación.
   **BREAKING (solo interno):** se añade la política `paciente cancela su cita` en `citas` y un disparador que limita al
   paciente a cambiar únicamente el estado a `cancelada`.
 - **Controles de borde del portal público (ADR-0026).** Vercel BotID en el envío de los datos de registro y en la reserva;

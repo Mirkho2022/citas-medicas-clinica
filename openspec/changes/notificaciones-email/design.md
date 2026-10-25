@@ -375,7 +375,7 @@ las 23:30 de Lima (otro día en UTC), cambio de mes y 29/02 bisiesto (2032), pro
 | Integración con el rol real | `procesar()` bajo `set local role cron_notificaciones` en una transacción que se revierte, con `ProveedorSimulado`: envío, omisión, reintento, tope, espera mínima, error permanente, error de configuración, dos ejecuciones | `tests/integracion/notificaciones-cron.test.ts` |
 | Concurrencia | N ejecuciones simultáneas con `pg` independientes: cada aviso se envía una vez (20 rondas, como la doble reserva) | `tests/concurrencia/30_notificaciones.test.ts` |
 | E2E (Playwright, proveedor simulado) | reserva → fila `confirmacion_reserva`; fallo programado no cambia el resultado de la acción; vista de fallidas por rol | `e2e/notificaciones-*.spec.ts` |
-| Manual (no automatizable) | dominio verificado, llegada a bandeja en tres buzones, prueba de humo con un destinatario propio, revisión periódica del panel de Resend | `docs/pasos-manuales-h5.md` |
+| Manual (no automatizable) | dominio verificado, llegada a bandeja en tres buzones, prueba de humo con un destinatario propio, revisión periódica del panel de Resend | `docs/09-deploy/pasos-manuales-h5.md` |
 
 Numeración de archivos reservada para evitar choques con H3 y H7 (que usan otros rangos de `tests/pgtap/` y
 `tests/concurrencia/`); se confirma al implementar. Las pruebas de H2 existentes que insertaban a mano el recordatorio
@@ -388,7 +388,7 @@ Sin datos personales en registros ni en la respuesta del endpoint: solo conteos 
 y `maxDuration` evitan agotar la función; si se llega al tope, el resumen lo dice y lo restante se toma en la siguiente
 ejecución (un día después: para el recordatorio puede significar «tarde»). No hay panel propio de métricas (analítica de BI
 fuera de alcance): el seguimiento operativo es la vista de fallidas, los registros de Vercel y la revisión manual del panel de
-Resend (riesgo P-7). El `README` operativo es `docs/pasos-manuales-h5.md`.
+Resend (riesgo P-7). El `README` operativo es `docs/09-deploy/pasos-manuales-h5.md`.
 
 ## Risks / Trade-offs
 
@@ -428,7 +428,7 @@ Resend (riesgo P-7). El `README` operativo es `docs/pasos-manuales-h5.md`.
    `99_rls_en_todas_las_tablas` sigue verde.
 3. PR: `neon-branch-pr.yml` crea el branch efímero, migra y corre pgTAP, concurrencia e integración (se añaden los archivos
    nuevos a esos pasos, sin pasos nuevos); `ci.yml` suma `test:notificaciones`.
-4. **Antes o justo después del merge** (pasos manuales de `docs/pasos-manuales-h5.md`, con la misma ventana que documentó H2): fijar
+4. **Antes o justo después del merge** (pasos manuales de `docs/09-deploy/pasos-manuales-h5.md`, con la misma ventana que documentó H2): fijar
    `LOGIN` y contraseña de `cron_notificaciones` en `production`; cargar en Vercel Production `DATABASE_CRON_URL`, `CRON_SECRET`,
    `RESEND_API_KEY`, `NOTIFICACIONES_PROVEEDOR=resend`, `NOTIFICACIONES_REMITENTE`, `APP_URL`; verificar el dominio en Resend;
    redesplegar (las variables se leen al arrancar). Hasta entonces el proveedor es el simulado, los avisos inmediatos se

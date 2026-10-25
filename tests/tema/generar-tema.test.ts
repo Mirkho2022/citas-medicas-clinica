@@ -110,7 +110,7 @@ test("falla si falta un color de la capa de shadcn/ui", () => {
 });
 
 test("el DESIGN.md real genera 22 colores, 10 estilos de texto, 3 sombras y 18 valores de movimiento, y es idempotente", () => {
-  const md = readFileSync("docs/DESIGN.md", "utf8");
+  const md = readFileSync("docs/02-diseno/DESIGN.md", "utf8");
   const primera = generarTema(md);
   assert.deepEqual(primera.avisos, []);
   assert.equal([...primera.css.matchAll(/^ {2}--color-[a-z-]+: #[0-9A-F]{6};$/gm)].length, 22);
@@ -138,7 +138,7 @@ test("sin grupo motion no se genera ninguna variable de movimiento", () => {
 });
 
 test("validarMovimiento acepta el movimiento del DESIGN.md real", () => {
-  const { design: real } = leerDesign(readFileSync("docs/DESIGN.md", "utf8"));
+  const { design: real } = leerDesign(readFileSync("docs/02-diseno/DESIGN.md", "utf8"));
   assert.deepEqual(validarMovimiento(real.motion), []);
 });
 

@@ -1,4 +1,4 @@
-// Estados de la cita y cómo se muestran (docs/DESIGN.md, «Estados de cita»). Es el único mapa del código: el tipo
+// Estados de la cita y cómo se muestran (docs/02-diseno/DESIGN.md, «Estados de cita»). Es el único mapa del código: el tipo
 // `EstadoCita` es igual al enum `estado_cita` de la base de datos. El estado nunca se comunica solo con el color:
 // siempre lleva etiqueta de texto e icono.
 import {

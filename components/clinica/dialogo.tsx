@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-// Diálogo de confirmación (docs/diseno/BRIEF-DISENO.md, sección 5): el elemento nativo `<dialog>`, que ya resuelve el foco
+// Diálogo de confirmación (docs/02-diseno/BRIEF-DISENO.md, sección 5): el elemento nativo `<dialog>`, que ya resuelve el foco
 // atrapado, el cierre con Escape y el resto del teclado sin añadir una dependencia (decisión de H3, design.md D11). El padre
 // controla `abierto`; al cerrarse se reproduce la salida de DESIGN.md («Motion») antes de llamar a `close()`.
 // - Escape y un clic sobre el velo piden cerrar con `alCerrar`, salvo que `bloqueado` (mientras se envía una acción).

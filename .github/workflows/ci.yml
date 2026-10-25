@@ -25,6 +25,8 @@ jobs:
 
       - run: npm run test:agenda
 
+      - run: npm run test:portal
+
       - run: npm run tema:comprobar
 
       - run: npm run build

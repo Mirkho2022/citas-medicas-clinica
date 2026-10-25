@@ -1,4 +1,4 @@
-/* Movimiento de los componentes (docs/DESIGN.md, «Motion»). Solo se animan `transform` y `opacity` (`npm run tema:comprobar` lo
+/* Movimiento de los componentes (docs/02-diseno/DESIGN.md, «Motion»). Solo se animan `transform` y `opacity` (`npm run tema:comprobar` lo
    vigila) y los tiempos y curvas salen del tema: `--motion-*` y `--ease-*`. Ningún color literal: el velo se mezcla desde `ink`.
    Con «Reducir movimiento» se quitan traslaciones y escalas y queda el fundido de `--motion-reduced`. */
 

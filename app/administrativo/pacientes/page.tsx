@@ -13,7 +13,7 @@ import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
 import { hoyLima } from "@/lib/fechas/lima";
 import { FormularioPaciente } from "./formulario-paciente";
 
-// Pacientes del administrativo (specs/identificacion-de-pacientes; docs/diseno/BRIEF-DISENO.md, «Consola · Pacientes»): buscar por
+// Pacientes del administrativo (specs/identificacion-de-pacientes; docs/02-diseno/BRIEF-DISENO.md, «Consola · Pacientes»): buscar por
 // documento exacto o por el inicio de los apellidos (máximo 20, sin datos clínicos) y registrar un paciente nuevo. La búsqueda es
 // un formulario GET: el texto vive en la URL (`?q=`), la página se lee en el servidor con la identidad del usuario y la RLS decide
 // qué filas existen. La guarda de rol y MFA es la de la página; cada Server Action vuelve a comprobarla.

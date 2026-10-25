@@ -1,7 +1,7 @@
 -- Agenda y citas (H2, tarea 5.3): ventana de cancelación de 1 hora y su excepción por baja médica.
 -- Spec: integridad-de-agenda. Las políticas reales de citas se prueban en 5.4; aquí, para ejercer el
 -- disparador con roles, se conceden permisos y políticas TEMPORALES dentro de la transacción de prueba
--- (el flujo de cancelación del paciente llega con el portal, H4).
+-- (la política de cancelación del paciente llegó con el portal, H4: ver 71_portal_cancelacion).
 select plan(16);
 
 -- Datos de prueba (dueño). Todo es relativo a now(), que es fijo dentro de la transacción: el límite de

@@ -6,7 +6,7 @@ Convenciones de todo el change (leer antes de empezar):
   políticas, funciones `SECURITY DEFINER`, disparadores o rutas que sirven contenido clínico termina con una tarea de
   **revisión con el agente `code-review`** y no se da por cerrado hasta corregir o justificar sus hallazgos.
 - **Datos reales: prohibidos.** Mientras la decisión legal P-1 siga abierta no se carga ningún dato clínico real. Los datos
-  sintéticos de demostración (`docs/datos-demo.md`) sí. Ninguna tarea fija el modo `real` (ver `design.md`, D1).
+  sintéticos de demostración (`docs/07-testing/datos-demo.md`) sí. Ninguna tarea fija el modo `real` (ver `design.md`, D1).
 - Toda tabla nueva en `public` incluye su tarea de migración **y** su tarea de prueba pgTAP negativa; antes de cerrarla se
   confirma que RLS quedó activada (`relrowsecurity`) y que `99_rls_en_todas_las_tablas` pasa. Las migraciones son archivos
   nuevos en `migrations/*.sql` (se crean con `npm run migrate -- create`); **nunca se edita una ya aplicada**, y las secciones
@@ -25,7 +25,7 @@ Convenciones de todo el change (leer antes de empezar):
       migraciones en un branch de desarrollo de Neon y correr `npm run test:pgtap`. Verificar que la línea base está en verde
       y anotar el número de pruebas en el PR.
 - [ ] 0.2 Con la skill `architecture`, crear la ADR «Modo de datos clínicos: demostración y real» (siguiente número libre en
-      `docs/adrs/`; la 0029 la ocupa la ADR de datos por especialidad, así que 0030 o la siguiente libre) que recoja `design.md` D1 sin decidir P-1, enlazarla en la tabla de ADR de
+      `docs/03-arquitectura/adrs/`; la 0029 la ocupa la ADR de datos por especialidad, así que 0030 o la siguiente libre) que recoja `design.md` D1 sin decidir P-1, enlazarla en la tabla de ADR de
       TECH-DESIGN y dejarla en estado «Propuesto» hasta que el usuario la acepte. Verificar que el archivo existe, que los
       enlaces relativos resuelven y que el estado no es «Aceptado».
 - [ ] 0.3 Con la misma skill, crear la ADR «Sello de tiempo y huella de la firma lógica» (D5), que aclara que no resuelve
@@ -49,7 +49,7 @@ Convenciones de todo el change (leer antes de empezar):
       compartidos (`lib/ui/navegacion.ts`, `package.json`, `.env.example`). Verificar que el contrato de la acción y las
       decisiones constan en `design.md`, D13, y que este change no añade ninguna política ni función sobre `citas`.
 
-- [x] 0.8 El usuario aceptó la [ADR-0029](../../../docs/adrs/0029-datos-clinicos-por-especialidad.md) el 2026-10-10 (estado
+- [x] 0.8 El usuario aceptó la [ADR-0029](../../../docs/03-arquitectura/adrs/0029-datos-clinicos-por-especialidad.md) el 2026-10-10 (estado
       «Aceptado»), sabiendo que Odontología, Fisioterapia, Psicología y Podología quedan sin plantilla hasta resolver quién las
       atiende (D15, «Cuestión abierta»). Verificado: la ADR dice «Aceptado» y las tareas 2.8 a 2.13 ya pueden empezar.
 
@@ -80,7 +80,7 @@ Convenciones de todo el change (leer antes de empezar):
       pacientes reales.», con icono y `role="status"`) y `ModuloNoDisponible` («Módulo no disponible: configuración
       inconsistente»), sobre `Alerta` de H2b. Verificar con `npm run typecheck`, `npm run lint` y su aparición en la galería
       `/guia-de-estilo` si existe.
-- [ ] 1.6 Documentar el mecanismo: `.env.example` (`CLINICA_MODO_DATOS=demostracion`, con advertencia de P-1), `docs/datos-demo.md`
+- [ ] 1.6 Documentar el mecanismo: `.env.example` (`CLINICA_MODO_DATOS=demostracion`, con advertencia de P-1), `docs/07-testing/datos-demo.md`
       (sembrar en modo `real` se rechaza por diseño), `CLAUDE.md` (el módulo opera solo en modo demostración mientras P-1
       siga abierta y cómo se impone) y pedir al usuario definir `CLINICA_MODO_DATOS=demostracion` en Production y Preview de
       Vercel. Verificar buscando la variable en `docs/` y `.env.example` y comprobando que los enlaces relativos resuelven.
@@ -113,7 +113,7 @@ Convenciones de todo el change (leer antes de empezar):
       las pruebas pasan, que la consulta cabe en el presupuesto de latencia (valor inicial 50 ms; anotar el medido) y que sin
       sesión o con rol no médico no se devuelven resultados.
 - [ ] 2.6 Documentar: nota fechada en ADR-0014 (fuente elegida, versión, huella, validación por disparador) y en
-      `docs/pruebas-sql.md` las pruebas nuevas. Verificar que los enlaces relativos resuelven.
+      `docs/07-testing/pruebas-sql.md` las pruebas nuevas. Verificar que los enlaces relativos resuelven.
 - [ ] 2.7 Revisión con el agente `code-review` del disparador de diagnósticos (reescritura de `jsonb`, `SECURITY DEFINER`) y
       de la ruta de búsqueda. Verificar que los hallazgos quedan resueltos o justificados.
 - [ ] 2.8 Migración `plantillas-clinicas` (**antes** de `sello-y-huella-de-atenciones`, 3.1; ver D15 y el plan de migración):
@@ -138,7 +138,7 @@ Convenciones de todo el change (leer antes de empezar):
       regla de texto con contenido de D3) y `tests/historias/plantilla.test.ts` con `node:test`: un caso por tipo de campo y
       por regla, y una clave ajena rechazada. Verificar que pasan y que fallan al relajar una regla a propósito.
 - [ ] 2.12 Documentar: TECH-DESIGN («Modelo de datos»: `plantillas_clinicas` y las columnas nuevas de `atenciones`, y la matriz
-      de acceso), `docs/pruebas-sql.md` (prueba 62) y el enlace a la ADR-0029 en su tabla de ADR. Verificar que los enlaces
+      de acceso), `docs/07-testing/pruebas-sql.md` (prueba 62) y el enlace a la ADR-0029 en su tabla de ADR. Verificar que los enlaces
       relativos resuelven y que los textos no contradicen a `CLAUDE.md`.
 - [ ] 2.13 Revisión con el agente `code-review` de la migración, de la política de la tabla y del disparador de validación
       (`jsonb` reescrito, `SECURITY DEFINER`, regla de especialidad). Verificar que los hallazgos quedan resueltos o
@@ -170,7 +170,7 @@ Convenciones de todo el change (leer antes de empezar):
       pasa.
 - [ ] 3.6 Prueba de concurrencia `tests/concurrencia/20_firma_edicion.test.ts` (dos sesiones `pg`): un `UPDATE` del contenido
       concurrente con la firma, tras confirmarse esta, no cambia el contenido firmado. Verificar que pasa 20 rondas seguidas y
-      actualizar `docs/pruebas-sql.md`.
+      actualizar `docs/07-testing/pruebas-sql.md`.
 - [ ] 3.7 Documentar: TECH-DESIGN («Modelo de datos» de `atenciones` con las columnas nuevas y «Inmutabilidad» con el sello del
       servidor) y nota en ADR-0016 sobre `perfiles.activo`. Verificar que los enlaces resuelven.
 - [ ] 3.8 Revisión con el agente `code-review`, con atención especial a `medico_tiene_paciente()` (función central de
@@ -231,12 +231,12 @@ Convenciones de todo el change (leer antes de empezar):
 - [ ] 6.3 `Cache-Control: private, no-store` en `next.config.ts` para `/medico/pacientes/:path*` y `/api/historias/:path*`,
       páginas dinámicas, título «Historia clínica» y direcciones solo con `uuid`. Verificar con `curl -I` contra `next start`
       y con una prueba E2E de cabeceras y título.
-- [ ] 6.4 E2E `e2e/historias-acceso.spec.ts` (con la base sembrada según `docs/datos-demo.md`; si no hay datos se omite con un
+- [ ] 6.4 E2E `e2e/historias-acceso.spec.ts` (con la base sembrada según `docs/07-testing/datos-demo.md`; si no hay datos se omite con un
       mensaje explícito): el médico abre su paciente y el administrativo ve el acceso registrado; un paciente ajeno devuelve 404
       igual que uno inexistente; administrativo, paciente y enfermera son redirigidos sin ver contenido; sin sesión redirige;
       se ve el aviso de demostración; las cabeceras son las esperadas. Prueba de unidad de la guardia para «sin MFA». axe sobre
       lista e historia. Verificar que pasan.
-- [ ] 6.5 Documentar en `docs/pruebas-e2e.md` los datos y cuentas que requieren estas pruebas. Verificar los enlaces.
+- [ ] 6.5 Documentar en `docs/07-testing/pruebas-e2e.md` los datos y cuentas que requieren estas pruebas. Verificar los enlaces.
 - [ ] 6.6 Revisión con el agente `code-review` de las rutas de lectura (canales laterales, 404 uniforme, caché, orden de
       sentencias). Verificar que los hallazgos quedan resueltos o justificados.
 
@@ -347,7 +347,7 @@ Convenciones de todo el change (leer antes de empezar):
       ajustes de interfaz acordados.
 - [ ] 11.4 Barrido de coherencia entre documentos (formato de `coherencia.md` de H2 en este change): `CLAUDE.md` (estado y
       reglas), TECH-DESIGN (rutas reales de las áreas, tablas y columnas nuevas, acciones, fila H6 con su bloqueo por P-1),
-      ADR tocadas, `docs/datos-demo.md`, `docs/pruebas-sql.md`, `docs/pruebas-e2e.md` y el estado de P-1 («abierta»). Verificar
+      ADR tocadas, `docs/07-testing/datos-demo.md`, `docs/07-testing/pruebas-sql.md`, `docs/07-testing/pruebas-e2e.md` y el estado de P-1 («abierta»). Verificar
       con una búsqueda que los textos no se contradicen y que ningún enlace relativo está roto.
 - [ ] 11.5 Revisión final con el agente `code-review` sobre **todo** el diff del change (RLS, migraciones, acceso a historias
       clínicas, Server Actions, Route Handlers de adjuntos) con el checklist más estricto, y corrección de sus hallazgos.

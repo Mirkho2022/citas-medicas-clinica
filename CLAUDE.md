@@ -3,16 +3,18 @@
 Sistema de Gestión de Citas e Historias Clínicas Electrónicas para una clínica en Perú.
 Reemplaza el proceso actual (Excel + Google Forms para citas, papel para historias clínicas).
 
-**Estado actual: existen [PRD.md](docs/PRD.md), [TECH-DESIGN.md](docs/TECH-DESIGN.md), la aplicación base con
+**Estado actual: existen [PRD.md](docs/01-producto/PRD.md), [TECH-DESIGN.md](docs/03-arquitectura/TECH-DESIGN.md), la aplicación base con
 autenticación y roles (H1) y el esquema de base de datos con RLS, sus pruebas y los datos de demostración (H2,
-ver [spike-rls-h2.md](docs/spike-rls-h2.md), [pruebas-sql.md](docs/pruebas-sql.md) y
-[datos-demo.md](docs/datos-demo.md)), y el sistema de diseño de la interfaz (H2b: tema, componentes y estructuras de
-pantalla y movimiento, ver [DESIGN.md](docs/DESIGN.md)), y la agenda y reserva de citas del administrativo (H3:
+ver [spike-rls-h2.md](docs/03-arquitectura/spike-rls-h2.md), [pruebas-sql.md](docs/07-testing/pruebas-sql.md) y
+[datos-demo.md](docs/07-testing/datos-demo.md)), y el sistema de diseño de la interfaz (H2b: tema, componentes y estructuras de
+pantalla y movimiento, ver [DESIGN.md](docs/02-diseno/DESIGN.md)), y la agenda y reserva de citas del administrativo (H3:
 pacientes, agenda del día, agendar y reprogramar, horarios y bajas médicas con reasignación, y el ciclo de estados de la
-cita; ver [pruebas-sql.md](docs/pruebas-sql.md) y [pruebas-e2e.md](docs/pruebas-e2e.md)). El resto de módulos (portal del
-paciente, notificaciones, historias clínicas, turnos) llegan en H4–H8.**
+cita; ver [pruebas-sql.md](docs/07-testing/pruebas-sql.md) y [pruebas-e2e.md](docs/07-testing/pruebas-e2e.md)), y el portal del paciente (H4: registro con
+vinculación de la ficha, búsqueda y reserva, «Mis citas», cancelación y controles de borde con BotID y límite de peticiones; implementado y verificado
+en local — antes de abrirlo a pacientes reales faltan los pasos de consola de [pasos-manuales-h4.md](docs/09-deploy/pasos-manuales-h4.md) y la prueba de
+[usabilidad-portal.md](docs/07-testing/usabilidad-portal.md)). El resto de módulos (notificaciones, historias clínicas, turnos) llegan en H5–H8.**
 Antes de escribir código, lee ambos: el PRD tiene el qué y el porqué, el Tech Design el cómo (junto
-con los ADR en [docs/adrs/](docs/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
+con los ADR en [docs/03-arquitectura/adrs/](docs/03-arquitectura/adrs/)). Este archivo resume las reglas que el código debe respetar, no las
 sustituye.
 
 ## Stack (decidido)
@@ -20,7 +22,7 @@ sustituye.
 Next.js 15 (App Router) + TypeScript sobre **Vercel** (target nativo, sin adaptador), con **Neon**
 (PostgreSQL serverless) como base de datos, **Clerk** para autenticación/sesión/MFA y **Vercel
 Blob** para adjuntos clínicos. Notificaciones **solo por email** vía Resend, disparadas por Vercel
-Cron Jobs. Detalle completo y justificación en docs/TECH-DESIGN.md y en los ADR 0020–0028. Solo se
+Cron Jobs. Detalle completo y justificación en docs/03-arquitectura/TECH-DESIGN.md y en los ADR 0020–0028. Solo se
 mantienen como ADRs activos los que describen el stack vigente — el diseño pasó antes por
 Cloudflare Workers + Supabase; ese historial vive en `git log`, no en ADRs sueltos.
 
@@ -29,7 +31,7 @@ más alcance se hace por rol de Postgres (`cron_notificaciones`, `GRANT` mínimo
 `notificaciones`/`citas`), usado solo en los Route Handlers de cron y en CI — nunca en el código
 que sirve tráfico de usuario. El contexto de usuario para RLS (rol, ID) llega vía Neon RLS
 Authorize (`pg_session_jwt` + JWT de Clerk, funciones `auth.user_id()`/`auth.session()` — ver
-[ADR-0023](docs/adrs/0023-contexto-de-usuario-para-rls.md)) — ninguna consulta autenticada debe abrirse
+[ADR-0023](docs/03-arquitectura/adrs/0023-contexto-de-usuario-para-rls.md)) — ninguna consulta autenticada debe abrirse
 sin el `authToken` de la sesión de Clerk adjunto.
 
 ## Decisiones aún abiertas (no las inventes: pregunta)
@@ -40,21 +42,21 @@ sin el `authToken` de la sesión de Clerk adjunto.
   módulo de historias clínicas**, y si la respuesta exige datos en territorio peruano, reabre la
   decisión de hosting. Este bloqueo es sobre datos **reales** de pacientes: al ser un proyecto de muestra, se
   permiten datos **sintéticos** de demostración (script `scripts/sembrar-datos-demo.ts`, ver
-  [datos-demo.md](docs/datos-demo.md)), nunca mezclados con datos reales.
+  [datos-demo.md](docs/07-testing/datos-demo.md)), nunca mezclados con datos reales.
 
 Las demás decisiones que estaban abiertas ya se resolvieron con el cliente y quedaron
 formalizadas como ADR — no las reabras sin que el cliente lo pida:
 
 - **Ventana de cancelación de 1 h**: aplica a **todos los roles**, incluido el administrativo
-  ([ADR-0012](docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
+  ([ADR-0012](docs/03-arquitectura/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
 - **Definición de "historia clínica digitalizada"**: híbrido — antecedentes y diagnósticos
   activos estructurados en el sistema, el resto del expediente en papel como escaneo de respaldo
-  ([ADR-0013](docs/adrs/0013-definicion-de-historia-clinica-digitalizada.md)).
+  ([ADR-0013](docs/03-arquitectura/adrs/0013-definicion-de-historia-clinica-digitalizada.md)).
 - **Catálogo CIE-10**: catálogo completo, fuente MINSA/SUSALUD con la OMS como respaldo, cargado
-  por migración de datos ([ADR-0014](docs/adrs/0014-catalogo-cie-10.md)).
+  por migración de datos ([ADR-0014](docs/03-arquitectura/adrs/0014-catalogo-cie-10.md)).
 
 La lista completa (incluidos riesgos aceptados o excluidos a propósito, como P-6 y P-7) está en
-"Riesgos técnicos abiertos" de docs/TECH-DESIGN.md. Si una tarea depende de uno de estos puntos,
+"Riesgos técnicos abiertos" de docs/03-arquitectura/TECH-DESIGN.md. Si una tarea depende de uno de estos puntos,
 plantéalo y termina el resto del trabajo.
 
 ## Roles y permisos (invariante central del sistema)
@@ -113,18 +115,20 @@ debe ser rápida para el médico.
   usuario y mensajes de error.
 - El PRD se genera y edita con la skill `generar-prd-conversacional` — si hay que actualizarlo,
   úsala en lugar de editarlo a mano.
-- Los documentos de referencia (`PRD.md`, `TECH-DESIGN.md`, `adrs/`) viven en [docs/](docs/). Las
-  skills (`generar-prd-conversacional`, `generar-tech-design`, `generar-backlog`, `auditar-drift`,
-  `revision-adversarial`) asumen esos archivos en la raíz: al usarlas, indícales la ruta `docs/`.
+- Los documentos viven en [docs/](docs/README.md), en carpetas numeradas en el orden del proceso: `01-producto` (PRD), `02-diseno`
+  (DESIGN.md), `03-arquitectura` (TECH-DESIGN.md y `adrs/`), `04-backlog`, `05-specs` (puente hacia `openspec/`), `06-diagramas`,
+  `07-testing`, `08-seguridad` (`SECURITY-REPORT.md`) y `09-deploy` (`DEPLOY-PLAN.md` y los pasos manuales). Las skills
+  (`generar-prd-conversacional`, `generar-tech-design`, `generar-backlog`, `auditar-drift`, `revision-adversarial`, `security-pass`,
+  `deploy-pass`) escriben por defecto en la raíz: al usarlas, indícales la ruta de su carpeta numerada.
 - Las migraciones viven en `migrations/*.sql` (`node-pg-migrate`, ver
-  [ADR-0027](docs/adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
+  [ADR-0027](docs/03-arquitectura/adrs/0027-herramienta-de-migraciones.md)), versionadas en git y solo hacia adelante.
   Nunca cambios manuales en producción, y nunca restaurar el branch principal de Neon a un estado
   previo en producción: destruye datos clínicos.
 - Toda tabla nueva en el esquema `public` nace con RLS activada y con su prueba pgTAP negativa
   (que el rol equivocado *no* ve el dato). Una tabla sin RLS aquí es una filtración de datos
   clínicos.
 - Fechas y horas: siempre `timestamptz` en BD, siempre renderizadas en `America/Lima` en la UI.
-- La UI sigue [docs/DESIGN.md](docs/DESIGN.md): colores, tipografía, espaciado, radios y sombras salen de ahí. Un cambio
+- La UI sigue [docs/02-diseno/DESIGN.md](docs/02-diseno/DESIGN.md): colores, tipografía, espaciado, radios y sombras salen de ahí. Un cambio
   de color o tipografía se hace en ese archivo y se regenera con `npm run tema`; `npm run tema:comprobar` (también en CI)
   falla si el CSS se separa del documento, si hay colores literales o si un par de texto y fondo no cumple el contraste.
   Los componentes propios viven en `components/clinica/` y se revisan en la galería `/guia-de-estilo` (solo en desarrollo

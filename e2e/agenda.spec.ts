@@ -5,7 +5,7 @@ import { esperarArea, iniciarSesion, prepararPagina, variable } from "./helpers"
 // agendar 14 días adelante con la advertencia y su hora límite en Lima, provocar la doble reserva desde un segundo contexto y ver
 // `Registro de cita ya agendado`, confirmar (la insignia pasa a «Confirmada» y «No asistió» aún no se ofrece), reprogramar y cancelar
 // (la cita queda «Cancelada» sin acciones). Las citas de la prueba se cancelan al terminar. Necesita los datos de demostración
-// (docs/datos-demo.md: médicos con horario); sin ellos se omite con un aviso. Los pacientes `99…` quedan: no se pueden borrar.
+// (docs/07-testing/datos-demo.md: médicos con horario); sin ellos se omite con un aviso. Los pacientes `99…` quedan: no se pueden borrar.
 //
 // Con CAPTURAS_H3=<carpeta> guarda una captura de cada pantalla en los pasos clave (revisión visual, tarea 13.3).
 test.describe.configure({ mode: "serial" });
@@ -61,7 +61,7 @@ test("agenda: registrar pacientes, agendar, doble reserva, confirmar, reprograma
   const medicos = await page.locator("#filtro-medico option").evaluateAll((os) =>
     (os as HTMLOptionElement[]).map((o) => ({ valor: o.value, texto: o.textContent ?? "" })).filter((o) => o.valor),
   );
-  test.skip(medicos.length === 0, "Sin datos de demostración (no hay médicos): ver docs/datos-demo.md");
+  test.skip(medicos.length === 0, "Sin datos de demostración (no hay médicos): ver docs/07-testing/datos-demo.md");
   const medico = medicos.find((m) => m.texto.includes("Medicina general")) ?? medicos[0]!;
   await capturar(page, "01-agenda-hoy");
 

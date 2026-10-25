@@ -26,8 +26,8 @@ export interface Destino {
 export const NAVEGACION: Record<Rol, Destino[]> = {
   paciente: [
     { ruta: "/paciente", etiqueta: "Inicio", icono: House, disponible: true },
-    { ruta: "/paciente/citas", etiqueta: "Mis citas", icono: CalendarDays, disponible: false },
-    { ruta: "/paciente/citas/nueva", etiqueta: "Reservar", icono: CalendarPlus, disponible: false },
+    { ruta: "/paciente/citas", etiqueta: "Mis citas", icono: CalendarDays, disponible: true },
+    { ruta: "/paciente/citas/nueva", etiqueta: "Reservar", icono: CalendarPlus, disponible: true },
   ],
   administrativo: [
     { ruta: "/administrativo", etiqueta: "Inicio", icono: House, disponible: true },
@@ -56,8 +56,17 @@ export const TITULO_AREA: Record<Rol, string> = {
   enfermera: "Panel de enfermería",
 };
 
-// Un destino está activo si la ruta actual es la suya o una subruta (salvo la raíz del área, que solo coincide exacta).
-export function destinoActivo(destino: Destino, rutaActual: string, raizArea: string): boolean {
-  if (destino.ruta === raizArea) return rutaActual === raizArea;
-  return rutaActual === destino.ruta || rutaActual.startsWith(`${destino.ruta}/`);
+// Un destino está activo si la ruta actual es la suya o una subruta (salvo la raíz del área, que solo coincide exacta). Si se
+// pasan los destinos del área y otro, más específico, también coincide (en el portal, «Reservar» cuelga de «Mis citas»), solo
+// ese está activo: la navegación no marca dos destinos a la vez.
+export function destinoActivo(
+  destino: Destino,
+  rutaActual: string,
+  raizArea: string,
+  destinos: readonly Destino[] = [],
+): boolean {
+  const coincide = (d: Destino) =>
+    d.ruta === raizArea ? rutaActual === raizArea : rutaActual === d.ruta || rutaActual.startsWith(`${d.ruta}/`);
+  if (!coincide(destino)) return false;
+  return !destinos.some((otro) => otro !== destino && otro.ruta.length > destino.ruta.length && coincide(otro));
 }

@@ -71,7 +71,7 @@ mismo médico.
 ### Requirement: Ventana de cancelación de 1 hora para todos los roles
 La base de datos SHALL rechazar la cancelación de una cita cuando falta menos de 1 hora para su
 inicio, sin importar el rol de quien cancela, incluido el administrativo
-([ADR-0012](../../../../../docs/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
+([ADR-0012](../../../../../docs/03-arquitectura/adrs/0012-alcance-de-la-ventana-de-cancelacion.md)).
 
 #### Scenario: Cancelación con más de una hora de anticipación
 - **WHEN** se cancela una cita que empieza dentro de 2 horas
@@ -89,7 +89,7 @@ inicio, sin importar el rol de quien cancela, incluido el administrativo
 ### Requirement: Excepción de la ventana por baja médica
 La ventana de 1 hora NO SHALL aplicarse cuando el rango de la cita está cubierto por un bloqueo de
 agenda vigente del mismo médico, porque la cancelación forma parte de una reasignación por baja o
-emergencia ([ADR-0011](../../../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md)).
+emergencia ([ADR-0011](../../../../../docs/03-arquitectura/adrs/0011-reasignacion-de-citas-por-baja-medica.md)).
 
 #### Scenario: Cancelación dentro de la hora con bloqueo que cubre la cita
 - **WHEN** se cancela una cita que empieza dentro de 30 minutos y existe un bloqueo de agenda del

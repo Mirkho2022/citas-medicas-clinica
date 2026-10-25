@@ -1,5 +1,5 @@
 // Datos de ejemplo de la galería de componentes (/guia-de-estilo). SINTÉTICOS: ninguna persona real. Los documentos
-// empiezan por `99` (como los de docs/datos-demo.md) para que sean inconfundibles con un DNI real.
+// empiezan por `99` (como los de docs/07-testing/datos-demo.md) para que sean inconfundibles con un DNI real.
 import type { EstadoCita } from "./estados-cita";
 
 // «Ahora» fijo de la galería: así las citas "futuras" y "pasadas" no cambian con el tiempo y las pruebas son estables.

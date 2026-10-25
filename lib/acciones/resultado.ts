@@ -18,6 +18,10 @@ export type CodigoError =
   | "TRANSICION_INVALIDA" // UC004: confirmar, «No asistió» o «Atendida» fuera de las transiciones permitidas
   | "DOCUMENTO_DUPLICADO" // 23505 al registrar un paciente
   | "SOLAPE" // 23P01 en disponibilidades o bloqueos de agenda
+  | "SESION_VENCIDA" // portal: la acción llegó sin sesión (venció a mitad del flujo)
+  | "REGISTRO_RECHAZADO" // portal: PA002, no se puede registrar ni vincular ese documento (siempre el mismo mensaje)
+  | "CUENTA_YA_REGISTRADA" // portal: PA001, la cuenta ya tiene ficha de paciente
+  | "DEMASIADOS_INTENTOS" // portal: se superó el límite de peticiones (lib/seguridad/limites.ts)
   | "ERROR_INTERNO"; // cualquier otro: mensaje genérico, sin texto de la base de datos
 
 export interface Exito<T> {

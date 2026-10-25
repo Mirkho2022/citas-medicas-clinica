@@ -91,19 +91,19 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
 - **Decisión legal (P-1):** no depende de ella. Sin datos clínicos en el correo ni en el cron, H5 puede llegar a
   producción sin esperar a H6. Sí hay datos personales de identidad (nombre y correo del paciente) que viajan a Resend; se
   menciona junto con la consulta legal ya abierta sobre Clerk (nota 2026-09-28 de P-1) y no la bloquea.
-- **ADR:** implementa [ADR-0017](../../../docs/adrs/0017-disparo-de-notificaciones-transaccionales.md),
-  [ADR-0018](../../../docs/adrs/0018-visibilidad-de-notificaciones-fallidas.md),
-  [ADR-0028](../../../docs/adrs/0028-notificaciones-cron-unico-plan-hobby.md) y
-  [ADR-0020](../../../docs/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md); toca
-  [ADR-0008](../../../docs/adrs/0008-resiliencia-y-manejo-de-errores.md) (reintento) y
-  [ADR-0011](../../../docs/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (aviso de reprogramación). **Dos puntos
+- **ADR:** implementa [ADR-0017](../../../docs/03-arquitectura/adrs/0017-disparo-de-notificaciones-transaccionales.md),
+  [ADR-0018](../../../docs/03-arquitectura/adrs/0018-visibilidad-de-notificaciones-fallidas.md),
+  [ADR-0028](../../../docs/03-arquitectura/adrs/0028-notificaciones-cron-unico-plan-hobby.md) y
+  [ADR-0020](../../../docs/03-arquitectura/adrs/0020-arquitectura-de-componentes-y-hosting-vercel.md); toca
+  [ADR-0008](../../../docs/03-arquitectura/adrs/0008-resiliencia-y-manejo-de-errores.md) (reintento) y
+  [ADR-0011](../../../docs/03-arquitectura/adrs/0011-reasignacion-de-citas-por-baja-medica.md) (aviso de reprogramación). **Dos puntos
   rozan lo ya decidido y no se resuelven aquí:** (a) la regla de `programada_para` (08:00 del día anterior en vez de
   `inicio - 1 día`) y (b) escribir `notificaciones` con un disparador y una función en lugar de un `INSERT` de la Server
   Action. Ninguno cambia una garantía (idempotencia, credencial mínima, envío síncrono); se proponen como ADR-0029 y notas
   fechadas en ADR-0017 y TECH-DESIGN, para revisión humana (grupo 10 de `tasks.md`). No se reabre ningún ADR en silencio.
 - **Código nuevo:** `lib/notificaciones/` (proveedor, plantillas, avisos, cron), `lib/db/cliente-cron.ts`,
   `app/api/cron/notificaciones/route.ts`, `app/administrativo/notificaciones/page.tsx`, `vercel.json`, `migrations/` (3
-  archivos nuevos), `tests/` (pgTAP, integración, concurrencia), `docs/pasos-manuales-h5.md`.
+  archivos nuevos), `tests/` (pgTAP, integración, concurrencia), `docs/09-deploy/pasos-manuales-h5.md`.
 - **Código existente que se toca:** las Server Actions de reserva, cancelación, reprogramación y reasignación de H3/H4 (una
   llamada tras confirmar la operación), `eslint.config.mjs` (restricción de imports), `.env.example` y el pgTAP
   `51_notificaciones.test.sql` (el disparador ya crea el recordatorio que esa prueba insertaba a mano).
@@ -112,5 +112,5 @@ respeta y lo amplía con requisitos propios en vez de modificarlo. -->
   usuario antes de instalar.
 - **Configuración fuera del repositorio:** variables `CRON_SECRET`, `RESEND_API_KEY`, `NOTIFICACIONES_PROVEEDOR`,
   `NOTIFICACIONES_REMITENTE`, `APP_URL` y `DATABASE_CRON_URL` en Vercel (Production), `LOGIN` y contraseña de
-  `cron_notificaciones` y dominio verificado en Resend (SPF, DKIM, DMARC); pasos en `docs/pasos-manuales-h5.md`.
+  `cron_notificaciones` y dominio verificado en Resend (SPF, DKIM, DMARC); pasos en `docs/09-deploy/pasos-manuales-h5.md`.
 - **Supuestos sobre H3:** estados y eventos que debe exponer, en `design.md` (D13).

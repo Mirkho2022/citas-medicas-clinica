@@ -29,7 +29,7 @@ repositorio (2026-10-08):
     «atendida» con una función acotada (`confirmada → atendida`, solo en sus propias citas, sin `UPDATE` directo sobre `citas`).
   - **H5:** la vista de notificaciones fallidas (ADR-0018) en `app/administrativo/notificaciones/`; H5 dice que H7 solo enlaza.
   - **H2b** (`sistema-de-diseno-ui`, 0/29 tareas): `InsigniaEstado`, `TablaAgenda`, `Campo`, `Alerta`, `ConsolaLayout`,
-    `lib/ui/navegacion.ts`, `lib/ui/formato.ts`, `lib/ui/estados-cita.ts` y los tokens de `docs/DESIGN.md`.
+    `lib/ui/navegacion.ts`, `lib/ui/formato.ts`, `lib/ui/estados-cita.ts` y los tokens de `docs/02-diseno/DESIGN.md`.
 - **TECH-DESIGN, «Dashboard operativo»,** ya decide el contenido (citas de hoy por estado, agenda del día por médico con
   huecos, pacientes en espera y minutos, citas de mañana sin confirmar, notificaciones fallidas con 3+ intentos) y el
   mecanismo («vistas de Postgres sobre `citas`… sin materialización»). Este design lo concreta; no lo reabre.
@@ -268,7 +268,7 @@ incluyen datos de pacientes.
   (`page.clock`); axe sobre las pantallas nuevas (extiende `e2e/accesibilidad.spec.ts` de H2b). Para médico y enfermera hace
   falta un **paso manual**: activar TOTP en sus cuentas de prueba de la instancia de desarrollo de Clerk y guardar el secreto
   (`E2E_*_TOTP_SECRET`); si no se concede, esas pantallas se verifican con pgTAP, pruebas de integración con token firmado
-  (como `scripts/comprobar-datos-demo.ts`) y revisión manual, y se anota en `docs/pruebas-e2e.md`.
+  (como `scripts/comprobar-datos-demo.ts`) y revisión manual, y se anota en `docs/07-testing/pruebas-e2e.md`.
 - Las pruebas **no asumen tablas vacías** (hay datos de demostración) y usan fechas lejanas (p. ej. 2032) para turnos.
 
 ### D13. Datos de demostración

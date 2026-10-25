@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-// Esqueleto de carga (docs/DESIGN.md, «Motion»): un bloque con la forma del contenido al que sustituye. El brillo y su
+// Esqueleto de carga (docs/02-diseno/DESIGN.md, «Motion»): un bloque con la forma del contenido al que sustituye. El brillo y su
 // excepción con «Reducir movimiento» los pone la clase `.esqueleto` de app/globals.css. Es decoración: no lo lee el lector de
 // pantalla; la página que lo usa anuncia «Cargando…» con `role="status"`.
 export function Esqueleto({ className }: { className?: string }) {

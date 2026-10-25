@@ -4,7 +4,9 @@ name: E2E (preview de Vercel)
 # Se dispara cuando Vercel marca el deployment de Preview como exitoso.
 #
 # Requiere en GitHub (se cargan con scripts/cargar-secretos-e2e.ts):
-#   secretos:   CLERK_SECRET_KEY, E2E_* (cuentas de prueba), VERCEL_AUTOMATION_BYPASS_SECRET
+#   secretos:   CLERK_SECRET_KEY, E2E_* (cuentas de prueba y, para las E2E del portal, E2E_DATABASE_URL: URL directa de la rama dev de Neon, que es la
+#               que sirve a los previews), VERCEL_AUTOMATION_BYPASS_SECRET
+# En el entorno Preview de Vercel debe estar BOTID_EXCEPCION_E2E=1 (Playwright es lo que BotID detecta como bot): docs/09-deploy/pasos-manuales-h4.md, paso 5.
 #   variables:  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (es pública)
 # Los previews están protegidos con Vercel Authentication; VERCEL_AUTOMATION_BYPASS_SECRET
 # es el "Protection Bypass for Automation" del proyecto de Vercel.
@@ -24,7 +26,7 @@ jobs:
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Preview'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     env:
       PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url }}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
@@ -32,6 +34,9 @@ jobs:
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       E2E_PACIENTE_EMAIL: ${{ secrets.E2E_PACIENTE_EMAIL }}
       E2E_PACIENTE_PASSWORD: ${{ secrets.E2E_PACIENTE_PASSWORD }}
+      E2E_PACIENTE2_EMAIL: ${{ secrets.E2E_PACIENTE2_EMAIL }}
+      E2E_PACIENTE2_PASSWORD: ${{ secrets.E2E_PACIENTE2_PASSWORD }}
+      E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
       E2E_ADMINISTRATIVO_EMAIL: ${{ secrets.E2E_ADMINISTRATIVO_EMAIL }}
       E2E_ADMINISTRATIVO_PASSWORD: ${{ secrets.E2E_ADMINISTRATIVO_PASSWORD }}
       E2E_ADMINISTRATIVO_TOTP_SECRET: ${{ secrets.E2E_ADMINISTRATIVO_TOTP_SECRET }}

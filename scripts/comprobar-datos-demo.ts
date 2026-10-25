@@ -56,7 +56,7 @@ async function comoPersona(nombre: string, clerkUserId: string, rol: string, con
   const c = new pg.Client({ connectionString: url, options: `-c pg_session_jwt.jwk=${jwk}` });
   await c.connect();
   try {
-    await c.query("select auth.user_id()"); // carga la extensión antes de cualquier función con SET (docs/spike-rls-h2.md)
+    await c.query("select auth.user_id()"); // carga la extensión antes de cualquier función con SET (docs/03-arquitectura/spike-rls-h2.md)
     await c.query("select auth.jwt_session_init($1)", [token(clerkUserId, rol)]);
     await c.query("begin");
     await c.query("set local role authenticated");

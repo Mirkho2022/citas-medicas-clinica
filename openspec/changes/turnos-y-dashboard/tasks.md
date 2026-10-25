@@ -30,7 +30,7 @@ Las páginas nuevas llaman a `auth.protect()`, `exigirRol(...)` y la comprobaci�
       **desarrollo** de Clerk y guardar sus secretos como `E2E_MEDICO_TOTP_SECRET` y `E2E_ENFERMERA_TOTP_SECRET` (en
       `.env.local`, en `.env.example` sin valor y en `scripts/cargar-secretos-e2e.ts`). Extender `e2e/roles.spec.ts` con «médico
       inicia sesión con TOTP y aterriza en “Panel del médico”» y el equivalente de la enfermera. Verificar que ambas pruebas
-      pasan. Si el usuario no lo autoriza, documentar en `docs/pruebas-e2e.md` que las pantallas de médico y enfermera se
+      pasan. Si el usuario no lo autoriza, documentar en `docs/07-testing/pruebas-e2e.md` que las pantallas de médico y enfermera se
       verifican con pgTAP, integración con token firmado y revisión manual, y marcar como no aplicables las tareas E2E 6.3 y 8.4.
 - [ ] 1.3 Antes de cerrar el grupo 7, preguntar al usuario la Q1 de `design.md` (¿se registra la llegada real del paciente?) y
       escribir su respuesta en «Open Questions». No bloquea construir el dashboard con la definición derivada de D2. Verificar
@@ -72,8 +72,8 @@ Las páginas nuevas llaman a `auth.protect()`, `exigirRol(...)` y la comprobaci�
 - [ ] 2.7 Comprobar el uso de índices: en un branch de desarrollo, dentro de una transacción que se revierte, sembrar 500 citas
       de hoy repartidas entre 20 médicos y ejecutar `explain` sobre la consulta de la vista como administrativo. Verificar que el
       plan usa `citas_estado_inicio_idx` o `citas_medico_inicio_idx` y no un recorrido secuencial completo; anotar el plan en
-      `docs/pruebas-sql.md`.
-- [ ] 2.8 Actualizar `docs/pruebas-sql.md` con los archivos 62, 63, 64 y 98 y con la regla «toda vista de `public` es
+      `docs/07-testing/pruebas-sql.md`.
+- [ ] 2.8 Actualizar `docs/07-testing/pruebas-sql.md` con los archivos 62, 63, 64 y 98 y con la regla «toda vista de `public` es
       `security_invoker`». Verificar que el documento enlaza a este change y que `npm run test:pgtap` completo pasa.
 
 ## 3. Lógica de dominio pura y esquemas
@@ -98,7 +98,7 @@ Las páginas nuevas llaman a `auth.protect()`, `exigirRol(...)` y la comprobaci�
       otra que aún no empieza, y la misma salida con `TZ=UTC` y `TZ=Asia/Tokyo`. Verificar con
       `npm run test:turnos-dashboard`.
 - [ ] 3.5 Añadir el script `test:turnos-dashboard` a `package.json` (`node --test "tests/turnos-dashboard/*.test.ts"`) y una
-      línea en `docs/pruebas-e2e.md` (o `docs/pruebas-sql.md`) que explique cómo correrlo en las dos zonas horarias. Verificar
+      línea en `docs/07-testing/pruebas-e2e.md` (o `docs/07-testing/pruebas-sql.md`) que explique cómo correrlo en las dos zonas horarias. Verificar
       que el script existe y corre sin errores.
 
 ## 4. Server Actions de turnos y concurrencia
@@ -225,12 +225,12 @@ Las páginas nuevas llaman a `auth.protect()`, `exigirRol(...)` y la comprobaci�
       desarrollo con `--confirmar`: los conteos son iguales y la suite pgTAP sigue pasando sobre esos datos.
 - [ ] 9.2 Extender `scripts/comprobar-datos-demo.ts` con el aislamiento de este change (la enfermera ve solo sus turnos y cero
       citas; el médico, solo sus citas confirmadas y cero turnos de enfermería; el administrativo ve filas en
-      `dashboard_citas`; el paciente, ninguna) y actualizar `docs/datos-demo.md` (nueva opción, qué se ve en el dashboard, cómo
+      `dashboard_citas`; el paciente, ninguna) y actualizar `docs/07-testing/datos-demo.md` (nueva opción, qué se ve en el dashboard, cómo
       reiniciar). Verificar ejecutando el script y que la tabla del documento coincide con su salida.
 
 ## 10. Coherencia documental
 
-- [ ] 10.1 Actualizar `CLAUDE.md` (línea de estado: turnos y dashboard) y `docs/TECH-DESIGN.md`: tabla de Server Actions
+- [ ] 10.1 Actualizar `CLAUDE.md` (línea de estado: turnos y dashboard) y `docs/03-arquitectura/TECH-DESIGN.md`: tabla de Server Actions
       (`actualizarTurno`, `quitarTurno`), rutas reales de H7 en «Superficie de la aplicación» (las del árbol `(personal)/…` que
       no existen), la definición de «en espera» y del umbral de 20 min en «Dashboard operativo», la fila de H7 en el plan y las
       vistas `security_invoker` en «Seguridad y control de acceso». Si H2b ya cambió esas secciones, integrar sin pisarlo.

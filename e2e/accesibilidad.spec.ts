@@ -4,7 +4,7 @@ import { iniciarSesion, prepararPagina, variable } from "./helpers";
 
 // H2b, grupo 7: revisión automática de accesibilidad (WCAG 2.1 A y AA) con axe sobre la galería y las áreas. Falla ante
 // cualquier violación. axe no mide todo (orden lógico del foco, lector de pantalla…): la lista de revisión manual está en
-// docs/pruebas-e2e.md. Las pantallas de Clerk (/iniciar-sesion, /registro) quedan fuera: su marcado no es nuestro.
+// docs/07-testing/pruebas-e2e.md. Las pantallas de Clerk (/iniciar-sesion, /registro) quedan fuera: su marcado no es nuestro.
 const ETIQUETAS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 async function revisar(page: Page, nombre: string) {

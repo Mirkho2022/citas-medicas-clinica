@@ -1,0 +1,178 @@
+# Pruebas de base de datos (pgTAP y concurrencia)
+
+Cómo se prueban el esquema, las políticas RLS y las reglas que viven en la base de datos (H2). Las
+pruebas E2E del navegador están en [pruebas-e2e.md](pruebas-e2e.md). El porqué del mecanismo de
+autenticación de pruebas está en [spike-rls-h2.md](../03-arquitectura/spike-rls-h2.md).
+
+## Qué hay
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| pgTAP | `tests/pgtap/NN_<área>.test.sql` | RLS activada, prueba negativa por política, `GRANT`, triggers y `CHECK`/`EXCLUDE` |
+| Ayudas pgTAP | `tests/pgtap/_ayudas.sql` | `tests.autenticar_como(identidad)`, `tests.sub()`, `tests.volver_a_dueno()` |
+| Runner pgTAP | `scripts/ejecutar-pgtap.ts` | Genera los tokens, abre la conexión y corre cada archivo en una transacción que se revierte |
+| Concurrencia | `tests/concurrencia/*.test.ts` | Lo que pgTAP no puede probar (varias sesiones a la vez): doble reserva |
+| Sesiones autenticadas | `tests/concurrencia/_sesion.ts` | Abre conexiones directas como `authenticated` con una identidad y un rol, para llamar a las funciones de la aplicación bajo concurrencia |
+| Integración | `tests/integracion/*.test.ts` | El SQL de la aplicación con los privilegios reales de un rol de servicio (p. ej. `sync_identidad`), en una transacción que se revierte |
+
+## Cómo se ejecutan
+
+Necesitan la URL **directa** (no la pooled) de un branch de desarrollo o efímero de Neon, con el
+rol dueño. **Nunca production.**
+
+```bash
+# DATABASE_URL_PRUEBAS en el entorno o en .env.local (o DATABASE_URL como respaldo)
+npm run test:pgtap                          # toda la suite pgTAP
+node scripts/ejecutar-pgtap.ts citas        # solo los archivos cuyo nombre contiene "citas"
+npm run test:concurrencia                   # pruebas de concurrencia
+npm run test:integracion                    # integración de la aplicación con roles de servicio
+ENV_FILE=ruta/otro.env npm run test:pgtap   # leer otro archivo de entorno
+```
+
+Si `DATABASE_URL_PRODUCCION` está definida y coincide con el destino, ambos runners se niegan a
+correr. En CI las pruebas corren en el branch efímero del PR (`neon-branch-pr.yml`), después de
+`migrate up`.
+
+## Pruebas de la agenda (H3)
+
+| Archivo | Qué prueba |
+|---|---|
+| `34_disponibilidad_solape` | `EXCLUDE` de disponibilidades (cruce, contiguo, otro día u otro médico, vigencias), `vigente_desde` en fecha de Lima y auditoría de bloqueos |
+| `35_slots` | `slots_disponibles` y `horario_en_agenda`: malla, bloqueos, citas, pasado, baja, frontera con UTC y que el paciente no ve citas ni bloqueos ajenos |
+| `36_reservar_cita` | `reservar_cita`: origen por rol, `UC001`, `23P01` y roles sin permiso (`42501`) |
+| `37_reprogramar_cita` | `reprogramar_cita`: éxito, original intacta si falla, ventana de 1 hora, `UC002` y cancelar antes de insertar |
+| `38_reasignacion_baja` | `propuestas_reasignacion` (mismo horario primero, más cercano, exclusiones, proponer no cambia nada) y `reasignar_cita_por_baja` (ventana de 1 hora con bloqueo, `UC003`, sin acceso a historias, roles) |
+| `39_citas_por_reasignar_rls` | vista `citas_por_reasignar` (`security_invoker`): el administrativo ve todas, el médico las suyas, los demás ninguna; sale sola al resolver la cita |
+| `61_transiciones_de_cita` | ciclo de estados: matriz de transiciones, `marcar_cita_atendida`, auditoría del actor y acceso a la historia al confirmar |
+| `62_proteger_citas` | una cita no se edita (`citas_proteger_columnas`, `42501`) y solo nace en un hueco de la agenda (`citas_validar_horario`, `UC001`; `42501` a roles que no crean): columna por columna, los dos escenarios de la revisión 6.4, el paciente con una política de `UPDATE` temporal que simula la de H4 y el dueño sin restricciones |
+| `63_ajustes_de_reasignacion` | hallazgos 6.4 (2) y (3): `citas_por_reasignar` muestra las citas de una baja sin fecha de fin (`upper()` nulo) y no las anteriores a ella; `propuestas_reasignacion` conserva el orden (por cita y, en cada una, el mismo horario primero) con las citas insertadas en orden inverso |
+| `64_cierre_citas_vencidas` | cierre automático de las `reservada` que terminaron como `no_asistio`: la función interna `cerrar_citas_vencidas()` (solo cambia el estado, idempotente, auditoría con actor nulo, la en curso, la futura y los demás estados no se tocan, el médico pierde la lectura del paciente de una cita muerta, el administrativo no cierra a mano con `UC004` y ningún rol de la aplicación la ejecuta) y su puerta `cerrar_citas_vencidas_como_personal()` (administrativo y médico cierran, con la auditoría a su nombre; enfermera, paciente y sesión sin rol reciben `42501`; solo `authenticated` tiene `EXECUTE`) |
+
+Los datos de estas pruebas usan DNI `74NNxxxx` (NN = número del archivo) y fechas de 2032, lejos en el futuro; `now()` es fijo dentro de
+la transacción, así que los límites de 1 hora son deterministas. Una sola prueba: `node scripts/ejecutar-pgtap.ts 35_slots`
+(el filtro es una subcadena del nombre del archivo; con `35` a secas también coincidiría cualquier archivo que lo contenga).
+
+**Matriz de transiciones de `estado` (archivo `61`).** La aplica el disparador `citas_validar_transicion` (`BEFORE INSERT OR UPDATE OF estado`)
+a los cambios hechos por un usuario de la aplicación; las condiciones de tiempo miran los valores anteriores de la cita:
+
+| Transición | Quién | Condición | Si no se cumple |
+|---|---|---|---|
+| insertar | cualquiera con política | `estado = reservada` | `UC004` |
+| `reservada` → `confirmada` | administrativo | `now() < fin` | `UC004`; `42501` si no es administrativo |
+| `confirmada` → `no_asistio` | administrativo | `now() >= inicio` | `UC004`; `42501` si no es administrativo |
+| `reservada`/`confirmada` → `cancelada` | quien la política deje | la ventana la valida `validar_cancelacion` | `P0001` |
+| cualquiera → `atendida` por `UPDATE` | nadie | siempre rechazado; solo `marcar_cita_atendida` (médico dueño, `confirmada` ya empezada) | `42501` |
+| cualquier otra | — | — | `UC004` |
+
+**El disparador no actúa sobre el dueño de la base** (`current_user <> 'authenticated'`): las migraciones, la siembra de demostración, la carga
+histórica de H8 y los datos que preparan las pruebas pgTAP como dueño no pasan por la matriz. Tampoco sobre las funciones `SECURITY DEFINER`,
+que corren como dueño y se validan a sí mismas. Por eso una prueba que quiera ejercer la matriz debe autenticarse (`tests.autenticar_como`) antes
+del `UPDATE`, y las preparaciones como dueño pueden dejar cualquier estado.
+
+**Disparadores de `citas` y su orden (archivos `61` y `62`).** Los `BEFORE` corren en orden alfabético del nombre; ninguno depende del orden, pero la
+prueba `61` lo fija para que un cambio de nombre sea una decisión consciente. Los cuatro solo actúan cuando `current_user = 'authenticated'`:
+
+| Disparador | Evento | Qué rechaza | Código |
+|---|---|---|---|
+| `citas_proteger_columnas` | `BEFORE UPDATE` | cualquier cambio fuera de `estado` (`cancelada_en` y `cancelada_por` solo al cancelar) | `42501` |
+| `citas_validar_cancelacion` | `BEFORE UPDATE` | cancelar con menos de 1 hora, salvo bloqueo del médico | `P0001` |
+| `citas_validar_horario` | `BEFORE INSERT` | hora pasada o que no es un hueco exacto de la agenda; roles que no crean citas | `UC001`; `42501` |
+| `citas_validar_transicion` | `BEFORE INSERT OR UPDATE OF estado` | transiciones fuera de la matriz | `UC004`; `42501` |
+
+Un `BEFORE INSERT` corre antes que el `WITH CHECK` de la RLS: por eso las pruebas de política de `32_citas_rls` insertan en huecos reales de una malla
+que preparan, y la del «pasado» apaga `citas_validar_horario` solo en esa sentencia para seguir comprobando la política sola. Una prueba que inserte o
+edite citas como `authenticated` debe usar horas dentro de la malla de su médico (la `62` y la `61` crean la suya).
+
+**Concurrencia como usuario de la aplicación.** `tests/concurrencia/_sesion.ts` firma tokens Ed25519 (par efímero por proceso), abre la
+conexión con `pg_session_jwt.jwk`, ejecuta `auth.jwt_session_init` y `set role authenticated`: `abrirSesion({ sub, rol })` devuelve un
+cliente `pg` que se comporta como la aplicación, y `conSesiones([...], fn)` abre varias y las cierra siempre. El `sub` debe existir como
+`clerk_user_id` de un perfil. El ayudante se niega a correr contra el pooler o contra el host de `DATABASE_URL_PRODUCCION` (la misma guarda
+que `_conexion.ts`). `20_reservar_cita_funcion.test.ts` lo usa para 20 rondas de 5 administrativos sobre `reservar_cita` y 10 rondas de dos
+reprogramaciones de la misma cita:
+
+```bash
+npm run test:concurrencia                                          # todas las pruebas de concurrencia
+node --test tests/concurrencia/20_reservar_cita_funcion.test.ts    # solo esa
+```
+
+## Pruebas del portal del paciente (H4)
+
+| Archivo | Qué prueba |
+|---|---|
+| `70_portal_registro` | `correo_actual()` y `registrar_paciente_portal()` ([ADR-0037](../03-arquitectura/adrs/0037-verificacion-al-vincular-una-ficha-de-paciente.md)): el claim `email` del token, alta con documento nuevo (CE guardado en mayúsculas, espacios recortados, correo tomado del token), vinculación solo con correo y fecha correctos sin sobrescribir la ficha, y los rechazos `PA002` (fecha distinta, correo distinto, ficha de otra cuenta, documento ya vinculado), `PA001` (cuenta con ficha), `PA003` (sin perfil), `PA004` (sin claim `email`) y `42501` (administrativo, médico, enfermera, sin rol); `EXECUTE` solo para `authenticated` |
+| `71_portal_cancelacion` | política «paciente cancela su cita»: cancela a 61 minutos y a 59 recibe `P0001`; cero filas sobre citas ajenas, ya canceladas o atendidas (también con una política de lectura temporal abierta, para que la política se defienda sola); no edita ninguna columna ni se confirma, atiende o marca «No asistió»; `cancelada_por` y `cancelada_en` los fija el servidor; los demás roles y la ventana del administrativo no cambian |
+| `72_portal_aislamiento` | el rol paciente tras registrarse: ve su ficha, sus citas y los perfiles de los médicos y nada más; cero filas en las once tablas clínicas y administrativas (incluida su historia recién creada); no inserta ni actualiza pacientes, no crea citas de origen administrativo, de otro paciente ni en el pasado, no cambia su rol (RLS y, con una política temporal, el disparador) y recibe `42501` en las funciones del personal |
+
+Las identidades de prueba llevan el claim `email` = `<identidad>@pruebas.invalid`; `paciente_sin_correo` no lo lleva (caso `PA004`). Los documentos son `728…` (72) y `72000…`
+(70) para no chocar con los de demostración (`99…`) ni con los de H3 (`74…`). La de concurrencia, `tests/concurrencia/30_registro_portal.test.ts`, repite 10 rondas de:
+dos cuentas con el mismo documento nuevo (una ficha, la otra recibe `PA002`), el doble envío de una misma cuenta con un documento nuevo (`PA001`) y el doble envío
+de la vinculación de una ficha existente (`PA001`).
+
+**Autogestión medible (D10).** La métrica «75 % de las citas se reservan o se cancelan por el propio paciente» no necesita ninguna pantalla nueva: `tests/integracion/autogestion.test.ts`
+reserva y cancela como paciente y como administrativo y ejecuta estas dos consultas, que son las de la métrica:
+
+```sql
+-- Reservas por canal: 'portal' = el propio paciente; 'administrativo' = la recepción.
+select origen, count(*) from public.citas group by origen;
+
+-- Cancelaciones según el rol de quien canceló.
+select pf.rol, count(*)
+  from public.citas c join public.perfiles pf on pf.id = c.cancelada_por
+ where c.estado = 'cancelada'
+ group by pf.rol;
+```
+
+### Rendimiento de la búsqueda de horarios del portal (H4, tarea 6.2)
+
+`node scripts/medir-busqueda-portal.ts` mide, con `EXPLAIN (ANALYZE, BUFFERS)`, las dos consultas más calientes del portal sobre un volumen
+sintético y **sin dejar datos** (todo en una transacción que termina en `ROLLBACK`). Corre contra la URL directa de un branch de desarrollo
+(`DATABASE_URL_PRUEBAS`, nunca producción; se niega si el host coincide con `DATABASE_URL_PRODUCCION`). `slots_disponibles()` comprueba el rol de la
+sesión y aquí no hay JWT: el script usa una copia temporal con el mismo cuerpo y sin esa comprobación (la función real es `SECURITY DEFINER`, así que
+medir como dueño es representativo del costo en la base).
+
+**Resultado (2026-10-25, branch `dev`, 40 médicos de una misma especialidad, 4 000 pacientes, 44 200 citas, 25 repeticiones; tiempo de ejecución en la base,
+sin la latencia de red entre Vercel y Neon):**
+
+| Consulta (`lib/portal/consultas.ts`) | p50 | p95 | máx | Objetivo p95 < 500 ms |
+|---|---|---|---|---|
+| `diasDelMedico`: 30 días con cuántos horarios libres de un médico | 41,6 ms | 48,5 ms | 77,6 ms | cumple |
+| `medicosDeEspecialidad`: próximo horario de cada médico de la especialidad (40 médicos) | 388,9 ms | 413,5 ms | 420,5 ms | cumple, con poco margen |
+
+- **Plan de «días»:** `generate_series` de 30 días con `LATERAL slots_disponibles`; por día, un `Nested Loop Anti Join` de `slots_agenda` contra las citas
+  vigentes del médico (`Bitmap Index Scan` sobre `citas_sin_cruce_medico`, ~375 filas, materializado una vez); 206 bloques en caché, sin lecturas de disco.
+- **Plan de «próximo horario»:** el mismo cálculo por médico, con `LIMIT 1` ordenado por inicio, de modo que se detiene en el primer día con horarios; cuesta
+  ~10 ms por médico (7 180 bloques en caché para 40). **Crece de forma lineal con el número de médicos de la especialidad**: con 40 médicos queda en 413 ms, y una
+  clínica real tiene unos pocos por especialidad (con 8, unos 80 ms).
+- **Decisión:** se mantiene el horizonte de 30 días y la consulta sin función agregada nueva (D6). Si alguna especialidad llegara a pasar de unos 40 médicos, reducir el
+  horizonte a 14 días o pedir a H3 una función agregada; la latencia de red hacia Neon se suma a estas cifras y se mide en el preview.
+
+## Escribir una prueba pgTAP
+
+- El archivo trae **solo el cuerpo pgTAP** (`select plan(n); ...; select * from finish();`). El runner
+  pone el `begin`, instala `pgtap` y las ayudas dentro de la transacción y hace `rollback` al
+  final: no queda nada en la base, ni siquiera la extensión.
+- Los datos de prueba los crea el rol dueño (que ignora RLS) **antes** de autenticarse.
+- Para ejercer una política: `select tests.autenticar_como('medico_a');`. Cambia a la identidad y al rol
+  `authenticated`, igual que la aplicación. Se puede llamar varias veces en el mismo archivo.
+- Para comprobar o preparar datos como dueño: `select tests.volver_a_dueno();` (la identidad de la
+  sesión se conserva).
+- Identidades disponibles: `administrativo`, `medico_a`, `medico_b`, `enfermera`, `paciente_a`,
+  `paciente_b`, `paciente_sin_correo` y `sin_rol`. Todas llevan el claim `email` = `<identidad>@pruebas.invalid`
+  (como la plantilla del JWT de Clerk; lo lee `public.correo_actual()`), salvo `paciente_sin_correo`, que no lo trae. `tests.sub('medico_a')` da su `clerk_user_id` para sembrar `perfiles`.
+- Las pruebas **no pueden asumir tablas vacías** (puede haber datos de demostración): siembran sus
+  propios identificadores y afirman por id. Las negativas («este rol no ve ninguna fila») siguen
+  siendo válidas con datos presentes.
+- Toda tabla nueva de `public` necesita su prueba negativa: el rol equivocado **no** ve ni escribe el
+  dato. `99_rls_en_todas_las_tablas.test.sql` falla si alguna tabla queda sin RLS.
+
+## Límites conocidos
+
+- Las pruebas usan un JWT firmado con una clave Ed25519 propia; no cubren la validación de la JWKS
+  de Clerk que hace el proxy de Neon (eso lo cubre la E2E de `clienteAutenticado()`).
+- Si la primera llamada a `auth.*` de una conexión ocurre dentro de una función con cláusula `SET`
+  (como `rol_actual()`), se pierde la JWK de arranque. El runner carga la extensión antes con
+  `select auth.user_id()`; si escribes un script propio, haz lo mismo.
+- Un `auth.jwt_session_init` fallido deja la identidad anterior en la sesión: cada archivo usa su
+  propia conexión y no reutiliza sesiones.
+- `pg_session_jwt.jwk` solo llega al arrancar la conexión y el pooler lo rechaza: por eso la URL es
+  directa.

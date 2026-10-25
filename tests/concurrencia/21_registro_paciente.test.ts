@@ -24,7 +24,7 @@ async function limpiar(c: pg.Client): Promise<void> {
   const ids = `select id from public.pacientes where numero_documento like '7340%' or numero_documento = 'AB734000001'`;
   await c.query(`delete from public.historias_clinicas where paciente_id in (${ids})`);
   await c.query(`delete from public.pacientes where id in (${ids})`);
-  await c.query(`delete from public.perfiles where clerk_user_id like 'user_rp_%'`);
+  await c.query(`delete from public.perfiles where clerk_user_id like 'user\\_rp\\_%'`);
 }
 
 before(async () => {

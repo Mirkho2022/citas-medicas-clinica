@@ -122,7 +122,7 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       dominios reservados (`.invalid`, `.test`, `.example`), sin seguimiento de apertura ni clics, y la clasificación
       permanente/transitorio/configuración. **Antes de escribirlo**, verificar en la documentación vigente de Resend los códigos
       de error, el endpoint de lotes, la ventana de la clave de idempotencia y el límite del plan gratuito, y anotar cifras y
-      enlaces en `docs/pasos-manuales-h5.md`. Pruebas con un `fetch` simulado (sin red): 400/422 → permanente, 401/403 →
+      enlaces en `docs/09-deploy/pasos-manuales-h5.md`. Pruebas con un `fetch` simulado (sin red): 400/422 → permanente, 401/403 →
       configuración, 429/500/tiempo agotado → transitorio, lote que falla → mensajes aislados, la cabecera de idempotencia
       se envía. Verificar con `npm run test:notificaciones`.
 - [ ] 5.3 `lib/notificaciones/contenido.ts`: esquema Zod `.strict()` de la copia (`design.md` D3) y tipos; funciones de formato de
@@ -138,7 +138,7 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       documento, teléfono o dirección; el asunto no lleva médico ni especialidad; ningún texto usa trato de tú; no hay píxel de
       seguimiento ni enlace redirigido; la reprogramación muestra horarios y médicos anterior y nuevo. Verificar con `npm run
       test:notificaciones`.
-- [ ] 5.5 Crear `docs/pasos-manuales-h5.md` (parte 1: correo): cuenta y clave de Resend, dominio propio y registros SPF, DKIM y DMARC,
+- [ ] 5.5 Crear `docs/09-deploy/pasos-manuales-h5.md` (parte 1: correo): cuenta y clave de Resend, dominio propio y registros SPF, DKIM y DMARC,
       remitente, y la lista de comprobación de entregabilidad del grupo 9 con su tabla de «Estado de ejecución» vacía. Verificar
       que los pasos se pueden seguir tal cual y que los enlaces relativos del documento no están rotos.
 
@@ -190,8 +190,8 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       `tests/notificaciones/vercel.test.ts` (existe exactamente un cron, a las 13:00 UTC, equivalente a las 08:00 de Lima, y
       coincide con la constante de la hora de envío del recordatorio). **Antes**, verificar en la documentación vigente de Vercel el
       límite del plan Hobby, su precisión horaria, que no reintenta y que solo corre en producción, y anotarlo en
-      `docs/pasos-manuales-h5.md`. Verificar con `npm run test:notificaciones` y revisando el panel «Cron Jobs» del preview/producción.
-- [ ] 7.5 `docs/pasos-manuales-h5.md` (parte 2: cron): `LOGIN` y contraseña de `cron_notificaciones` por branch (una distinta por
+      `docs/09-deploy/pasos-manuales-h5.md`. Verificar con `npm run test:notificaciones` y revisando el panel «Cron Jobs» del preview/producción.
+- [ ] 7.5 `docs/09-deploy/pasos-manuales-h5.md` (parte 2: cron): `LOGIN` y contraseña de `cron_notificaciones` por branch (una distinta por
       entorno), `DATABASE_CRON_URL` directa, generar `CRON_SECRET` (`openssl rand -base64 32`), cargar las variables de
       Production en Vercel como sensibles, redesplegar, la ventana entre migrar y completar estos pasos (el cron responde 500
       visible, nada se finge como enviado) y cómo relanzar el cron a mano. Verificar con una ejecución manual en `dev` con el
@@ -213,13 +213,13 @@ instalan con la autorización del usuario. **Ninguna tarea toca historias clíni
       y con sus columnas; con 26 filas ve dos páginas y el total; sin filas ve el mensaje vacío; **negativas:** sin sesión va al inicio
       de sesión; paciente, médico y enfermera son devueltos a su área y no ven nada; una consulta directa de esos roles
       devuelve 0 filas. Limpia las filas sembradas. Verificar con `npm run test:e2e`.
-- [ ] 8.4 Documentar en `docs/pruebas-e2e.md` cómo sembrar y limpiar notificaciones de prueba y qué cubren las E2E de los grupos 6
+- [ ] 8.4 Documentar en `docs/07-testing/pruebas-e2e.md` cómo sembrar y limpiar notificaciones de prueba y qué cubren las E2E de los grupos 6
       y 8; verificar que los enlaces no están rotos.
 
 ## 9. Entregabilidad y prueba de humo con correo real (manual, riesgo P-7)
 
 Estas tareas requieren la cuenta de Resend y un dominio del usuario: no son automatizables y no corren en CI. Cada una deja
-su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» de `docs/pasos-manuales-h5.md`.
+su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» de `docs/09-deploy/pasos-manuales-h5.md`.
 
 - [ ] 9.1 Verificar el dominio remitente en Resend con SPF, DKIM y DMARC (registros en verde en el panel). Verificar
       registrando la fecha y una captura, y que `dig`/herramienta equivalente muestra los tres registros.
@@ -229,7 +229,7 @@ su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» d
 - [ ] 9.3 Prueba de humo del extremo a extremo: con `NOTIFICACIONES_PROVEEDOR=resend` en el entorno de desarrollo y un destinatario
       propio, reservar una cita para pasado mañana, relanzar el cron a mano, recibir el recordatorio, relanzar y comprobar que no
       llega un segundo. Verificar con el resumen del cron, la fila `enviada` con su `proveedor_id` y el panel de Resend.
-- [ ] 9.4 Escribir en `docs/pasos-manuales-h5.md` el procedimiento de revisión periódica del panel de Resend (entregas, rebotes,
+- [ ] 9.4 Escribir en `docs/09-deploy/pasos-manuales-h5.md` el procedimiento de revisión periódica del panel de Resend (entregas, rebotes,
       quejas; periodicidad y umbrales de partida de `design.md`, pregunta 5), qué hacer al superarlos (elevar al cliente la
       decisión de un canal adicional, P-7; no construirlo) y la advertencia del límite diario del plan gratuito. Verificar que el
       procedimiento nombra quién lo hace y dónde se anota el resultado.
@@ -250,8 +250,8 @@ su evidencia (fecha, capturas, resultado) en la tabla «Estado de ejecución» d
       acceso a `armar_contenido_aviso`), y las secciones «Notificaciones», criterios de aceptación y riesgo P-7 de TECH-DESIGN,
       el estado de CLAUDE.md y la línea de estado de `openspec/config.yaml`. Verificar con una lista de ediciones propuestas
       en el PR y aprobadas por el usuario antes de aplicarlas.
-- [ ] 10.4 Añadir a `docs/datos-demo.md` la advertencia de que sembrar citas crea recordatorios con `@demo.invalid` y que el cron real
-      no debe correr sobre datos de demostración, y a `docs/pruebas-sql.md` los archivos `80`–`85`. Verificar que los enlaces no
+- [ ] 10.4 Añadir a `docs/07-testing/datos-demo.md` la advertencia de que sembrar citas crea recordatorios con `@demo.invalid` y que el cron real
+      no debe correr sobre datos de demostración, y a `docs/07-testing/pruebas-sql.md` los archivos `80`–`85`. Verificar que los enlaces no
       están rotos.
 - [ ] 10.5 Cobertura de la spec: tabla en el PR de cada escenario de `specs/*/spec.md` con la prueba que lo cubre (pgTAP, unitaria,
       integración, concurrencia, E2E o manual del grupo 9) y ninguno sin cubrir; `openspec validate notificaciones-email --strict`

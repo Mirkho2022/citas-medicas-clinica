@@ -8,7 +8,7 @@
 // branch de desarrollo o efímero — nunca production. Variables opcionales: ENV_FILE (por defecto
 // .env.local) y DATABASE_URL_PRODUCCION (si coincide el host, el script se niega a correr).
 //
-// Cómo funciona (mecanismo validado en docs/spike-rls-h2.md):
+// Cómo funciona (mecanismo validado en docs/03-arquitectura/spike-rls-h2.md):
 //  - Genera un par Ed25519 efímero por ejecución. pg_session_jwt solo acepta una JWK Ed25519 y solo
 //    como opción de arranque de la conexión, que el pooler rechaza: por eso la URL debe ser directa.
 //  - Firma tokens EdDSA por identidad de prueba (sub + publicMetadata.rol) con `jti` creciente y los
@@ -30,13 +30,15 @@ const DIRECTORIO = "tests/pgtap";
 const TOKENS_POR_IDENTIDAD = 100;
 
 // Identidades de prueba: sub = `user_test_<nombre>`; `rol` va en publicMetadata.rol como en Clerk.
-const IDENTIDADES: { nombre: string; rol: string | null }[] = [
+// `sinCorreo`: el token no lleva el claim `email` (caso PA004 de registrar_paciente_portal).
+const IDENTIDADES: { nombre: string; rol: string | null; sinCorreo?: boolean }[] = [
   { nombre: "administrativo", rol: "administrativo" },
   { nombre: "medico_a", rol: "medico" },
   { nombre: "medico_b", rol: "medico" },
   { nombre: "enfermera", rol: "enfermera" },
   { nombre: "paciente_a", rol: "paciente" },
   { nombre: "paciente_b", rol: "paciente" },
+  { nombre: "paciente_sin_correo", rol: "paciente", sinCorreo: true },
   { nombre: "sin_rol", rol: null },
 ];
 
@@ -62,13 +64,15 @@ const jwkPublica = JSON.stringify({ kty: "OKP", crv: "Ed25519", x });
 
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const ahora = Math.floor(Date.now() / 1000);
-function firmar(nombre: string, rol: string | null, jti: number): string {
+function firmar(nombre: string, rol: string | null, jti: number, sinCorreo = false): string {
   const cabecera = b64({ alg: "EdDSA", typ: "JWT" });
   const carga = b64({
     sub: `user_test_${nombre}`,
     jti,
     nbf: ahora - 60,
     exp: ahora + 3600,
+    // Claim `email` como el de la plantilla del JWT de Clerk (H4: `correo_actual()`); sin tilde ni mayúsculas.
+    ...(sinCorreo ? {} : { email: `${nombre}@pruebas.invalid` }),
     publicMetadata: rol ? { rol } : {},
   });
   const firma = sign(null, Buffer.from(`${cabecera}.${carga}`), privateKey).toString("base64url");
@@ -82,13 +86,13 @@ const columnas: { identidad: string[]; sub: string[]; rol: (string | null)[]; jt
   jti: [],
   jwt: [],
 };
-for (const { nombre, rol } of IDENTIDADES) {
+for (const { nombre, rol, sinCorreo } of IDENTIDADES) {
   for (let jti = 1; jti <= TOKENS_POR_IDENTIDAD; jti++) {
     columnas.identidad.push(nombre);
     columnas.sub.push(`user_test_${nombre}`);
     columnas.rol.push(rol);
     columnas.jti.push(jti);
-    columnas.jwt.push(firmar(nombre, rol, jti));
+    columnas.jwt.push(firmar(nombre, rol, jti, sinCorreo));
   }
 }
 

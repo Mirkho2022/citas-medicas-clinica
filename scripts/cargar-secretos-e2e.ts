@@ -20,10 +20,17 @@ const SECRETOS = [
   "VERCEL_AUTOMATION_BYPASS_SECRET",
   "E2E_PACIENTE_EMAIL",
   "E2E_PACIENTE_PASSWORD",
+  "E2E_PACIENTE2_EMAIL",
+  "E2E_PACIENTE2_PASSWORD",
+  "E2E_DATABASE_URL",
   "E2E_ADMINISTRATIVO_EMAIL",
   "E2E_ADMINISTRATIVO_PASSWORD",
   "E2E_ADMINISTRATIVO_TOTP_SECRET",
 ];
+// Secretos de GitHub cuyo valor está en .env.local con OTRO nombre. `E2E_DATABASE_URL` es la URL directa del dueño de la rama `dev` de Neon
+// (la que sirve a los previews): con ella las E2E del portal siembran sus datos (e2e/datos-portal.ts). NUNCA la de producción.
+const ALIAS: Record<string, string> = { E2E_DATABASE_URL: "DATABASE_URL_UNPOOLED" };
+
 // La clave publicable de Clerk es pública: va como variable, no como secreto.
 const VARIABLES = ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"];
 
@@ -55,14 +62,25 @@ for (const [tipo, nombres] of [
   ["variable", VARIABLES],
 ] as const) {
   for (const nombre of nombres) {
-    const valor = process.env[nombre]?.trim();
+    const origen = ALIAS[nombre] ?? nombre;
+    const valor = process.env[origen]?.trim();
     if (!valor) {
-      console.log(`OMITIDO  ${nombre} (no está en ${ENV_FILE})`);
+      console.log(`OMITIDO  ${nombre} (no está ${origen} en ${ENV_FILE})`);
       faltan++;
       continue;
     }
+    if (nombre === "E2E_DATABASE_URL") {
+      // Una URL de producción o del pooler no sirve (y la de producción sería peligrosa): se niega a subirla.
+      const { host } = new URL(valor);
+      const produccion = process.env.DATABASE_URL_PRODUCCION;
+      if (host.includes("-pooler") || (produccion && new URL(produccion).host === host)) {
+        console.error(`RECHAZADO ${nombre}: ${origen} es del pooler o de producción; hace falta la URL directa de la rama dev`);
+        fallos++;
+        continue;
+      }
+    }
     if (dryRun) {
-      console.log(`listo    ${tipo} ${nombre} (se subiría)`);
+      console.log(`listo    ${tipo} ${nombre} (se subiría${origen === nombre ? "" : `, desde ${origen}`})`);
       continue;
     }
     const ok =

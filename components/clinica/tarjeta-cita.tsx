@@ -2,7 +2,7 @@ import { CalendarDays, Clock, Stethoscope } from "lucide-react";
 import { InsigniaEstado } from "@/components/clinica/insignia-estado";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { puedeCancelar } from "@/lib/ui/cancelacion";
-import type { EstadoCita } from "@/lib/ui/estados-cita";
+import { esEstadoActivo, type EstadoCita } from "@/lib/ui/estados-cita";
 import { fechaLima, horaLima, horaLimiteCancelacion, type Instante } from "@/lib/ui/formato";
 
 export interface DatosTarjetaCita {
@@ -13,7 +13,8 @@ export interface DatosTarjetaCita {
 }
 
 // Tarjeta de una cita del portal (DESIGN.md): servicio, médico, fecha y hora en hora de Lima, estado y, solo mientras se
-// pueda, la opción de cancelar con su hora límite. `botonCancelar` lo aporta la pantalla (H4) con su acción real; la
+// pueda, la opción de cancelar con su hora límite. Una cita vigente a la que le faltan menos de 1 hora dice por qué ya no se
+// puede cancelar (specs/mis-citas-y-cancelacion). `botonCancelar` lo aporta la pantalla (H4) con su acción real; la
 // tarjeta decide si se muestra. `ahora` permite fijar el reloj en la galería y en las pruebas.
 export function TarjetaCita({
   cita,
@@ -52,6 +53,11 @@ export function TarjetaCita({
               Puede cancelar hasta las {horaLimiteCancelacion(cita.inicio)}.
             </p>
             {botonCancelar}
+          </div>
+        ) : esEstadoActivo(cita.estado) && new Date(cita.inicio).getTime() > ahora.getTime() ? (
+          <div className="flex flex-col gap-1 border-t border-border pt-4 text-body-md text-muted-foreground">
+            <p>Ya no se puede cancelar por el portal</p>
+            <p>Si no puede asistir, avise a la clínica.</p>
           </div>
         ) : null}
       </CardContent>

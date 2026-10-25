@@ -28,7 +28,7 @@ verificó. Hecho el 2026-10-08. El PRD no necesitó cambios (no afirma nada que 
 | 19 | ADR-0003 | Revocación con `auth.admin.signOut` de Supabase | Nota de implementación (API de Clerk) |
 | 20 | TECH-DESIGN | Stack de pruebas listaba Vitest, que aún no se usa | Ajustado a pgTAP, `node:test` y Playwright |
 | 21 | CLAUDE.md | «Todavía no hay código de aplicación» | Corregido al estado real |
-| 22 | `docs/verificacion-h1.md`, `.claude/agents/code-review.md` | Enlazaban el change de H1 por su ruta anterior (roto al archivarlo) | Corregido a la ruta archivada |
+| 22 | `docs/07-testing/verificacion-h1.md`, `.claude/agents/code-review.md` | Enlazaban el change de H1 por su ruta anterior (roto al archivarlo) | Corregido a la ruta archivada |
 | 23 | CLAUDE.md, TECH-DESIGN, `openspec/config.yaml` | Nada decía que los datos de demostración sintéticos son admisibles aunque P-1 siga abierta | Registrado en los tres |
 | 24 | TECH-DESIGN, ADR-0005, ADR-0008, spec de agenda | Mapeaban solo `23P01` a «Registro de cita ya agendado»; en reservas simultáneas el motor puede abortar una con `40P01` (deadlock) | Corregido: se mapean los dos códigos; ADR-0005 y ADR-0008 con nota fechada |
 
@@ -42,12 +42,12 @@ verificó. Hecho el 2026-10-08. El PRD no necesitó cambios (no afirma nada que 
 ## Menciones que se dejan (históricas y correctas)
 
 ADR-0020, 0021, 0022, 0024, 0026 y 0027 nombran Supabase y Cloudflare porque explican qué reemplazan; ADR-0003 ya lleva
-notas de 2026-09-23 y 2026-09-28. `docs/verificacion-h1.md` menciona el CAPTCHA de Cloudflare de Clerk, un hecho.
+notas de 2026-09-23 y 2026-09-28. `docs/07-testing/verificacion-h1.md` menciona el CAPTCHA de Cloudflare de Clerk, un hecho.
 
 ## Invariantes verificados entre documentos
 
 - **Cuatro roles** (`administrativo`, `medico`, `enfermera`, `paciente`) en PRD, TECH-DESIGN, CLAUDE.md y specs.
 - **Mensaje exacto** `Registro de cita ya agendado`: PRD, TECH-DESIGN, ADR-0005, CLAUDE.md, `openspec/config.yaml` y specs.
 - **Ventana de 1 h para todos los roles** (ADR-0012) y **6 meses de vigencia** (ADR-0016): consistentes.
-- **Tabla de ADR de TECH-DESIGN:** 23 ADR en la tabla, 23 archivos en `docs/adrs/`, sin faltantes ni sobrantes.
+- **Tabla de ADR de TECH-DESIGN:** 23 ADR en la tabla, 23 archivos en `docs/03-arquitectura/adrs/`, sin faltantes ni sobrantes.
 - **Enlaces relativos:** 186 comprobados; 1 roto (el de la fila 22), corregido.

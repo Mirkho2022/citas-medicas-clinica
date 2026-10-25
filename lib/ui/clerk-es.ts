@@ -1,7 +1,7 @@
 // Textos en español de los formularios de Clerk (H2b, D7). Base: la variante `esMX` del paquete @clerk/localizations
-// (español latinoamericano). docs/DESIGN.md pide hablarle de «usted» al paciente, y esa variante mezcla «tú» y «usted»:
+// (español latinoamericano). docs/02-diseno/DESIGN.md pide hablarle de «usted» al paciente, y esa variante mezcla «tú» y «usted»:
 // aquí se sobrescriben los textos de las pantallas por las que pasa un paciente (inicio de sesión, registro y
-// verificación). Lo que no aparece aquí queda como lo trae el paquete; ver la lista de revisión en docs/pruebas-e2e.md.
+// verificación). Lo que no aparece aquí queda como lo trae el paquete; ver la lista de revisión en docs/07-testing/pruebas-e2e.md.
 import { esMX } from "@clerk/localizations";
 
 export const localizacionClerk: typeof esMX = {

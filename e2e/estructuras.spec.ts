@@ -31,7 +31,8 @@ test("portal del paciente a 390 px: una columna sin desborde, tres destinos y bo
   await expect(destinos).toHaveCount(3);
   await expect(destinos).toContainText(["Inicio", "Mis citas", "Reservar"]);
 
-  const boton = page.getByRole("button", { name: /Reservar cita/ });
+  // Desde H4 «Reservar cita» es un enlace con forma de botón de 48 px (lleva a los pasos de la reserva).
+  const boton = page.getByRole("link", { name: "Reservar cita", exact: true });
   const caja = await boton.boundingBox();
   expect(caja?.height ?? 0).toBeGreaterThanOrEqual(48);
 

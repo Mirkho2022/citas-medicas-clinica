@@ -16,7 +16,7 @@ import {
 } from "@/lib/ui/calendario";
 import { cn } from "@/lib/utils";
 
-// Selector de fecha (docs/diseno/BRIEF-DISENO.md, sección 5): un botón con la fecha elegida que abre un calendario. Menú flotante
+// Selector de fecha (docs/02-diseno/BRIEF-DISENO.md, sección 5): un botón con la fecha elegida que abre un calendario. Menú flotante
 // bajo el botón en escritorio y hoja inferior en móvil (el mismo elemento: cambia por CSS a 640 px, ver app/movimiento.css).
 // Cada día es un enlace a la misma ruta con `?fecha=AAAA-MM-DD`: la fecha vive en la URL y la página se vuelve a leer en el
 // servidor, sin estado de formulario. Domingos y días fuera de rango o sin horarios se ven deshabilitados (y así se anuncian);

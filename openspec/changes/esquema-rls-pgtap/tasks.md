@@ -26,7 +26,7 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
       las vías de D1 en orden (`auth.jwt_session_init(token)` / `auth.init()` con JWK por sesión; JWKS
       de prueba registrada; modo `request.jwt.claims` solo para lógica de políticas). Verificar con
       una prueba que ve filas como el usuario A y ninguna como el usuario B.
-- [x] 1.6 Documentar en `docs/spike-rls-h2.md` el resultado de cada criterio de D1, el mecanismo
+- [x] 1.6 Documentar en `docs/03-arquitectura/spike-rls-h2.md` el resultado de cada criterio de D1, el mecanismo
       de autenticación de pruebas elegido y la decisión continuar/parar. **Si algún criterio falla,
       detener el change y consultar al usuario** (el plan B reabre ADR-0023). Si pasa, eliminar la
       tabla `spike_rls` y el script del spike; verificar que `git status` no deja restos del spike
@@ -47,7 +47,7 @@ prueba. Las pruebas viven en `tests/pgtap/NN_<área>.test.sql`.
 - [x] 2.3 Añadir `tests/concurrencia/` (ayuda `_conexion.ts` y una prueba de infraestructura con dos
       clientes `pg`, `node --test`), los scripts `test:pgtap` y `test:concurrencia` en
       `package.json`, `@types/pg`, `allowImportingTsExtensions` en `tsconfig.json` y
-      `docs/pruebas-sql.md`; verificar con `npm run test:pgtap`, `npm run test:concurrencia`,
+      `docs/07-testing/pruebas-sql.md`; verificar con `npm run test:pgtap`, `npm run test:concurrencia`,
       `npm run typecheck` y `npm run lint`.
 - [x] 2.4 Extender `neon-branch-pr.yml` con los pasos `npm run test:pgtap` y `npm run test:concurrencia`
       tras `migrate up` (hecho en el archivo; sin instalar `pg_prove` ni registrar JWKS en Neon);
@@ -243,8 +243,8 @@ Proyecto de muestra: se permiten datos **sintéticos** para ejercitar el sistema
 - [x] 9.5 `scripts/comprobar-datos-demo.ts`: una sesión por persona con un token firmado de su `clerk_user_id` real;
       verificado (26 comprobaciones, 0 fallos): el médico ve solo a sus pacientes y nunca atenciones de los del
       otro, el paciente no ve atenciones ni historias ni siquiera las suyas, el administrativo no ve contenido
-      clínico y la auditoría no lo contiene, la enfermera ve solo su turno. Resultados en `docs/datos-demo.md`.
-- [x] 9.6 `docs/datos-demo.md`: qué se siembra, marcadores, cómo ejecutar y reiniciar (recrear el branch: lo
+      clínico y la auditoría no lo contiene, la enfermera ve solo su turno. Resultados en `docs/07-testing/datos-demo.md`.
+- [x] 9.6 `docs/07-testing/datos-demo.md`: qué se siembra, marcadores, cómo ejecutar y reiniciar (recrear el branch: lo
       firmado no se borra), qué ve cada persona y advertencias sobre P-1 y los branches de CI.
 - [x] 9.7 Suite pgTAP completa sobre un branch con los datos de demostración: pasa (477 pruebas, 0 fallos). La
       comprobación destapó dos pruebas de auditoría que contaban filas de toda la tabla; ahora se acotan por el
@@ -274,7 +274,7 @@ PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
       documentos: los cuatro roles, el mensaje `Registro de cita ya agendado`, la ventana de 1 h para
       todos los roles, los 6 meses de vigencia, los roles de Postgres y sus `GRANT`
       (`authenticated`/`app_user`, `cron_notificaciones`, `sync_identidad`), la tabla de ADR vigentes de
-      TECH-DESIGN contra los archivos de `docs/adrs/`, y los enlaces. Verificar con la tabla de
+      TECH-DESIGN contra los archivos de `docs/03-arquitectura/adrs/`, y los enlaces. Verificar con la tabla de
       hallazgos y su resolución en la descripción del PR; cada discrepancia queda corregida o marcada
       para revisión humana.
       Hecho (2026-10-08): 23 hallazgos con su resolución en `coherencia.md` (para la descripción del PR); 186 enlaces
@@ -290,14 +290,14 @@ PRD solo se edita con la skill `generar-prd-conversacional` (CLAUDE.md).
       lo contrario, así que no se editó.
 - [x] 10.4 Si el spike mostró que `app_user` de ADR-0020 es redundante con `authenticated`, preparar
       el texto de aclaración y **marcarlo para revisión humana** sin sobrescribirlo; verificar que el
-      resultado de la revisión queda anotado en `docs/spike-rls-h2.md`.
+      resultado de la revisión queda anotado en `docs/03-arquitectura/spike-rls-h2.md`.
       Hecho (2026-10-08): nota de revisión pendiente al final de ADR-0020 (texto de la decisión sin tocar) y estado de la
-      revisión anotado en `docs/spike-rls-h2.md`, «Revisión pendiente de ADR-0020». Sigue a la espera de decisión humana.
+      revisión anotado en `docs/03-arquitectura/spike-rls-h2.md`, «Revisión pendiente de ADR-0020». Sigue a la espera de decisión humana.
 - [x] 10.5 Registrar en `docs/` la lista de pasos manuales de consola para producción (JWKS de la
       instancia de Clerk de producción registrada por API solo en `production`, `LOGIN` y contraseña de
       `cron_notificaciones` y `sync_identidad`, variables en Vercel, suscripción `user.updated`); verificar
       que cada paso tiene su comprobación y que se cumplen antes del merge.
-      Hecho (2026-10-08): `docs/pasos-manuales-h2.md`, seis pasos con su comprobación y el orden respecto al merge, más la
+      Hecho (2026-10-08): `docs/09-deploy/pasos-manuales-h2.md`, seis pasos con su comprobación y el orden respecto al merge, más la
       ventana entre merge y configuración (webhook en 500 si falta `DATABASE_SYNC_URL`). **Ejecutar esos pasos** (JWKS en
       Neon, contraseñas, variables de Vercel) es una acción externa que requiere OK explícito del usuario.
 - [x] 10.6 Ejecutar la verificación integral en el PR: `migrate up` limpio, suite pgTAP completa y

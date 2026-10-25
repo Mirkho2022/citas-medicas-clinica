@@ -6,7 +6,7 @@ export function variable(nombre: string): string {
   const valor = process.env[nombre];
   if (!valor) {
     throw new Error(
-      `Falta la variable ${nombre} (ver .env.example y docs/verificacion-h1.md)`,
+      `Falta la variable ${nombre} (ver .env.example y docs/07-testing/verificacion-h1.md)`,
     );
   }
   return valor;
@@ -44,7 +44,7 @@ export async function prepararPagina(page: Page): Promise<void> {
 
 // Selectores estables de los formularios de Clerk (H2b, D7): atributos y clases del marcado de Clerk, no textos. Así un
 // cambio de idioma o de redacción (la interfaz está en español) no rompe las pruebas. Si Clerk cambia su marcado, se
-// actualizan aquí; la lista de lo que se verificó está en docs/pruebas-e2e.md.
+// actualizan aquí; la lista de lo que se verificó está en docs/07-testing/pruebas-e2e.md.
 const BOTON_PRINCIPAL_CLERK = "button.cl-formButtonPrimary";
 const CAMPO_CODIGO_CLERK = 'input[autocomplete="one-time-code"]';
 
@@ -74,7 +74,26 @@ export async function iniciarSesion(
   opciones: { totpSecret?: string } = {},
 ): Promise<void> {
   await enviarCredenciales(page, email, password);
+  await atravesarPasosIntermedios(page, opciones);
+}
 
+// Igual que `iniciarSesion`, pero sobre la pantalla de inicio de sesión que YA está abierta (sin navegar a /iniciar-sesion, que perdería el
+// `redirect_url` con el que Clerk devuelve a la persona adonde estaba).
+export async function iniciarSesionEnLaPantalla(
+  page: Page,
+  email: string,
+  password: string,
+  opciones: { totpSecret?: string } = {},
+): Promise<void> {
+  await page.locator('input[name="identifier"]').fill(email);
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
+  await page.locator('input[name="password"]').fill(password);
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
+  await atravesarPasosIntermedios(page, opciones);
+}
+
+// Atraviesa los pasos que Clerk pida tras las credenciales (client trust y TOTP) hasta salir de /iniciar-sesion.
+async function atravesarPasosIntermedios(page: Page, opciones: { totpSecret?: string }): Promise<void> {
   const campoCodigo = page.locator(CAMPO_CODIGO_CLERK);
   const pasoIntermedioOFin = (u: URL) =>
     u.pathname.includes("client-trust") ||

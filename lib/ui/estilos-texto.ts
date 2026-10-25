@@ -1,4 +1,4 @@
-// Nombres de los estilos de texto de docs/DESIGN.md (`typography`), tal como llegan a Tailwind (`text-<nombre>`).
+// Nombres de los estilos de texto de docs/02-diseno/DESIGN.md (`typography`), tal como llegan a Tailwind (`text-<nombre>`).
 // `cn` (lib/utils.ts) los necesita para no confundir `text-label-lg` con un color y descartarlo. `npm run tema:comprobar`
 // falla si esta lista se separa de DESIGN.md.
 export const ESTILOS_TEXTO = [
