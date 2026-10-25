@@ -2,7 +2,7 @@
 -- Spec: mis-citas-y-cancelacion. Dos barreras distintas: la política (qué filas puede tocar y a qué estado las deja) y los
 -- disparadores de H3 (citas_proteger_columnas: solo cambia `estado`; validar_cancelacion: ventana de 1 hora; validar_transicion_estado:
 -- el paciente no pone ningún otro estado). Cada uno tiene su caso negativo.
-select plan(29);
+select plan(30);
 
 -- ---- Datos de prueba (dueño). Los citas se siembran con identificadores fijos terminados en el número de la cita. ----
 insert into public.especialidades (nombre) values ('Esp portal cancelacion');
@@ -48,9 +48,12 @@ insert into public.citas (id, paciente_id, medico_id, inicio, fin, origen, estad
   -- c9 de paciente_a, lejana: la cancela el administrativo
   ('00000000-0000-4000-8000-000000007109', (select id from e where clave = 'pa'), (select id from e where clave = 'm_a'), now() + interval '5 days', now() + interval '5 days 20 minutes', 'administrativo', 'reservada', null, null),
   -- c10 de paciente_b a 40 minutos, bajo un bloqueo de agenda del médico (la excepción por baja de ADR-0011)
-  ('00000000-0000-4000-8000-000000007110', (select id from e where clave = 'pb'), (select id from e where clave = 'm_a'), now() + interval '30 minutes', now() + interval '50 minutes', 'administrativo', 'reservada', null, null);
+  ('00000000-0000-4000-8000-000000007110', (select id from e where clave = 'pb'), (select id from e where clave = 'm_a'), now() + interval '30 minutes', now() + interval '50 minutes', 'administrativo', 'reservada', null, null),
+  -- c11 de paciente_b ya pasada y confirmada, bajo un bloqueo de agenda: el disparador no aplica la ventana, la política sí lo impide
+  ('00000000-0000-4000-8000-000000007111', (select id from e where clave = 'pb'), (select id from e where clave = 'm_a'), now() - interval '2 hours', now() - interval '100 minutes', 'administrativo', 'confirmada', null, null);
 insert into public.bloqueos_agenda (medico_id, rango, motivo)
-  values ((select id from e where clave = 'm_a'), tstzrange(now() + interval '20 minutes', now() + interval '55 minutes'), 'Baja de prueba');
+  values ((select id from e where clave = 'm_a'), tstzrange(now() + interval '20 minutes', now() + interval '55 minutes'), 'Baja de prueba'),
+         ((select id from e where clave = 'm_a'), tstzrange(now() - interval '3 hours', now() - interval '1 hour'), 'Baja de prueba pasada');
 
 -- Funciones de apoyo (SECURITY INVOKER: corren con los privilegios y la RLS de quien las llama). Devuelven las filas afectadas,
 -- porque un UPDATE con RETURNING en un CTE no puede ir dentro de un subselect.
@@ -114,6 +117,13 @@ select is(
   (select pg_temp.cancelar('00000000-0000-4000-8000-000000007105')),
   0, 'NO cancela una cita ya atendida (cero filas)'
 );
+
+select tests.autenticar_como('paciente_b');
+select is(
+  (select pg_temp.cancelar('00000000-0000-4000-8000-000000007111')),
+  0, 'NO cancela una cita que ya empezó, aunque un bloqueo de agenda salte la ventana (cero filas)'
+);
+select tests.autenticar_como('paciente_a');
 
 -- La política de lectura ya oculta las citas ajenas, lo que taparía la condición de la propia política de cancelación. Con una
 -- política de lectura temporal que lo deja verlo todo, la de cancelación tiene que defenderse sola.
