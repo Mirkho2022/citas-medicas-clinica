@@ -4,7 +4,8 @@
 //  - dos cuentas distintas con el mismo documento nuevo: una sola ficha por documento; la otra recibe PA002;
 //  - la misma cuenta que envía dos veces a la vez un documento nuevo (doble clic): una sola ficha; el segundo envío recibe PA001;
 //  - la misma cuenta que envía dos veces a la vez la vinculación de su ficha: se vincula una vez; el segundo envío recibe PA001.
-// Las filas de prueba llevan marcas propias (documentos `7391…`, perfiles `user_rpp_…`) y se borran al empezar y al terminar.
+// Las filas de prueba llevan marcas propias (documentos `7391…`, perfiles `user_rpp_…`) y se borran al empezar y al terminar. El `_` de un `LIKE` es un comodín: los patrones lo escapan
+// (`user\_rpp\_%`) porque `user_rp_%` de 21_registro_paciente también casaba con `user_rpp_0` y, con los archivos corriendo en paralelo, se borraban los perfiles.
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type pg from "pg";
@@ -21,7 +22,7 @@ async function limpiar(c: pg.Client): Promise<void> {
   const ids = `select id from public.pacientes where numero_documento like '7391%'`;
   await c.query(`delete from public.historias_clinicas where paciente_id in (${ids})`);
   await c.query(`delete from public.pacientes where id in (${ids})`);
-  await c.query(`delete from public.perfiles where clerk_user_id like 'user_rpp_%'`);
+  await c.query(`delete from public.perfiles where clerk_user_id like 'user\\_rpp\\_%'`);
 }
 
 before(async () => {

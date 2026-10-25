@@ -14,7 +14,7 @@ const RAIZ = process.cwd();
 // Directorios del portal del paciente. Los que aún no existen (p. ej. `lib/seguridad/` hasta el grupo 4) se omiten.
 const DIRECTORIOS = ["app/completar-registro", "app/paciente", "lib/portal", "lib/seguridad"];
 // Esquemas de entrada del portal que viven fuera de esos directorios.
-const ESQUEMAS_EXTRA = ["lib/schemas/paciente-portal.ts"];
+const ESQUEMAS_EXTRA = ["lib/schemas/paciente-portal.ts", "lib/schemas/reserva-portal.ts"];
 
 // Tablas que el rol paciente nunca debe nombrar (clínicas y administrativas).
 const TABLAS_PROHIBIDAS = [

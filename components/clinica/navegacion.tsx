@@ -25,7 +25,7 @@ export function NavegacionInferior({ rol }: { rol: Rol }) {
       <ul className="mx-auto flex max-w-[40rem]">
         {NAVEGACION[rol].map((destino) => {
           const Icono = destino.icono;
-          const activo = destinoActivo(destino, ruta, RAIZ[rol]);
+          const activo = destinoActivo(destino, ruta, RAIZ[rol], NAVEGACION[rol]);
           const contenido = (
             <>
               <Icono className="size-6" aria-hidden="true" />
@@ -82,7 +82,7 @@ export function NavegacionLateral({ rol }: { rol: Rol }) {
       <ul ref={lista} className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {NAVEGACION[rol].map((destino) => {
           const Icono = destino.icono;
-          const activo = destinoActivo(destino, ruta, RAIZ[rol]);
+          const activo = destinoActivo(destino, ruta, RAIZ[rol], NAVEGACION[rol]);
           const contenido = (
             <>
               <Icono className="size-5 shrink-0" aria-hidden="true" />

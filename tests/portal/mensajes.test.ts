@@ -15,6 +15,7 @@ const errores: string[] = [
   mensajes.MENSAJE_SESION_NO_CONFIRMADA,
   mensajes.MENSAJE_CUENTA_TARDA,
   mensajes.MENSAJE_SESION_VENCIDA,
+  mensajes.MENSAJE_SESION_VENCIDA_RESERVA,
   mensajes.MENSAJE_DEMASIADOS_INTENTOS,
   mensajes.MENSAJE_ANTIBOTS,
   mensajes.MENSAJE_ERROR_INESPERADO,
@@ -22,6 +23,7 @@ const errores: string[] = [
   mensajes.MENSAJE_CANCELACION_TARDIA,
   mensajes.MENSAJE_CITA_NO_ENCONTRADA,
   mensajes.MENSAJE_CITA_YA_CANCELADA,
+  mensajes.MENSAJE_CITA_NO_CANCELABLE,
 ];
 
 test("el texto de la doble reserva coincide carácter a carácter con el del PRD", () => {
@@ -36,7 +38,8 @@ test("el portal no vuelve a escribir el literal de la doble reserva", () => {
 });
 
 // Formas de tuteo (segunda persona del singular) que no deben aparecer: el trato es de usted.
-const TUTEO = /\b(tú|tu|tus|ti|contigo|eres|tienes|puedes|debes|quieres|necesitas|ingresa|elige|selecciona|revisa|espera|intenta|cierra|toca|vuelve|comunícate|haz|ve|cancela|reserva)\b/i;
+// «reserva» solo cuenta como orden si no es el sustantivo («terminar su reserva»).
+const TUTEO = /\b(tú|tu|tus|ti|contigo|eres|tienes|puedes|debes|quieres|necesitas|ingresa|elige|selecciona|revisa|espera|intenta|cierra|toca|vuelve|comunícate|haz|ve|cancela|(?<!su )reserva)\b/i;
 
 test("el detector de tuteo detecta el tuteo", () => {
   for (const tuteo of ["Ingresa tu correo", "Puedes cancelar tu cita", "Elige otro horario", "Comunícate con la clínica"]) {
@@ -59,7 +62,7 @@ test("ningún texto muestra códigos de error ni jerga técnica", () => {
 
 test("todo error termina diciendo qué hacer", () => {
   // La última oración trae un verbo de acción en la forma de usted.
-  const accion = /\b(Intente|Elija|Espere|Cierre|Comuníquese|comuníquese|Revise|Toque|Ingrese|Vaya)\b/;
+  const accion = /\b(Intente|Elija|Espere|Cierre|Comuníquese|comuníquese|Revise|Toque|Ingrese|Inicie|Vaya|avise)\b/;
   for (const texto of errores) {
     const oraciones = texto.split(/(?<=[.!?])\s+/);
     const ultima = oraciones[oraciones.length - 1]!;
@@ -76,11 +79,25 @@ test("todo texto es una frase completa en español: empieza con mayúscula y ter
   }
 });
 
-test("la advertencia de cancelación nombra la hora límite y el plazo de 1 hora", () => {
-  const texto = mensajes.advertenciaCancelacion("09:40");
-  assert.ok(texto.includes("09:40"));
-  assert.ok(texto.includes("1 hora"));
-  assert.ok(texto.includes("clínica"));
+test("la advertencia de cancelación es la de la spec: plazo de 1 hora y hora límite", () => {
+  assert.equal(mensajes.advertenciaCancelacion("13:30"), "Podrá cancelar esta cita hasta 1 hora antes, a las 13:30.");
+});
+
+test("el aviso de una cita en menos de 1 hora dice que ya no podrá cancelarla desde el portal y pide confirmar", () => {
+  assert.match(mensajes.AVISO_CITA_PROXIMA, /menos de 1 hora/);
+  assert.match(mensajes.AVISO_CITA_PROXIMA, /ya no podrá cancelarla desde el portal/);
+  assert.match(mensajes.AVISO_CITA_PROXIMA, /Confirme solo si/);
+});
+
+test("los textos que cita la spec coinciden carácter a carácter", () => {
+  assert.equal(mensajes.MENSAJE_HORARIO_TOMADO, "El horario elegido ya no está disponible. Elija otro horario.");
+  assert.equal(mensajes.MENSAJE_SESION_VENCIDA_RESERVA, "Su sesión venció. Inicie sesión de nuevo para terminar su reserva.");
+  assert.equal(
+    mensajes.MENSAJE_CANCELACION_TARDIA,
+    "Ya no es posible cancelar esta cita porque falta menos de 1 hora. Si no puede asistir, avise a la clínica.",
+  );
+  assert.ok(mensajes.MENSAJE_CITA_NO_ENCONTRADA.startsWith("No encontramos esa cita"));
+  assert.ok(mensajes.MENSAJE_SIN_CITAS.startsWith("Todavía no tiene citas"));
 });
 
 test("el mensaje de registro rechazado es el de la spec y no revela qué dato falló", () => {

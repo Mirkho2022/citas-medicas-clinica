@@ -122,6 +122,30 @@ select pf.rol, count(*)
  group by pf.rol;
 ```
 
+### Rendimiento de la búsqueda de horarios del portal (H4, tarea 6.2)
+
+`node scripts/medir-busqueda-portal.ts` mide, con `EXPLAIN (ANALYZE, BUFFERS)`, las dos consultas más calientes del portal sobre un volumen
+sintético y **sin dejar datos** (todo en una transacción que termina en `ROLLBACK`). Corre contra la URL directa de un branch de desarrollo
+(`DATABASE_URL_PRUEBAS`, nunca producción; se niega si el host coincide con `DATABASE_URL_PRODUCCION`). `slots_disponibles()` comprueba el rol de la
+sesión y aquí no hay JWT: el script usa una copia temporal con el mismo cuerpo y sin esa comprobación (la función real es `SECURITY DEFINER`, así que
+medir como dueño es representativo del costo en la base).
+
+**Resultado (2026-10-25, branch `dev`, 40 médicos de una misma especialidad, 4 000 pacientes, 44 200 citas, 25 repeticiones; tiempo de ejecución en la base,
+sin la latencia de red entre Vercel y Neon):**
+
+| Consulta (`lib/portal/consultas.ts`) | p50 | p95 | máx | Objetivo p95 < 500 ms |
+|---|---|---|---|---|
+| `diasDelMedico`: 30 días con cuántos horarios libres de un médico | 41,6 ms | 48,5 ms | 77,6 ms | cumple |
+| `medicosDeEspecialidad`: próximo horario de cada médico de la especialidad (40 médicos) | 388,9 ms | 413,5 ms | 420,5 ms | cumple, con poco margen |
+
+- **Plan de «días»:** `generate_series` de 30 días con `LATERAL slots_disponibles`; por día, un `Nested Loop Anti Join` de `slots_agenda` contra las citas
+  vigentes del médico (`Bitmap Index Scan` sobre `citas_sin_cruce_medico`, ~375 filas, materializado una vez); 206 bloques en caché, sin lecturas de disco.
+- **Plan de «próximo horario»:** el mismo cálculo por médico, con `LIMIT 1` ordenado por inicio, de modo que se detiene en el primer día con horarios; cuesta
+  ~10 ms por médico (7 180 bloques en caché para 40). **Crece de forma lineal con el número de médicos de la especialidad**: con 40 médicos queda en 413 ms, y una
+  clínica real tiene unos pocos por especialidad (con 8, unos 80 ms).
+- **Decisión:** se mantiene el horizonte de 30 días y la consulta sin función agregada nueva (D6). Si alguna especialidad llegara a pasar de unos 40 médicos, reducir el
+  horizonte a 14 días o pedir a H3 una función agregada; la latencia de red hacia Neon se suma a estas cifras y se mide en el preview.
+
 ## Escribir una prueba pgTAP
 
 - El archivo trae **solo el cuerpo pgTAP** (`select plan(n); ...; select * from finish();`). El runner

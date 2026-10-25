@@ -74,7 +74,26 @@ export async function iniciarSesion(
   opciones: { totpSecret?: string } = {},
 ): Promise<void> {
   await enviarCredenciales(page, email, password);
+  await atravesarPasosIntermedios(page, opciones);
+}
 
+// Igual que `iniciarSesion`, pero sobre la pantalla de inicio de sesión que YA está abierta (sin navegar a /iniciar-sesion, que perdería el
+// `redirect_url` con el que Clerk devuelve a la persona adonde estaba).
+export async function iniciarSesionEnLaPantalla(
+  page: Page,
+  email: string,
+  password: string,
+  opciones: { totpSecret?: string } = {},
+): Promise<void> {
+  await page.locator('input[name="identifier"]').fill(email);
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
+  await page.locator('input[name="password"]').fill(password);
+  await page.locator(BOTON_PRINCIPAL_CLERK).click();
+  await atravesarPasosIntermedios(page, opciones);
+}
+
+// Atraviesa los pasos que Clerk pida tras las credenciales (client trust y TOTP) hasta salir de /iniciar-sesion.
+async function atravesarPasosIntermedios(page: Page, opciones: { totpSecret?: string }): Promise<void> {
   const campoCodigo = page.locator(CAMPO_CODIGO_CLERK);
   const pasoIntermedioOFin = (u: URL) =>
     u.pathname.includes("client-trust") ||
