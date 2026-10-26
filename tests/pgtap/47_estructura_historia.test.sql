@@ -19,7 +19,7 @@ select is_empty(
 
 select columns_are('public', 'atenciones', array[
   'id', 'historia_id', 'paciente_id', 'cita_id', 'medico_id', 'motivo_consulta', 'anamnesis',
-  'examen_fisico', 'diagnosticos', 'plan_tratamiento', 'firmada_en', 'creado_en'
+  'examen_fisico', 'diagnosticos', 'plan_tratamiento', 'firmada_en', 'creado_en', 'firma_metodo', 'firma_huella'
 ], 'atenciones: solo referencias por identificador y contenido clínico');
 
 select columns_are('public', 'historias_clinicas', array['id', 'paciente_id', 'numero', 'creado_en'],
