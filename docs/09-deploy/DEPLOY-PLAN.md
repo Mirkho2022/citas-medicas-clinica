@@ -114,3 +114,18 @@ Corrección (autorizada): se reemplazó solo la variable de Production por la UR
 - Las cuentas de administrativo, médico y enfermera del profesor llegan a «Configure su autenticación de múltiple factor» tras la contraseña, como exige la regla de MFA del personal.
 - No se probó la reserva ni la cancelación **automatizadas** en producción: BotID rechaza correctamente a Playwright allí (la excepción de pruebas no existe en Production). Esas rutas las cubre la suite E2E contra el preview y la prueba manual del profesor.
 - Aún se ve una advertencia de seguridad abierta: `DATABASE_URL` sigue en Vercel (pendiente 3).
+
+### Segundo despliegue del 2026-10-25/26: paneles del médico y la enfermera (PR #23)
+
+| Acción | Resultado |
+|---|---|
+| Revisión `code-review` sobre lo clínico (RLS, acceso, firma) | Sin fugas ni escalada; 2 hallazgos altos y varios menores; ver SEC-10 a SEC-17 en el informe de seguridad. Corregidos SEC-10 y SEC-14; SEC-11 mitigado con un aviso de «solo datos ficticios» |
+| Vercel falló 3 veces al construir el preview (`next/font/google` no resolvía con Turbopack) | Causa: caché de construcción corrupta, probablemente por el redespliegue manual anterior. Un despliegue con `--force` sin caché pasó. Se fijó `VERCEL_FORCE_NO_BUILD_CACHE=1` en Production y Preview. **Pendiente: retirarla** tras un par de despliegues sanos |
+| CI del PR #23 | Pasó: typecheck-lint-build, `migrar` (migraciones y pgTAP completo en un branch efímero), E2E y Vercel. Antes se corrigieron dos pruebas E2E (el enlace «Asignar» de la semana y el número de enlaces de la navegación) |
+| Fusión del PR #23 (commit `cdcf667`) | Autorizada y ejecutada. `Migrar producción`: éxito, 44 migraciones aplicadas (última: `1792900500000_firmar-atencion`) |
+| Despliegue de Production | `READY` en `cdcf667` |
+| Verificación en producción con sesiones reales (TOTP) | Médica: «Mi jornada», «Mis pacientes», historia clínica y «Nueva atención» cargan sin errores; enfermera: «Mi turno» con sus turnos y la médica con quien trabaja; administrativo: «Turnos de enfermería» y «Agenda del día» cargan. No se firmó ninguna atención de prueba: una atención firmada no se puede borrar |
+
+Cuentas de revisión: 4 principales (una por rol) y 3 ficticias adicionales, todas con datos sintéticos. Las del personal tienen TOTP configurado; sus secretos y
+contraseñas se entregan fuera del repositorio. Tras la evaluación hay que eliminar estas cuentas en Clerk.
+
