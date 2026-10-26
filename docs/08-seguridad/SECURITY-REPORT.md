@@ -150,6 +150,14 @@ Tras el pase se aplicaron los tres arreglos de menor costo. Los hallazgos de arr
 | SEC-05, 06, 07, 09 | Abiertos | Sin cambios. | — |
 | SEC-08 | Corregido antes del pase | Migración `1792536300000`. | pgTAP 916 pruebas, 0 fallos. |
 
+**Verificado en producción tras el despliegue del 2026-10-25:** la respuesta de `/iniciar-sesion` trae las cabeceras de SEC-04, `/api/salud` funciona con el rol `authenticator` y `npm audit --omit=dev` ya no lista `next`.
+
+**Pendiente de SEC-03:** borrar `DATABASE_URL` (rol dueño) de los entornos Production y Preview de Vercel; falta la autorización explícita.
+
+**Hallazgo nuevo al verificar (corregido):** el entorno Production de Vercel leía la base `dev` en lugar de `production` (`DATABASE_AUTHENTICATED_URL` apuntaba al branch equivocado). Es un fallo de configuración, no de código: no filtraba datos reales (ambas bases tienen solo datos sintéticos), pero habría roto el registro de pacientes nuevos y mezclaba los datos de producción con los de pruebas. Se corrigió y está registrado en el [plan de despliegue](../09-deploy/DEPLOY-PLAN.md).
+
+**Se suma a SEC-09:** las URLs de conexión de los roles `neondb_owner` y `authenticator` se mostraron en la conversación de trabajo al sembrar y corregir producción. Conviene rotar ambas contraseñas (orden en el plan de despliegue, «Autorizaciones pendientes»).
+
 ## Gobernanza / Decisión requerida
 
 - **SEC-02 (PRODUCT / REQUIREMENT CHANGE):** el cliente debe decidir qué verifica la titularidad de un documento nuevo en el autorregistro, o aceptar el riesgo de forma explícita. No se resuelve en código sin esa decisión. Es la misma pregunta abierta Q3 del backlog.
