@@ -35,6 +35,7 @@ export const NAVEGACION: Record<Rol, Destino[]> = {
     { ruta: "/administrativo/pacientes", etiqueta: "Pacientes", icono: Users, disponible: true },
     { ruta: "/administrativo/horarios", etiqueta: "Horarios", icono: Clock, disponible: true },
     { ruta: "/administrativo/bajas", etiqueta: "Bajas médicas", icono: TriangleAlert, disponible: true },
+    { ruta: "/administrativo/turnos", etiqueta: "Turnos de enfermería", icono: ClipboardList, disponible: true },
     { ruta: "/administrativo/notificaciones", etiqueta: "Notificaciones", icono: Bell, disponible: false },
   ],
   medico: [
