@@ -14,9 +14,12 @@
     "test:e2e": "playwright test",
     "test:pgtap": "node scripts/ejecutar-pgtap.ts",
     "test:agenda": "node --test \"tests/agenda/*.test.ts\"",
+    "test:atencion": "node --test \"tests/atencion/*.test.ts\"",
     "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
+    "test:historia": "node --test \"tests/historia/*.test.ts\"",
     "test:integracion": "node --test \"tests/integracion/*.test.ts\"",
     "test:portal": "node --test \"tests/portal/*.test.ts\"",
+    "test:turnos-dashboard": "node --test \"tests/turnos-dashboard/*.test.ts\"",
     "test:tema": "node --test \"tests/tema/*.test.ts\""
   },
   "dependencies": {

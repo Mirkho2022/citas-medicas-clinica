@@ -8,17 +8,27 @@ separado (mensaje directo o correo) junto con el enlace.
   crear, reservar, cancelar y probar con libertad.
 - **Zona horaria:** todas las fechas y horas se muestran en `America/Lima`.
 
-## Las cuatro cuentas
+## Las cuentas
+
+Cuentas principales (una por rol):
 
 | Rol | Usuario | Qué verá |
 |---|---|---|
 | Paciente | `profesor.paciente+clerk_test@example.com` | Portal de autoservicio: inicio, buscar y reservar cita, «Mis citas», cancelar |
-| Administrativo | `profesor.administrativo+clerk_test@example.com` | Agenda del día, agendar, reprogramar y cancelar citas de cualquier paciente, pacientes, horarios de los médicos y bajas médicas con reasignación |
-| Médico | `profesor.medico+clerk_test@example.com` | Su panel (la jornada y las historias clínicas son de los hitos H6 y H7, aún sin construir) |
-| Enfermera | `profesor.enfermera+clerk_test@example.com` | Su panel (los turnos son del hito H7, aún sin construir) |
+| Administrativo | `profesor.administrativo+clerk_test@example.com` | Agenda del día, agendar, reprogramar y cancelar citas de cualquier paciente, pacientes, horarios, bajas médicas con reasignación y **turnos de enfermería** |
+| Médico | `profesor.medico+clerk_test@example.com` | «Mi jornada» (horario, bloqueos y citas confirmadas, con «Marcar atendida»), «Mis pacientes», historia clínica de sus pacientes y registro y firma de atenciones |
+| Enfermera | `profesor.enfermera+clerk_test@example.com` | «Mi turno»: su turno de hoy a 14 días y el médico y la especialidad con quien trabaja |
 
-Para ver **todo lo que existe hoy**, las cuentas que importan son **Paciente** y **Administrativo**. Las de médico y enfermera sirven para
-comprobar que cada rol solo entra a su propia área.
+Cuentas ficticias adicionales, para comprobar que cada persona ve solo lo suyo (cada una está enlazada a una persona de demostración):
+
+| Rol | Usuario | Persona de demostración |
+|---|---|---|
+| Médica | `medica.lucia.paredes+clerk_test@example.com` | Lucía Paredes Ruiz (CMP-DEMO-002), con **otros** pacientes a cargo que el médico principal |
+| Paciente | `paciente.luis.fernandez+clerk_test@example.com` | Luis Fernández Mori (DNI 99000002) |
+| Enfermera | `enfermera.elena.soto+clerk_test@example.com` | Elena Soto Cruz, con sus propios turnos |
+
+Ideas de comparación: entrar como el médico principal y como la médica y comprobar que «Mis pacientes» difiere; entrar como las dos enfermeras y ver
+turnos distintos; abrir una historia a mano con la dirección de un paciente que no es suyo y comprobar que responde «no encontrado» igual que si no existiera.
 
 ## Cómo iniciar sesión
 
@@ -38,7 +48,12 @@ comprobar que cada rol solo entra a su propia área.
 - Probar un registro nuevo con otro correo (el sistema pide documento, nombres, fecha de nacimiento y sexo; acepta DNI de 8 dígitos o
   Carné de Extranjería y rechaza formatos inválidos).
 
+**Como médico**
+- Ver «Mi jornada» y marcar atendida una cita confirmada que ya empezó.
+- Abrir «Mis pacientes», entrar a una historia (cada apertura queda auditada), registrar una atención con diagnósticos, guardarla como borrador, firmarla y agregar una addenda. Una atención firmada ya no se puede modificar.
+
 **Como administrativo**
+- Asignar un turno de enfermería (el sistema avisa si el médico tiene una baja ese día y rechaza un choque de turnos).
 - Ver la agenda del día por médico, con las citas y los huecos libres.
 - Agendar una cita a un paciente, reprogramarla y cancelarla.
 - Registrar y buscar pacientes por documento.
@@ -56,8 +71,9 @@ comprobar que cada rol solo entra a su propia área.
 
 ## Qué todavía no existe (para no buscarlo)
 
-- Recordatorios por correo (H5), historias clínicas electrónicas (H6), turnos de enfermería y dashboard (H7), importación y respaldo (H8).
-  Están especificados en [`openspec/changes/`](../../openspec/changes/) pero sin implementar. Los paneles de médico y enfermera lo avisan.
+- Recordatorios por correo (H5), adjuntos escaneados, catálogo CIE-10 completo (hay un subconjunto de demostración), plantillas por especialidad,
+  dashboard del administrativo, importación y respaldo (H8). Están especificados en [`openspec/changes/`](../../openspec/changes/).
+- El bloqueo técnico de datos clínicos reales (P-1) no está construido: por eso las páginas del médico muestran el aviso «use solo datos ficticios».
 
 ## Dónde mirar el trabajo
 

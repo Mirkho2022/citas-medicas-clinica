@@ -35,16 +35,15 @@ export const NAVEGACION: Record<Rol, Destino[]> = {
     { ruta: "/administrativo/pacientes", etiqueta: "Pacientes", icono: Users, disponible: true },
     { ruta: "/administrativo/horarios", etiqueta: "Horarios", icono: Clock, disponible: true },
     { ruta: "/administrativo/bajas", etiqueta: "Bajas médicas", icono: TriangleAlert, disponible: true },
+    { ruta: "/administrativo/turnos", etiqueta: "Turnos de enfermería", icono: ClipboardList, disponible: true },
     { ruta: "/administrativo/notificaciones", etiqueta: "Notificaciones", icono: Bell, disponible: false },
   ],
   medico: [
-    { ruta: "/medico", etiqueta: "Inicio", icono: House, disponible: true },
-    { ruta: "/medico/jornada", etiqueta: "Mi jornada", icono: Stethoscope, disponible: false },
-    { ruta: "/medico/pacientes", etiqueta: "Mis pacientes", icono: Users, disponible: false },
+    { ruta: "/medico", etiqueta: "Mi jornada", icono: Stethoscope, disponible: true },
+    { ruta: "/medico/pacientes", etiqueta: "Mis pacientes", icono: Users, disponible: true },
   ],
   enfermera: [
-    { ruta: "/enfermera", etiqueta: "Inicio", icono: House, disponible: true },
-    { ruta: "/enfermera/turno", etiqueta: "Mi turno", icono: ClipboardList, disponible: false },
+    { ruta: "/enfermera", etiqueta: "Mi turno", icono: ClipboardList, disponible: true },
   ],
 };
 

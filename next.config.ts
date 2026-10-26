@@ -14,7 +14,13 @@ const cabecerasDeSeguridad = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: cabecerasDeSeguridad }];
+    return [
+      { source: "/:path*", headers: cabecerasDeSeguridad },
+      // Contenido clínico (historias-clinicas, 6.3): ninguna caché, ni del navegador ni compartida, guarda una respuesta de historia
+      // clínica, atención o adjunto (specs/acceso-a-historia-clinica, «El contenido clínico no se escapa por canales laterales»).
+      { source: "/medico/pacientes/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/api/historias/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+    ];
   },
 };
 
