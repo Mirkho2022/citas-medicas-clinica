@@ -146,6 +146,23 @@ sin la latencia de red entre Vercel y Neon):**
 - **Decisión:** se mantiene el horizonte de 30 días y la consulta sin función agregada nueva (D6). Si alguna especialidad llegara a pasar de unos 40 médicos, reducir el
   horizonte a 14 días o pedir a H3 una función agregada; la latencia de red hacia Neon se suma a estas cifras y se mide en el preview.
 
+## Pruebas del registro y la firma de atenciones (historias-clinicas, grupos 3, 7 y 8)
+
+Numeradas 90 a 94 (el 99 sigue siendo el último). Las migraciones que prueban son `1792900…` (`cie10-subconjunto-inicial`, `validar-diagnosticos`,
+`sello-y-huella-de-atenciones`, `coherencia-de-cita`, `acceso-medico-con-perfil-activo` y `firmar-atencion`).
+
+| Archivo | Qué prueba |
+|---|---|
+| `90_validar_diagnosticos` | cada diagnóstico debe existir en `cie10` (`HC001`: inexistente, repetido, entrada que no es objeto o sin código); la descripción se sobrescribe con la del catálogo y se descartan las claves ajenas; `tipo` opcional en la base pero, si viene, solo `presuntivo`, `definitivo` o `repetitivo` (`23514`); lista vacía y objeto siguen rechazados por el CHECK; el `UPDATE` del borrador revalida; un cambio posterior del catálogo no altera lo ya guardado; el médico no puede falsear la descripción |
+| `91_sello_y_huella` | `creado_en` (atenciones, addendas, antecedentes) y `firmada_en` los fija el servidor aunque el médico envíe el pasado o el futuro; el dueño (siembra) conserva sus fechas pero obtiene método `logica` y huella `v1:` SHA-256; la huella coincide con su recálculo y deja de coincidir si cambia la anamnesis, los diagnósticos, la fecha de firma, el autor, la plantilla o los datos de especialidad (esas dos columnas aún no existen: se añaden solo dentro de la transacción de prueba y se verifica que la huella `v1` ya guardada sigue siendo verificable); el médico no escribe `firma_metodo` ni `firma_huella`; otro médico a cargo, administrativo, enfermera, paciente y sin rol no firman |
+| `92_coherencia_de_cita` | `HC003` si la cita es de otro médico o de otro paciente (también al insertar a nombre propio una cita de un colega); cita nula admitida; segunda atención para la misma cita `23505`; firmar no cambia el estado de la cita; el médico no puede mover la cita de una atención existente; administrativo y paciente no registran |
+| `93_acceso_perfil_activo` | `medico_tiene_paciente()` también exige `perfiles.activo`: con el perfil desactivado (y `medicos.activo` y la asignación vigentes) el médico pierde atenciones, historia, antecedentes, registro de accesos y firma; al reactivarlo los recupera; un médico dado de baja sigue sin acceso |
+| `94_registro_firma_y_addendas` | registrar con la historia resuelta bajo RLS y el médico tomado de la sesión (paciente ajeno: cero filas; a nombre de otro: `42501`); atomicidad de «guardar y firmar» (si `firmar_atencion()` falla no queda atención); firmar solo por el autor, una vez, con los mensajes de la regla y sin revelar atenciones ajenas; addendas (autor propio, solo sobre firmadas, sin contenido rechazada, no se editan ni eliminan); otro médico a cargo agrega su addenda pero no firma ni edita el borrador del colega; administrativo, enfermera, paciente y sin rol no leen ni escriben; `EXECUTE` de las funciones nuevas solo para `authenticated` |
+
+Los documentos de paciente son `799…` y los `cmp` `CMP-90-…` a `CMP-94-…`. La suite no asume tablas vacías. Verificación por mutación (tarea 11.2): cada regla de estas migraciones
+(existencia en el catálogo, sobrescritura de la descripción, repetidos, sellado de `firmada_en` y de `creado_en`, huella fija o sin un campo, `HC003`, `perfiles.activo`,
+`firmar_atencion()` que no falla) se debilitó a propósito y al menos una prueba falló; las pruebas de unidad de `tests/atencion/` tienen su propia mutación (`npm run test:atencion`).
+
 ## Escribir una prueba pgTAP
 
 - El archivo trae **solo el cuerpo pgTAP** (`select plan(n); ...; select * from finish();`). El runner
