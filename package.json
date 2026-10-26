@@ -17,6 +17,7 @@
     "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
     "test:integracion": "node --test \"tests/integracion/*.test.ts\"",
     "test:portal": "node --test \"tests/portal/*.test.ts\"",
+    "test:turnos-dashboard": "node --test \"tests/turnos-dashboard/*.test.ts\"",
     "test:tema": "node --test \"tests/tema/*.test.ts\""
   },
   "dependencies": {
