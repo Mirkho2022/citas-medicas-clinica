@@ -73,9 +73,9 @@ test("consola del personal a 1280 px: barra lateral de 240 px y destinos futuros
 
   const navegacion = page.getByRole("navigation", { name: "Principal" });
   await expect(navegacion.getByRole("link", { name: "Inicio" })).toHaveAttribute("aria-current", "page");
-  // Los destinos que construye H3 son enlaces; los de hitos futuros (Notificaciones) no lo son: no llevan a rutas que responden 404.
-  await expect(navegacion.getByRole("link")).toHaveCount(5);
-  for (const destino of ["Agenda", "Pacientes", "Horarios", "Bajas médicas"]) {
+  // Los destinos que construyen H3 y H7 (turnos) son enlaces; los de hitos futuros (Notificaciones) no lo son: no llevan a rutas que responden 404.
+  await expect(navegacion.getByRole("link")).toHaveCount(6);
+  for (const destino of ["Agenda", "Pacientes", "Horarios", "Bajas médicas", "Turnos de enfermería"]) {
     await expect(navegacion.getByRole("link", { name: destino })).toBeVisible();
   }
   await expect(navegacion.getByText("Próximamente")).toHaveCount(1);

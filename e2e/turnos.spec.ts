@@ -45,14 +45,14 @@ test("administrativo: asigna, ve, choca, cambia a un servicio, quita; y sin méd
   });
 
   await abrirSemana(page);
-  const asignar = page.getByRole("link", { name: /^Asignar/ }).first();
-  test.skip(!(await asignar.isVisible().catch(() => false)), "Sin datos de demostración (hace falta una enfermera activa): ver docs/07-testing/datos-demo.md");
+  const asignar = page.locator('a[href*="/turnos/nuevo?enfermera="]').first();
+  test.skip(!(await asignar.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false)), "Sin datos de demostración (hace falta una enfermera activa): ver docs/07-testing/datos-demo.md");
   await quitarSiExiste(page); // por si una corrida anterior se interrumpió
 
   try {
     await test.step("asigna un turno de mañana con un médico y lo ve en la semana", async () => {
       await abrirSemana(page);
-      await page.getByRole("link", { name: /^Asignar/ }).first().click();
+      await page.locator('a[href*="/turnos/nuevo?enfermera="]').first().click();
       await expect(page.getByRole("heading", { name: "Asignar turno", level: 1 })).toBeVisible();
       const medico = page.locator("#turno-medico");
       await medico.selectOption({ index: 1 });
@@ -65,7 +65,7 @@ test("administrativo: asigna, ve, choca, cambia a un servicio, quita; y sin méd
     });
 
     await test.step("asignar el mismo turno otra vez muestra el choque y no duplica", async () => {
-      await page.getByRole("link", { name: /^Asignar/ }).first().click();
+      await page.locator('a[href*="/turnos/nuevo?enfermera="]').first().click();
       await page.locator("#turno-medico").selectOption({ index: 1 });
       await page.getByRole("button", { name: "Asignar turno" }).click();
       await expect(page.getByText("La enfermera ya tiene un turno asignado en esa fecha y franja")).toBeVisible();
