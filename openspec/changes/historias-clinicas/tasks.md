@@ -178,20 +178,20 @@ Convenciones de todo el change (leer antes de empezar):
 
 ## 4. Acceso a datos clínicos y auditoría de accesos
 
-- [ ] 4.1 Migración `accesos-historia-tipo`: columnas `tipo_acceso` (`historia`, `atencion`, `adjunto`; por defecto `historia`)
-      y `adjunto_id` en `accesos_historia`. Verificar que se aplica sin tocar las filas existentes.
-- [ ] 4.2 Prueba pgTAP `tests/pgtap/56_accesos_historia_tipo.test.sql`: cada tipo permitido se inserta, uno no permitido falla
+- [x] 4.1 Migración `accesos-historia-tipo`: columnas `tipo_acceso` (`historia`, `atencion`, `adjunto`; por defecto `historia`)
+      y `adjunto_id` en `accesos_historia`. Verificar que se aplica sin tocar las filas existentes. **Resultado:** migración `1792800000000_accesos-historia-tipo.sql` aplicada a la base de desarrollo; además de las dos columnas añade el CHECK de tipos, un CHECK de coherencia tipo/recurso (`NOT VALID`), una política de inserción que exige que la atención citada exista y sea del paciente, y el `INSERT` del médico pasa a ser por columnas (la hora y el id los pone la base).
+- [x] 4.2 Prueba pgTAP `tests/pgtap/56_accesos_historia_tipo.test.sql`: cada tipo permitido se inserta, uno no permitido falla
       con `23514`; negativos: médico sin asignación, médico a nombre de otro, administrativo, paciente y enfermera no insertan;
-      médico, paciente y enfermera no leen; el administrativo lee; sigue siendo solo-agregar. Verificar que pasa y que 52 sigue
+      médico, paciente y enfermera no leen; el administrativo lee; sigue siendo solo-agregar. **Resultado:** archivo `tests/pgtap/85_accesos_historia_tipo.test.sql` (numeración 85 por el reparto entre agentes): 42 pruebas, 0 fallos, verificado por mutación (3 mutaciones, cada una hace fallar de 4 a 10 pruebas); la 52 sigue en verde. Verificar que pasa y que 52 sigue
       en verde.
 - [ ] 4.3 `lib/historias/guardia.ts` (`auth.protect()`, `exigirRol("medico")`, MFA) y `lib/historias/repositorio.ts` con
       ejecutor inyectable: `listarPacientesACargo`, `abrirHistoria` y `abrirAtencion`, cada una en una sola transacción
       (modo → acceso → lectura) y con el manejo de `42501` descrito en D2. Pruebas `node:test` con ejecutor simulado:
-      el orden de sentencias, que si la inserción de acceso lanza no se devuelve contenido, y que el modo va siempre primero.
+      el orden de sentencias, que si la inserción de acceso lanza no se devuelve contenido, y que el modo va siempre primero. **Resultado parcial (sin marcar):** hecho en `lib/historia/{guardia-base,guardia,repositorio}.ts` (carpeta `lib/historia/`, singular) con `abrirHistoria`, `abrirAtencion` y `listarPacientesACargo` (esta no registra acceso: no entrega contenido clínico), 27 pruebas `node:test` y 13 de integración contra la base real. Falta el paso «modo» (grupo 1): el repositorio tiene un único punto, `preludio()`, donde debe ir `exigir_modo_clinico`, y falta su prueba «el modo va siempre primero».
       Verificar que pasan.
-- [ ] 4.4 `tests/historias/acceso-unico.test.ts`: falla si algún archivo de `app/`, `lib/` o `components/` fuera de
+- [x] 4.4 `tests/historias/acceso-unico.test.ts`: falla si algún archivo de `app/`, `lib/` o `components/` fuera de
       `lib/historias/` contiene SQL contra las tablas clínicas, de asignaciones o de accesos. Verificar que pasa y que falla
-      al añadir temporalmente una consulta en otro archivo (revertida).
+      al añadir temporalmente una consulta en otro archivo (revertida). **Resultado:** `tests/historia/acceso-unico.test.ts` (la carpeta es `tests/historia/`); el detector se prueba con SQL de ejemplo y permite `lib/historia/` y, de forma transitoria, `lib/atencion/` (módulo de registro de otro grupo del change).
 - [ ] 4.5 Pantalla `app/administrativo/accesos-historia/page.tsx` (`auth.protect()`, `exigirRol("administrativo")`, MFA):
       filtros por documento del paciente, médico y rango de fechas, paginación, hora de Lima y sin contenido clínico; activar
       el destino en `lib/ui/navegacion.ts`. Verificar con `npm run typecheck` y `npm run lint`; su E2E se cubre en 6.4.
@@ -223,19 +223,19 @@ Convenciones de todo el change (leer antes de empezar):
 ## 6. Lectura: lista de pacientes e historia clínica
 
 - [ ] 6.1 `app/medico/pacientes/page.tsx`: lista de pacientes a cargo con búsqueda por apellidos, nombres o documento; activar
-      «Pacientes» en la navegación. Verificar con `npm run typecheck`, `npm run lint` y la regla de protección de Clerk.
+      «Pacientes» en la navegación. Verificar con `npm run typecheck`, `npm run lint` y la regla de protección de Clerk. **Resultado parcial (sin marcar):** página hecha y verificada con typecheck, lint y la regla de Clerk; falta activar «Mis pacientes» en `lib/ui/navegacion.ts` (lo integra el coordinador).
 - [ ] 6.2 `app/medico/pacientes/[pacienteId]/page.tsx`: ficha de solo lectura (texto, sin controles), antecedentes vigentes por
       tipo, atenciones paginadas con sus addendas (borradores de otro médico etiquetados «Borrador sin firmar»), «Diagnósticos
       registrados» (D12) y los estados «historia aún no habilitada», «no encontrada» (`notFound()`) y «módulo no disponible».
-      Verificar con `npm run typecheck` y revisión visual con datos de demostración.
+      Verificar con `npm run typecheck` y revisión visual con datos de demostración. **Resultado parcial (sin marcar):** página y componentes hechos (typecheck, lint, build y tema en verde; sin adjuntos). Falta el estado «módulo no disponible» (grupo 1) y la revisión visual con una sesión de médico, que no se pudo hacer (el médico de pruebas exige TOTP y su secreto no está en el entorno). La página espera la lectura antes de dibujar para que el 404 sea un estado HTTP real.
 - [ ] 6.3 `Cache-Control: private, no-store` en `next.config.ts` para `/medico/pacientes/:path*` y `/api/historias/:path*`,
       páginas dinámicas, título «Historia clínica» y direcciones solo con `uuid`. Verificar con `curl -I` contra `next start`
-      y con una prueba E2E de cabeceras y título.
+      y con una prueba E2E de cabeceras y título. **Resultado parcial (sin marcar):** `next.config.ts` y el `curl -I` contra `next start` verificados (`Cache-Control: private, no-store`); título, páginas dinámicas y direcciones con `uuid` hechos; la prueba E2E (`e2e/historia-lectura.spec.ts`) está escrita pero no se ejecutó.
 - [ ] 6.4 E2E `e2e/historias-acceso.spec.ts` (con la base sembrada según `docs/07-testing/datos-demo.md`; si no hay datos se omite con un
       mensaje explícito): el médico abre su paciente y el administrativo ve el acceso registrado; un paciente ajeno devuelve 404
       igual que uno inexistente; administrativo, paciente y enfermera son redirigidos sin ver contenido; sin sesión redirige;
       se ve el aviso de demostración; las cabeceras son las esperadas. Prueba de unidad de la guardia para «sin MFA». axe sobre
-      lista e historia. Verificar que pasan.
+      lista e historia. Verificar que pasan. **Resultado parcial (sin marcar):** `e2e/historia-lectura.spec.ts` escrito (lista, historia, 404 uniforme, cabeceras, título, axe, administrativo redirigido; se omite sin `E2E_MEDICO_TOTP_SECRET`) pero NO ejecutado; la unidad de la guardia «sin MFA» está en `tests/historia/guardia.test.ts` y pasa. Faltan la enfermera, el paciente, el aviso de demostración y la pantalla del administrativo.
 - [ ] 6.5 Documentar en `docs/07-testing/pruebas-e2e.md` los datos y cuentas que requieren estas pruebas. Verificar los enlaces.
 - [ ] 6.6 Revisión con el agente `code-review` de las rutas de lectura (canales laterales, 404 uniforme, caché, orden de
       sentencias). Verificar que los hallazgos quedan resueltos o justificados.
