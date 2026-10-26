@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import type pg from "pg";
-import { MENSAJE_NO_AUTORIZADO } from "../../lib/acciones/resultado.ts";
+import { MENSAJE_NO_AUTORIZADO, type ResultadoAccion } from "../../lib/acciones/resultado.ts";
 import { MENSAJE_TRANSICION } from "../../lib/citas/errores.ts";
 import { marcarAtendida } from "../../lib/citas/transiciones.ts";
 import { hoyLima, inicioDiaLima, instanteDesdeLima } from "../../lib/fechas/lima.ts";
@@ -115,7 +115,7 @@ after(async () => {
 });
 
 const comoAdmin = () => ejecutorDeSesion(admin);
-const mensaje = (r: { ok: boolean } & Record<string, unknown>) => (r.ok ? null : String(r.mensaje));
+const mensaje = (r: ResultadoAccion<unknown>) => (r.ok ? null : r.mensaje);
 const filasDeTurno = async (id: string) => (await dueno.query(`select turno::text, medico_id, especialidad_id, fecha::text from public.turnos_enfermeria where id = $1`, [id])).rows;
 
 test("asignar: con médico, a un servicio, otra franja el mismo día y hoy se aceptan", async () => {
@@ -253,17 +253,17 @@ test("la jornada del médico: sus citas confirmadas con el paciente, su horario 
         [paciente, medico, inicio, new Date(inicio.getTime() + 20 * MIN), estado, motivo],
       )
     ).rows[0].id as string;
-  const citaEmpezada = await insertarCita(medico1, "confirmada", empezada, "MOTIVO-CLINICO-SECRETO sintoma A");
-  const citaFutura = await insertarCita(medico1, "confirmada", instanteDesdeLima(manana, "15:00"), "MOTIVO-CLINICO-SECRETO sintoma B");
-  const citaReservada = await insertarCita(medico1, "reservada", instanteDesdeLima(manana, "16:00"), "MOTIVO-CLINICO-SECRETO sintoma C");
-  const citaDeOtro = await insertarCita(medico2, "confirmada", instanteDesdeLima(manana, "15:00"), "MOTIVO-CLINICO-SECRETO sintoma D", paciente2);
+  const citaEmpezada = await insertarCita(medico1, "confirmada", empezada, "ZZ-MOTIVO-PRIVADO sintoma A");
+  const citaFutura = await insertarCita(medico1, "confirmada", instanteDesdeLima(manana, "15:00"), "ZZ-MOTIVO-PRIVADO sintoma B");
+  const citaReservada = await insertarCita(medico1, "reservada", instanteDesdeLima(manana, "16:00"), "ZZ-MOTIVO-PRIVADO sintoma C");
+  const citaDeOtro = await insertarCita(medico2, "confirmada", instanteDesdeLima(manana, "15:00"), "ZZ-MOTIVO-PRIVADO sintoma D", paciente2);
   await dueno.query(`delete from public.disponibilidades where medico_id = $1`, [medico1]);
   await dueno.query(
     `insert into public.disponibilidades (medico_id, dia_semana, hora_inicio, hora_fin, duracion_slot_min, vigente_desde)
      select $1, d, '09:00', '13:00', 20, '2020-01-01' from generate_series(0, 6) d`,
     [medico1],
   );
-  await dueno.query(`insert into public.bloqueos_agenda (medico_id, rango, motivo) values ($1, tstzrange($2, $3), 'MOTIVO-CLINICO-SECRETO licencia')`, [
+  await dueno.query(`insert into public.bloqueos_agenda (medico_id, rango, motivo) values ($1, tstzrange($2, $3), 'ZZ-MOTIVO-PRIVADO licencia')`, [
     medico1,
     instanteDesdeLima(manana, "08:00"),
     instanteDesdeLima(manana, "12:00"),
@@ -282,7 +282,7 @@ test("la jornada del médico: sus citas confirmadas con el paciente, su horario 
   assert.equal(jornada.dias.find((d) => d.fecha === manana)!.citas.find((c) => c.id === citaFutura)!.minutosDesdeInicio, null);
   assert.ok(jornada.dias[0]!.horarios.length === 1 && jornada.dias[0]!.horarios[0]!.inicio === "09:00");
   assert.deepEqual(jornada.dias.find((d) => d.fecha === manana)!.bloqueos, [{ inicio: "08:00", fin: "12:00", todoElDia: false }]);
-  assert.doesNotMatch(JSON.stringify(jornada), /MOTIVO-CLINICO-SECRETO|motivo/, "la jornada no lleva el motivo de la cita ni el de un bloqueo");
+  assert.doesNotMatch(JSON.stringify(jornada), /ZZ-MOTIVO-PRIVADO|motivo/, "la jornada no lleva el motivo de la cita ni el de un bloqueo");
 
   // Marcar atendida con la acción de H3 (la que usa el botón): sale de la lista; repetirlo no la cambia de nuevo.
   assert.deepEqual(await marcarAtendida(ejecutar, { cita_id: citaEmpezada }), { ok: true, datos: undefined });

@@ -190,3 +190,7 @@ Además de la lista anterior, una vez por PR que toque el portal, **sobre el pre
 - **Sesión vencida en una E2E:** borrar las cookies `__session` del navegador **no** simula una sesión vencida: Clerk las vuelve a escribir desde su token en
   memoria en menos de un segundo. La prueba termina la sesión en Clerk (`Clerk.session.end()`).
 
+- **Pruebas unitarias de turnos y jornada (H7):** `npm run test:turnos-dashboard` (`node --test "tests/turnos-dashboard/*.test.ts"`). Los archivos que trabajan con
+  fechas de Lima se repiten solos en procesos hijos con `TZ=UTC` y `TZ=Asia/Tokyo` (`tests/turnos-dashboard/_zonas.ts`); para correr TODO el conjunto con otra zona
+  del proceso, en PowerShell: `$env:TZ='Asia/Tokyo'; npm run test:turnos-dashboard`. Las E2E `e2e/enfermera.spec.ts` y `e2e/medico.spec.ts` necesitan TOTP en
+  las cuentas de enfermera y médico (`E2E_ENFERMERA_TOTP_SECRET`, `E2E_MEDICO_TOTP_SECRET`: paso manual 1.2 del change `turnos-y-dashboard`); sin ellas se omiten.

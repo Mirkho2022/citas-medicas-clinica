@@ -176,3 +176,20 @@ sin la latencia de red entre Vercel y Neon):**
   propia conexión y no reutiliza sesiones.
 - `pg_session_jwt.jwk` solo llega al arrancar la conexión y el pooler lo rechaza: por eso la URL es
   directa.
+
+## Turnos de enfermería, vista de la enfermera y jornada del médico (H7)
+
+Change [`turnos-y-dashboard`](../../openspec/changes/turnos-y-dashboard/). **Regla: toda vista de `public` es `security_invoker`** (`81_`): una vista normal
+corre con los privilegios del dueño (con `BYPASSRLS`) y se saltaría la RLS; una vista futura que la omita rompe la suite. Estos archivos usan los
+números 80 a 84 porque los sugeridos por el change (62 a 67 y 98) ya estaban ocupados; `99_` sigue siendo el último.
+
+| Archivo | Qué prueba |
+|---|---|
+| `80_turnos_con_aviso` | vista `turnos_enfermeria_con_aviso`: médico bloqueado, médico de baja y enfermera de baja (con sus causas), fronteras del día de Lima, sin motivo del bloqueo; enfermera dueña, médico, paciente y sin rol, cero filas |
+| `81_vistas_con_security_invoker` | toda vista (y ninguna vista materializada) de `public` tiene `security_invoker=true`; detecta una vista sin la opción o con ella en falso |
+| `82_turnos_escritura` | enfermera, médico, paciente y sin rol no insertan (`42501`), no modifican ni borran turnos (cero filas) y el turno queda intacto; el administrativo sí |
+| `83_vista_enfermera` | la consulta que arma la pantalla de la enfermera resuelve médico, especialidad y servicio sin política nueva; no ve turnos ajenos; cero filas en citas, pacientes, historias, atenciones, addendas, antecedentes, notificaciones, bloqueos y avisos |
+| `84_jornada_medico` | el médico ve sus citas confirmadas y el nombre de cada paciente; cero filas de citas, bloqueos y turnos ajenos, de `turnos_enfermeria`, de `turnos_enfermeria_con_aviso` y de atenciones de un paciente que no tiene a cargo; sin `UPDATE` directo de `citas`; `marcar_cita_atendida` |
+
+También `tests/integracion/turnos-enfermeria.test.ts` (el código real de `lib/turnos/` y `lib/medico/` con la sesión de cada rol) y
+`tests/concurrencia/20_turnos.test.ts` (cinco administrativos asignando a la vez la misma enfermera, fecha y franja: queda una fila).

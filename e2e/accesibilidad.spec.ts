@@ -186,3 +186,27 @@ test("las pantallas de H3 no tienen violaciones WCAG A/AA, los diálogos manejan
     expect(desborda, `${ruta} desborda a 390 px`).toBe(false);
   }
 });
+
+// H7, tarea 5.4: las pantallas de turnos de enfermería del administrativo (la semana, asignar y su formulario con errores), a 1280 px.
+test("las pantallas de turnos de enfermería no tienen violaciones WCAG A/AA", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await iniciarSesion(
+    page,
+    variable("E2E_ADMINISTRATIVO_EMAIL"),
+    variable("E2E_ADMINISTRATIVO_PASSWORD"),
+    { totpSecret: variable("E2E_ADMINISTRATIVO_TOTP_SECRET") },
+  );
+  await page.goto("/administrativo/turnos");
+  await expect(page.getByRole("heading", { name: "Turnos de enfermería", level: 1 })).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
+  await revisar(page, "/administrativo/turnos (1280 px)");
+
+  await page.goto("/administrativo/turnos/nuevo");
+  await expect(page.getByRole("heading", { name: "Asignar turno", level: 1 })).toBeVisible();
+  await revisar(page, "/administrativo/turnos/nuevo (1280 px)");
+  // con errores de validación: mensajes junto a los campos
+  await page.getByRole("button", { name: "Asignar turno" }).click();
+  await expect(page.getByRole("alert").first()).toBeVisible();
+  await revisar(page, "/administrativo/turnos/nuevo con errores (1280 px)");
+});
