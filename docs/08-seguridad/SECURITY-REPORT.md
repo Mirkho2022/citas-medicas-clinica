@@ -156,3 +156,20 @@ Tras el pase se aplicaron los tres arreglos de menor costo. Los hallazgos de arr
 - **SEC-07 (ACCEPT RISK):** ya aceptado en el ADR-0026; sin acción nueva.
 - **Bloqueo previo, ya documentado:** P-1 (retención, firma electrónica y alojamiento de datos clínicos fuera de Perú) impide usar datos clínicos reales independientemente de los hallazgos de este informe.
 - El resto de los hallazgos (SEC-01, 03, 04, 05, 06, 08, 09) son CODE FIX o PROCESS / HARNESS CHANGE y no requieren una decisión de producto o arquitectura.
+
+## Segunda revisión: paneles del médico y la enfermera (2026-10-26)
+
+Se sometió el PR #23 (turnos de enfermería, jornada, lectura de historia clínica, registro y firma de atención) a la revisión `code-review` con foco en RLS y acceso clínico. Resultado: **sin fugas entre médicos ni entre pacientes y sin escalada de privilegios**; las funciones `SECURITY DEFINER` nuevas tienen `search_path` vacío y `REVOKE` a `public`, las atenciones firmadas son inmutables, `firmada_en` y `creado_en` los fija el servidor, y la enfermera y el administrativo no reciben datos clínicos. Hallazgos y su estado:
+
+| # | Severidad | Hallazgo | Estado |
+|---|---|---|---|
+| SEC-10 | Alta | Abrir una atención registraba el acceso como tipo `historia`, sin el `atencion_id` | **Corregido** (`lib/atencion/consultas.ts`: acceso de tipo `atencion` con su id) |
+| SEC-11 | Alta | Falta la guarda de datos clínicos reales (P-1, grupo 1 de `historias-clinicas`: `exigir_modo_clinico`, `exigir_paciente_admisible`): nada en la base impide registrar datos de un paciente real | **Abierto, mitigado en parte**: aviso visible de «solo datos ficticios» en todas las páginas del médico. Producción contiene solo datos sintéticos. **Bloquea el uso con pacientes reales** y es decisión del cliente (P-1) |
+| SEC-12 | Media | Dos módulos leen tablas clínicas (`lib/historia` y `lib/atencion`) y la prueba de «punto único» admite ambos | Abierto: consolidar en `lib/historia` |
+| SEC-13 | Media | La búsqueda de «Mis pacientes» usa `?q=` y deja nombres y documentos en la dirección, el historial y los registros de Vercel (la spec lo prohíbe) | Abierto: pasar a una búsqueda sin la dirección (por ejemplo, filtro en el cliente o acción de servidor) |
+| SEC-14 | Baja | Joins internos con `perfiles` ocultaban atenciones y addendas si el autor cambiaba de rol | **Corregido** (`left join`) |
+| SEC-15 | Baja | El cliente puede escribir `firma_metodo` y `firma_huella` al insertar (grant de INSERT a toda la tabla); hoy no es explotable porque solo existe el método `logica` | Abierto: restringir el INSERT por columnas antes de añadir otro método de firma |
+| SEC-16 | Baja | `antecedentes.actualizado_en` se puede falsificar al insertar | Abierto: ninguna pantalla escribe antecedentes todavía |
+| SEC-17 | Baja | El 404 de las pantallas de atención es HTTP 200 (`notFound()` dentro de `Suspense`) | Abierto: inconsistencia sin fuga |
+
+Al verificar con Vercel apareció además un fallo de **caché de construcción** (los builds fallaban al resolver la fuente de Google con Turbopack; el mismo código construía bien sin caché). Se fijó `VERCEL_FORCE_NO_BUILD_CACHE=1` en Production y Preview como solución temporal; conviene quitarla tras un par de despliegues sanos.

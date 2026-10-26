@@ -64,11 +64,12 @@ export type Apertura<T> =
   | { estado: "no_existe" } // 404 uniforme: ajeno e inexistente son indistinguibles
   | { estado: "error" };
 
-// Solo `actor_id` y `paciente_id`: vale con el esquema de H2 y con el de `tipo_acceso` (que por defecto es `historia` y exige
-// `atencion_id` nulo). Registrar `tipo_acceso = 'atencion'` con el id de la atención es un cambio de una línea cuando esa columna
-// esté en todas las bases (grupo 4 de historias-clinicas).
+// Abrir el formulario de una atención nueva deja un acceso de tipo `historia` (no hay atención todavía). Abrir una atención existente deja un
+// acceso de tipo `atencion` con su identificador: la política de `accesos_historia` exige que esa atención exista y sea del mismo paciente.
 const SQL_ACCESO = `insert into public.accesos_historia (actor_id, paciente_id)
                     values (public.perfil_actual(), $1::uuid)`;
+const SQL_ACCESO_ATENCION = `insert into public.accesos_historia (actor_id, paciente_id, tipo_acceso, atencion_id)
+                             values (public.perfil_actual(), $1::uuid, 'atencion', $2::uuid)`;
 
 const SQL_PACIENTE = `select id, tipo_documento::text as tipo_documento, numero_documento, nombres, apellidos,
                              fecha_nacimiento::text as fecha_nacimiento, sexo::text as sexo
@@ -173,26 +174,26 @@ export async function abrirAtencion(
   if (!esUuid(pacienteId) || !esUuid(atencionId)) return { estado: "no_existe" };
   try {
     const r = await ejecutar([
-      { texto: SQL_ACCESO, parametros: [pacienteId] },
+      { texto: SQL_ACCESO_ATENCION, parametros: [pacienteId, atencionId] },
       { texto: SQL_PACIENTE, parametros: [pacienteId] },
       { texto: SQL_ANTECEDENTES, parametros: [pacienteId] },
       {
         texto: `select a.id, a.cita_id, c.estado::text as cita_estado, a.motivo_consulta, a.anamnesis, a.examen_fisico, a.diagnosticos, a.plan_tratamiento,
                        a.firmada_en, a.creado_en, a.medico_id = public.medico_actual() as es_autor,
-                       pf.nombres || ' ' || pf.apellidos as autor
+                       coalesce(pf.nombres || ' ' || pf.apellidos, 'Médico') as autor
                   from public.atenciones a
                   join public.medicos m on m.id = a.medico_id
-                  join public.perfiles pf on pf.id = m.perfil_id
+                  left join public.perfiles pf on pf.id = m.perfil_id
                   left join public.citas c on c.id = a.cita_id
                  where a.id = $1::uuid and a.paciente_id = $2::uuid`,
         parametros: [atencionId, pacienteId],
       },
       {
-        texto: `select ad.id, ad.texto, ad.creado_en, pf.nombres || ' ' || pf.apellidos as autor
+        texto: `select ad.id, ad.texto, ad.creado_en, coalesce(pf.nombres || ' ' || pf.apellidos, 'Médico') as autor
                   from public.addendas ad
                   join public.atenciones a on a.id = ad.atencion_id
                   join public.medicos m on m.id = ad.medico_id
-                  join public.perfiles pf on pf.id = m.perfil_id
+                  left join public.perfiles pf on pf.id = m.perfil_id
                  where ad.atencion_id = $1::uuid and a.paciente_id = $2::uuid
                  order by ad.creado_en, ad.id`,
         parametros: [atencionId, pacienteId],
