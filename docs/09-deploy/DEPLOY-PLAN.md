@@ -1,7 +1,7 @@
 # Deploy Plan — Sistema de Gestión de Citas e Historias Clínicas Electrónicas
 
 Fecha: 2026-10-25
-Estado: DISEÑADO Y APROBADO (el usuario aprobó el plan el 2026-10-25). GENERATE no produjo archivos nuevos: el plan no pide ninguno. No se ejecutó nada contra producción; ver «Autorizaciones pendientes».
+Estado: EJECUTADO Y VERIFICADO el 2026-10-25 (PR #21 en producción, con una corrección de configuración descubierta al verificar; ver el registro al final). Quedan pendientes dos acciones de limpieza de secretos, listadas abajo.
 
 ## Resumen del proyecto
 
@@ -76,12 +76,13 @@ Observabilidad disponible hoy: logs de runtime de Vercel (el plan Hobby retiene 
 
 ## Autorizaciones pendientes
 
-Ninguna de estas acciones se ejecutó. Cada una exige autorización explícita del usuario en el momento de hacerla:
+Cada acción se autorizó por separado, en el momento de hacerla. Estado:
 
-1. **Fusionar el PR #21 a `master`.** Dispara a la vez la migración de producción (3 migraciones) y el despliegue de Production. Condición previa: checks del PR en verde y decisión sobre los pasos manuales de producción de H4 (`docs/09-deploy/pasos-manuales-h4.md`, tarea 11.4).
-2. **Retirar `DATABASE_URL` de los entornos Production y Preview de Vercel** (cierra SEC-03). Debe hacerse **después** de que el código nuevo esté desplegado en producción, porque el despliegue actual de producción todavía usa `/api/salud` con esa variable.
-3. **Verificación posterior al despliegue en producción** (punto «Verify & Observe»): crea una cuenta, una cita y una cancelación sintéticas en el branch `production`.
-4. *(Opcional, no necesaria hoy)* Implementar la compuerta con *deploy hook* descrita en «Deploy gates».
+1. **Fusionar el PR #21 a `master`:** autorizada y ejecutada (ver el registro).
+2. **Apuntar `DATABASE_AUTHENTICATED_URL` de Production al branch `production` de Neon y redesplegar:** autorizada y ejecutada (ver «Hallazgo de configuración»).
+3. **Retirar `DATABASE_URL` (rol dueño) de los entornos Production y Preview de Vercel (cierra SEC-03): PENDIENTE.** El código nuevo ya no la usa; falta la autorización explícita para borrarla.
+4. **Rotar las contraseñas de los roles `neondb_owner` y `authenticator` de Neon: PENDIENTE y recomendada.** Ambas URLs se mostraron en la conversación de trabajo al sembrar y corregir producción. Orden seguro: rotar `authenticator`, actualizar `DATABASE_AUTHENTICATED_URL` en Production y Preview y redesplegar; rotar `neondb_owner` y actualizar el secreto `DATABASE_URL_PRODUCCION` de GitHub.
+5. *(Opcional)* Compuerta con *deploy hook* descrita en «Deploy gates»: no implementada.
 
 ## Registro de ejecución y verificación
 
@@ -90,3 +91,26 @@ Todavía no se ha ejecutado nada contra producción. Lo que sí se hizo antes de
 - 2026-10-25: el entorno Preview de Vercel recibió `BOTID_EXCEPCION_E2E=1` (autorizado por el usuario); se confirmó que **no** existe en Production. Con ella, las pruebas E2E de registro y reserva contra el preview dejaron de ser rechazadas por BotID.
 - 2026-10-25: arreglos del informe de seguridad aplicados a la rama (Next.js 15.5.28, `/api/salud` con el rol `authenticator` y límite por IP, cabeceras de seguridad); verificados en local con `typecheck`, `lint`, `test:portal` (132 pruebas) y 28 pruebas E2E.
 - 2026-10-25: el último despliegue de producción conocido es el del PR #20 (`READY`); el estado de los checks del PR #21 con estos cambios estaba en curso al escribir este plan.
+
+### Ejecución del 2026-10-25 (autorizada paso a paso)
+
+| Hora (UTC) | Acción | Resultado |
+|---|---|---|
+| 22:47 | Fusión del PR #21 (commit `4e2e2cb`) con los cuatro checks en verde (e2e, migrar, typecheck-lint-build, Vercel) | Fusionado |
+| ~22:48 | Workflow `Migrar producción` | Éxito: 36 migraciones aplicadas al branch `production` (última: `1792536300000_portal-cancelacion-solo-citas-futuras`) |
+| ~22:50 | Despliegue de Production desde `4e2e2cb` | `READY`; `GET /api/salud` responde `{"estado":"ok"}` y la página de inicio de sesión trae las cabeceras de seguridad (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) |
+| 22:30–22:45 | Cuentas del profesor: 4 usuarios en Clerk (uno por rol) y siembra de datos sintéticos de demostración en `production` (12 pacientes, 5 médicos, 14 citas…) | El webhook de Clerk creó los perfiles con su rol; el script de siembra los enlazó a las personas de demostración |
+| ~23:05 | Hallazgo y corrección de configuración (abajo) | Corregido y verificado |
+
+### Hallazgo de configuración: Production leía la base `dev`
+
+Al iniciar sesión en producción con la cuenta de paciente del profesor, la aplicación la mandaba a «Complete su registro» aunque su ficha existía en `production`. Una cuenta de pruebas con ficha solo en `dev` sí entraba al portal. Conclusión: `DATABASE_AUTHENTICATED_URL` del entorno Production apuntaba al branch `dev`, contra lo documentado en `pasos-manuales-h2.md`. Consecuencia: un paciente nuevo se habría quedado esperando «Estamos preparando su cuenta…», porque el webhook crea su perfil en `production` y la aplicación lo buscaba en `dev`. El plan original lo daba por correcto («Producción → branch `production`») y no lo había podido verificar porque Vercel no permite leer el valor.
+
+Corrección (autorizada): se reemplazó solo la variable de Production por la URL directa del rol `authenticator` del branch `production` y se relanzó el despliegue. Verificación posterior en `https://citas-medicas-clinica.vercel.app`: la cuenta de paciente del profesor entra a «Portal del paciente», ve «Mis citas» con sus citas de demostración y la reserva muestra las cuatro especialidades.
+
+### Verificación posterior (resumen)
+
+- `GET /api/db-sesion` con la cuenta del profesor devuelve su correo y el rol `paciente`: el claim `email` de la plantilla de sesión de Clerk funciona en producción (tarea 11.4 de H4).
+- Las cuentas de administrativo, médico y enfermera del profesor llegan a «Configure su autenticación de múltiple factor» tras la contraseña, como exige la regla de MFA del personal.
+- No se probó la reserva ni la cancelación **automatizadas** en producción: BotID rechaza correctamente a Playwright allí (la excepción de pruebas no existe en Production). Esas rutas las cubre la suite E2E contra el preview y la prueba manual del profesor.
+- Aún se ve una advertencia de seguridad abierta: `DATABASE_URL` sigue en Vercel (pendiente 3).

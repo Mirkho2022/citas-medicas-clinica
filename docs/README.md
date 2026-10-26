@@ -32,7 +32,7 @@ flowchart LR
 | 06 | [`06-diagramas/`](06-diagramas/) | Arquitectura y RLS, reserva del portal, estados de la cita, registro del paciente | Mermaid, dibujado sobre el código real | Código |
 | 07 | [`07-testing/`](07-testing/) | [`README`](07-testing/README.md) + las pruebas de [`tests/`](../tests/) y [`e2e/`](../e2e/) | pgTAP, `node:test` y Playwright | PRD (reglas de negocio y casos borde) |
 | 08 | [`08-seguridad/`](08-seguridad/) | [`SECURITY-REPORT.md`](08-seguridad/SECURITY-REPORT.md) | Skill `security-pass` (solo análisis, con evidencia) | Código + TECH-DESIGN |
-| 09 | [`09-deploy/`](09-deploy/) | [`DEPLOY-PLAN.md`](09-deploy/DEPLOY-PLAN.md) + los pasos manuales por hito | Skill `deploy-pass` (diseña antes de ejecutar) | Código + tests + SECURITY-REPORT |
+| 09 | [`09-deploy/`](09-deploy/) | [`DEPLOY-PLAN.md`](09-deploy/DEPLOY-PLAN.md), los pasos manuales por hito y la [guía de acceso para el profesor](09-deploy/acceso-del-profesor.md) | Skill `deploy-pass` (diseña antes de ejecutar) | Código + tests + SECURITY-REPORT |
 
 En la raíz quedan los archivos que leen las herramientas, no las personas: [`CLAUDE.md`](../CLAUDE.md) (contexto y reglas para el agente) y
 [`README.md`](../README.md) (portada del proyecto).

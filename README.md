@@ -9,6 +9,8 @@ clínicos por rol y por médico a cargo lo impone la base de datos (RLS), no la 
 
 **Producción (demostración):** https://citas-medicas-clinica.vercel.app
 
+**¿Vas a revisarlo?** Las cuentas de prueba por rol y qué probar están en [`docs/09-deploy/acceso-del-profesor.md`](docs/09-deploy/acceso-del-profesor.md).
+
 ## Qué hace hoy
 
 | Rol | Puede |
