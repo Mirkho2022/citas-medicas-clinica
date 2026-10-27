@@ -9,16 +9,16 @@ clínicos por rol y por médico a cargo lo impone la base de datos (RLS), no la 
 
 **Producción (demostración):** https://citas-medicas-clinica.vercel.app
 
-**¿Vas a revisarlo?** Las cuentas de prueba por rol y qué probar están en [`docs/09-deploy/acceso-del-profesor.md`](docs/09-deploy/acceso-del-profesor.md).
+**¿Vas a revisarlo?** Las cuentas de prueba por rol y qué probar están en [`docs/09-deploy/acceso-del-profesor.md`](docs/09-deploy/acceso-del-profesor.md). Las contraseñas se entregan por separado. El segundo factor (TOTP) solo lo exige el rol médico.
 
 ## Qué hace hoy
 
 | Rol | Puede |
 |---|---|
 | Paciente | Registrarse y vincular su ficha, buscar disponibilidad, reservar y cancelar **su** cita (hasta 1 hora antes) desde un portal pensado para el celular |
-| Administrativo | Registrar pacientes, ver la agenda del día, agendar, reprogramar y cancelar citas de cualquier paciente, gestionar horarios y bajas médicas con reasignación |
-| Médico | Ver sus turnos y citas confirmadas |
-| Enfermera | Acceso limitado a su turno |
+| Administrativo | Registrar pacientes, ver la agenda del día, agendar, reprogramar y cancelar citas de cualquier paciente, gestionar horarios y bajas médicas con reasignación, asignar turnos de enfermería |
+| Médico | Ver su jornada y citas confirmadas, marcar atendida, abrir la historia clínica **solo de sus pacientes** (cada apertura queda auditada), registrar, firmar y complementar atenciones con diagnósticos |
+| Enfermera | Ver su turno y con qué médico o servicio trabaja; nada más |
 
 Reglas que el sistema hace cumplir en la base de datos: doble reserva imposible (mensaje exacto `Registro de cita ya agendado`), ventana de
 cancelación de 1 hora para todos los roles, DNI o Carné de Extranjería como documento, fechas siempre en `America/Lima`.
@@ -31,16 +31,16 @@ cancelación de 1 hora para todos los roles, DNI o Carné de Extranjería como d
 | H2 | Esquema, RLS, pruebas pgTAP y datos de demostración | Hecho |
 | H2b | Sistema de diseño de la interfaz | Hecho |
 | H3 | Agenda y reserva del administrativo | Hecho, en producción |
-| H4 | Portal del paciente | Implementado y verificado; en revisión (PR #21) |
+| H4 | Portal del paciente | Hecho, en producción; antes de abrirlo a pacientes reales faltan pasos de consola ([pasos-manuales-h4](docs/09-deploy/pasos-manuales-h4.md)) |
 | H5 | Notificaciones por email | Especificado, sin implementar |
-| H6 | Historias clínicas electrónicas | Especificado, sin implementar |
-| H7 | Turnos de enfermería y dashboard | Especificado, sin implementar |
+| H6 | Historias clínicas electrónicas | Parcial: lectura, registro y firma de atenciones con RLS, en producción. Sin adjuntos escaneados ni catálogo CIE-10 completo (hay un subconjunto de demostración) |
+| H7 | Turnos de enfermería y dashboard | Parcial: turnos de enfermería y paneles del médico y la enfermera, en producción. Sin dashboard del administrativo |
 | H8 | Importación, respaldo y capacitación | Pendiente |
 
 ## Stack
 
 Next.js 15 (App Router) + TypeScript sobre **Vercel**, **Neon** (PostgreSQL serverless con RLS), **Clerk** (autenticación, sesión y MFA),
-**Upstash Redis** y **Vercel BotID** (controles de borde). Notificaciones por email (Resend) y adjuntos (Vercel Blob) llegan con H5 y H6.
+**Upstash Redis** y **Vercel BotID** (controles de borde). Notificaciones por email (Resend) y adjuntos (Vercel Blob) están previstos para H5 y H6 y aún no existen.
 
 ## Documentación
 
@@ -54,8 +54,8 @@ Todo está en [`docs/`](docs/README.md), ordenado en el orden en que se construy
 | 04 | [`docs/04-backlog/`](docs/04-backlog/BACKLOG.md) | Backlog de 35 ítems en 8 hitos |
 | 05 | [`docs/05-specs/`](docs/05-specs/README.md) | Puente hacia las specs de [`openspec/`](openspec/) |
 | 06 | [`docs/06-diagramas/`](docs/06-diagramas/) | Arquitectura y RLS, reserva, estados de la cita, registro del paciente |
-| 07 | [`docs/07-testing/`](docs/07-testing/README.md) | Estrategia de pruebas y trazabilidad |
-| 08 | [`docs/08-seguridad/`](docs/08-seguridad/SECURITY-REPORT.md) | Informe de seguridad (`security-pass`) |
+| 07 | [`docs/07-testing/`](docs/07-testing/README.md) | Estrategia de pruebas y trazabilidad; [informe E2E con Playwright](docs/07-testing/informe-e2e-2026-10-26.md) |
+| 08 | [`docs/08-seguridad/`](docs/08-seguridad/SECURITY-REPORT.md) | Informe de seguridad (`security-pass`) y [verificación previa a la presentación](docs/08-seguridad/VERIFICACION-2026-10-26.md) |
 | 09 | [`docs/09-deploy/`](docs/09-deploy/DEPLOY-PLAN.md) | Plan de despliegue (`deploy-pass`) |
 
 ## Cómo correrlo en local
