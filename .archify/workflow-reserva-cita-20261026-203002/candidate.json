@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Reserva de cita por el paciente (portal)",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-reserva-cita-20261026-203002/reserva-cita.html"
+  },
+  "lanes": [
+    { "id": "paciente", "label": "Paciente" },
+    { "id": "portal", "label": "Portal (Next.js en Vercel)" },
+    { "id": "bd", "label": "Base de datos (Neon + RLS)" }
+  ],
+  "mainPath": ["pac", "guard", "busca", "aviso", "reservar", "unica", "cita", "ok"],
+  "nodes": [
+    { "id": "pac", "lane": "paciente", "col": 0, "type": "external", "label": "Paciente", "sublabel": "abre el portal", "icon": "person", "width": 132 },
+    { "id": "busca", "lane": "paciente", "col": 2, "type": "frontend", "label": "Busca horario", "sublabel": "médico y fecha", "icon": "calendar", "width": 132 },
+    { "id": "aviso", "lane": "paciente", "col": 3, "type": "frontend", "label": "Ve la advertencia", "sublabel": "cancelar hasta 1 h antes", "icon": "clock", "width": 132 },
+    { "id": "ok", "lane": "paciente", "col": 5, "type": "frontend", "label": "Cita reservada", "sublabel": "aparece en Mis citas", "icon": "success", "width": 132 },
+    { "id": "guard", "lane": "portal", "col": 1, "type": "security", "label": "Sesión y bordes", "sublabel": "Clerk + BotID + límite", "width": 132 },
+    { "id": "reservar", "lane": "portal", "col": 4, "type": "backend", "label": "Reservar cita", "sublabel": "Server Action", "width": 132 },
+    { "id": "slots", "lane": "bd", "col": 2, "type": "database", "label": "Horarios libres", "sublabel": "agenda del médico", "width": 132 },
+    { "id": "unica", "lane": "bd", "col": 4, "type": "database", "label": "Restricción única", "sublabel": "anti doble reserva", "tag": "a prueba de concurrencia", "width": 132 },
+    { "id": "cita", "lane": "bd", "col": 5, "type": "database", "label": "Cita guardada", "sublabel": "solo la ve su dueño (RLS)", "width": 132 },
+    { "id": "dup", "lane": "bd", "col": 3, "type": "security", "label": "Horario ocupado", "sublabel": "Registro de cita ya agendado", "width": 132 },
+    { "id": "email", "lane": "portal", "col": 5, "type": "messagebus", "label": "Recordatorio", "sublabel": "email 1 día antes", "width": 132 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "pac", "to": "guard", "label": "entra", "variant": "emphasis" },
+    { "id": "e2", "from": "guard", "to": "busca", "label": "permitido", "variant": "emphasis" },
+    { "id": "e3", "from": "busca", "to": "slots", "label": "consulta", "variant": "dashed", "role": "branch" },
+    { "id": "e4", "from": "busca", "to": "aviso", "variant": "emphasis" },
+    { "id": "e5", "from": "aviso", "to": "reservar", "label": "confirma", "variant": "emphasis" },
+    { "id": "e6", "from": "reservar", "to": "unica", "label": "inserta", "variant": "emphasis" },
+    { "id": "e7", "from": "unica", "to": "cita", "label": "libre", "variant": "emphasis" },
+    { "id": "e8", "from": "unica", "to": "dup", "label": "ocupado", "variant": "security", "role": "error" },
+    { "id": "e9", "from": "cita", "to": "ok", "variant": "emphasis", "role": "return", "fromSide": "right", "toSide": "right", "route": "outside-right" },
+    { "id": "e10", "from": "cita", "to": "email", "label": "programa", "variant": "dashed", "role": "async" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Reglas que hace cumplir",
+      "items": [
+        "Doble reserva: la restricción en BD decide, no un chequeo previo",
+        "Cancelación: solo hasta 1 hora antes, para todos los roles"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Seguridad",
+      "items": [
+        "Cada consulta lleva el JWT de Clerk para que RLS aplique",
+        "BotID y límite de peticiones protegen el registro y la reserva"
+      ]
+    }
+  ]
+}

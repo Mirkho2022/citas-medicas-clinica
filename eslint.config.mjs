@@ -41,6 +41,10 @@ const eslintConfig = [
       // compiladas) y las copias de trabajo `git worktree` en .claude/worktrees, cada una con su propio `.next`. Los patrones
       // de arriba solo ignoran la raíz, así que sin esta línea ESLint lee todo eso y da miles de avisos que no son del código.
       ".claude/**",
+      // Salidas generadas, no código: diagramas de Archify y el informe HTML de Playwright.
+      ".archify/**",
+      "playwright-report/**",
+      "test-results/**",
     ],
   },
 ];
