@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { tieneMfaActivo } from "./mfa.ts";
+import { mfaExigidoPara } from "./mfa-requerido.ts";
 import { exigirRol } from "./rol.ts";
 
 // Guarda de las páginas de la consola del administrativo: rol correcto y segundo factor (MFA) activo. La sesión
@@ -9,5 +10,5 @@ import { exigirRol } from "./rol.ts";
 // autoridad real sobre los datos es la RLS, y cada Server Action vuelve a comprobar con `exigirPersonal`.
 export async function exigirPaginaAdministrativo(): Promise<void> {
   await exigirRol("administrativo");
-  if (!(await tieneMfaActivo())) redirect("/configurar-mfa");
+  if (mfaExigidoPara("administrativo") && !(await tieneMfaActivo())) redirect("/configurar-mfa");
 }

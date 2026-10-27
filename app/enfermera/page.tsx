@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Esqueleto } from "@/components/clinica/esqueleto";
 import { TarjetaTurno } from "@/components/clinica/tarjeta-turno";
 import { tieneMfaActivo } from "@/lib/auth/mfa";
+import { mfaExigidoPara } from "@/lib/auth/mfa-requerido";
 import { exigirRol } from "@/lib/auth/rol";
 import { ejecutorAutenticado } from "@/lib/db/ejecutor-autenticado";
 import { DIAS_HACIA_ADELANTE, misTurnos } from "@/lib/turnos/mis-turnos";
@@ -18,7 +19,7 @@ export const metadata: Metadata = { title: "Panel de enfermería" };
 export default async function PaginaEnfermera() {
   await auth.protect();
   await exigirRol("enfermera");
-  if (!(await tieneMfaActivo())) {
+  if (mfaExigidoPara("enfermera") && !(await tieneMfaActivo())) {
     redirect("/configurar-mfa");
   }
 

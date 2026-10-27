@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Alerta } from "@/components/clinica/alerta";
 import { tieneMfaActivo } from "@/lib/auth/mfa";
+import { mfaExigidoPara } from "@/lib/auth/mfa-requerido";
 import { exigirRol } from "@/lib/auth/rol";
 
 const ATAJOS: Array<{ ruta: string; titulo: string; texto: string; icono: LucideIcon }> = [
@@ -16,7 +17,7 @@ const ATAJOS: Array<{ ruta: string; titulo: string; texto: string; icono: Lucide
 export default async function PaginaAdministrativo() {
   await auth.protect();
   await exigirRol("administrativo");
-  if (!(await tieneMfaActivo())) {
+  if (mfaExigidoPara("administrativo") && !(await tieneMfaActivo())) {
     redirect("/configurar-mfa");
   }
 

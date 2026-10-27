@@ -7,6 +7,7 @@
 // datos sigue siendo la RLS de la base de datos y las guardas de rol de sus funciones.
 //
 // Orden: sesión → rol → MFA. El MFA solo se consulta (una llamada a Clerk) cuando la sesión y el rol ya son los correctos.
+import { mfaExigidoPara } from "./mfa-requerido.ts";
 import type { Rol } from "./rol.ts";
 import {
   exito,
@@ -66,7 +67,7 @@ export async function exigirPersonal(
 
     if (!usuarioId) return fallo("NO_AUTORIZADO", MENSAJE_SESION_REQUERIDA);
     if (rol !== rolRequerido) return fallo("NO_AUTORIZADO", MENSAJE_NO_AUTORIZADO);
-    if (!(await dependencias.tieneMfa())) return fallo("NO_AUTORIZADO", MENSAJE_MFA_REQUERIDO);
+    if (mfaExigidoPara(rolRequerido) && !(await dependencias.tieneMfa())) return fallo("NO_AUTORIZADO", MENSAJE_MFA_REQUERIDO);
 
     return exito({ usuarioId, rol: rolRequerido });
   } catch (error) {
