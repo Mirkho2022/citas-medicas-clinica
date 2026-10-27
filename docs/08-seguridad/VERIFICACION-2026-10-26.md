@@ -23,8 +23,9 @@ Apto como **demostración con datos sintéticos**. No apto para datos clínicos 
 
 ## Estado de los hallazgos anteriores
 
+- **SEC-03 cerrado el 2026-10-26:** con autorización expresa se retiró `DATABASE_URL` (rol dueño) de los entornos Production y Preview de Vercel con `vercel env remove`; queda solo en Development. Retirarla de Vercel no revoca la credencial: la contraseña del rol `neondb_owner` sigue vigente en Neon y conviene rotarla (SEC-09). La verificación posterior al despliegue está en el PR #25.
 - **Cerrados y verificados:** SEC-01 (Next.js), SEC-04 en parte (cabeceras presentes), SEC-08, SEC-10 y SEC-14.
-- **Siguen abiertos:** SEC-02 (titularidad del DNI, decisión del cliente), SEC-03 (falta retirar `DATABASE_URL` de Vercel, requiere autorización), SEC-05, SEC-06, SEC-07, SEC-09 (rotar secretos de pruebas si se comparte la transcripción), SEC-11 (guarda de datos reales), SEC-12, SEC-13 (`?q=` en «Mis pacientes»), SEC-15, SEC-16 y SEC-17.
+- **Siguen abiertos:** SEC-02 (titularidad del DNI, decisión del cliente), SEC-05, SEC-06, SEC-07, SEC-09 (rotar secretos de pruebas si se comparte la transcripción), SEC-11 (guarda de datos reales), SEC-12, SEC-13 (`?q=` en «Mis pacientes»), SEC-15, SEC-16 y SEC-17.
 - No se reevaluaron SEC-12 a SEC-17: no hay commits de seguridad posteriores a su registro.
 
 ## Novedades de esta verificación
