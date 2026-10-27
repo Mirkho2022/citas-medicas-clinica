@@ -23,7 +23,7 @@ Cuentas ficticias adicionales, para comprobar que cada persona ve solo lo suyo (
 
 | Rol | Usuario | Persona de demostración |
 |---|---|---|
-| Médica | `medica.lucia.paredes+clerk_test@example.com` | Lucía Paredes Ruiz (CMP-DEMO-002), con **otros** pacientes a cargo que el médico principal |
+| Médica | `medica.lucia.paredes+clerk_test@example.com` | Lucía Paredes Ruiz (CMP-DEMO-002), con **otros** pacientes a cargo que el médico principal. Como todo médico, exige segundo factor (tiene su propio secreto TOTP) |
 | Paciente | `paciente.luis.fernandez+clerk_test@example.com` | Luis Fernández Mori (DNI 99000002) |
 | Enfermera | `enfermera.elena.soto+clerk_test@example.com` | Elena Soto Cruz, con sus propios turnos |
 
@@ -86,7 +86,9 @@ turnos distintos; abrir una historia a mano con la dirección de un paciente que
 | Las reglas de negocio y los casos borde | [PRD](../01-producto/PRD.md) |
 | Las decisiones técnicas | [TECH-DESIGN](../03-arquitectura/TECH-DESIGN.md) y [ADRs](../03-arquitectura/adrs/) |
 | Cómo se prueba | [Testing](../07-testing/README.md) |
-| Qué se encontró en la revisión de seguridad | [SECURITY-REPORT](../08-seguridad/SECURITY-REPORT.md) |
+| Qué se encontró en la revisión de seguridad | [SECURITY-REPORT](../08-seguridad/SECURITY-REPORT.md) y la [verificación previa a la presentación](../08-seguridad/VERIFICACION-2026-10-26.md) (qué se corrigió y qué queda abierto a propósito) |
+| El resultado de las pruebas automáticas en un navegador | [Informe E2E con Playwright](../07-testing/informe-e2e-2026-10-26.md): inicio de sesión por rol, reserva y cancelación del paciente, doble reserva |
+| El flujo de reserva de cita dibujado | [Diagrama del flujo de reserva](../../.archify/workflow-reserva-cita-20261026-203002/reserva-cita.html) (abrir en el navegador) |
 | Cómo se despliega | [DEPLOY-PLAN](DEPLOY-PLAN.md) |
 
 ## Aviso sobre las cuentas
