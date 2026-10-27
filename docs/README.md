@@ -31,7 +31,7 @@ flowchart LR
 | 05 | [`05-specs/`](05-specs/) | [`openspec/`](../openspec/) en la raíz | OpenSpec: `propose → apply → archive`, un change por hito | Un ítem del BACKLOG |
 | 06 | [`06-diagramas/`](06-diagramas/) | Arquitectura y RLS, reserva del portal, estados de la cita, registro del paciente | Mermaid, dibujado sobre el código real | Código |
 | 07 | [`07-testing/`](07-testing/) | [`README`](07-testing/README.md) + las pruebas de [`tests/`](../tests/) y [`e2e/`](../e2e/) | pgTAP, `node:test` y Playwright | PRD (reglas de negocio y casos borde) |
-| 08 | [`08-seguridad/`](08-seguridad/) | [`SECURITY-REPORT.md`](08-seguridad/SECURITY-REPORT.md) | Skill `security-pass` (solo análisis, con evidencia) | Código + TECH-DESIGN |
+| 08 | [`08-seguridad/`](08-seguridad/) | [`SECURITY-REPORT.md`](08-seguridad/SECURITY-REPORT.md) y la [verificación previa a la presentación](08-seguridad/VERIFICACION-2026-10-26.md) | Skill `security-pass` (solo análisis, con evidencia) | Código + TECH-DESIGN |
 | 09 | [`09-deploy/`](09-deploy/) | [`DEPLOY-PLAN.md`](09-deploy/DEPLOY-PLAN.md), los pasos manuales por hito y la [guía de acceso para el profesor](09-deploy/acceso-del-profesor.md) | Skill `deploy-pass` (diseña antes de ejecutar) | Código + tests + SECURITY-REPORT |
 
 En la raíz quedan los archivos que leen las herramientas, no las personas: [`CLAUDE.md`](../CLAUDE.md) (contexto y reglas para el agente) y

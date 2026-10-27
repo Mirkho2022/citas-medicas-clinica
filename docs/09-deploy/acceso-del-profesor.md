@@ -23,7 +23,7 @@ Cuentas ficticias adicionales, para comprobar que cada persona ve solo lo suyo (
 
 | Rol | Usuario | Persona de demostración |
 |---|---|---|
-| Médica | `medica.lucia.paredes+clerk_test@example.com` | Lucía Paredes Ruiz (CMP-DEMO-002), con **otros** pacientes a cargo que el médico principal |
+| Médica | `medica.lucia.paredes+clerk_test@example.com` | Lucía Paredes Ruiz (CMP-DEMO-002), con **otros** pacientes a cargo que el médico principal. Como todo médico, exige segundo factor (tiene su propio secreto TOTP) |
 | Paciente | `paciente.luis.fernandez+clerk_test@example.com` | Luis Fernández Mori (DNI 99000002) |
 | Enfermera | `enfermera.elena.soto+clerk_test@example.com` | Elena Soto Cruz, con sus propios turnos |
 
@@ -35,10 +35,12 @@ turnos distintos; abrir una historia a mano con la dirección de un paciente que
 1. Entrar a la aplicación y elegir «Iniciar sesión» con el correo y la contraseña de la cuenta.
 2. Si Clerk pide verificar el dispositivo con un código, usar `424242` (las cuentas `+clerk_test` de la instancia de desarrollo lo aceptan siempre).
 3. **Paciente:** entra directo al portal.
-4. **Personal (administrativo, médico, enfermera):** la regla del proyecto exige un segundo factor. **Estas cuentas ya lo tienen configurado**: al iniciar sesión,
-   Clerk pide un código de 6 dígitos. Para generarlo, añadir en una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…) una
-   cuenta con «Ingresar clave de configuración» y el secreto TOTP de cada usuario, que se entrega **por separado** junto con las contraseñas.
+4. **Médico:** es el único rol que exige segundo factor, porque lee y firma historias clínicas (el riesgo principal del proyecto). **Las cuentas de médico ya lo tienen
+   configurado**: al iniciar sesión, Clerk pide un código de 6 dígitos. Para generarlo, añadir en una aplicación de autenticación (Google Authenticator, Microsoft
+   Authenticator, Authy…) una cuenta con «Ingresar clave de configuración» y el secreto TOTP del usuario, que se entrega **por separado** junto con las contraseñas.
    Si un código es rechazado, esperar al siguiente (cambian cada 30 segundos).
+5. **Administrativo y enfermera:** para esta revisión no piden segundo factor (`MFA_ROLES_EXIGIDOS=medico` en Vercel); basta la contraseña y, si Clerk pide verificar el
+   dispositivo, el código `424242`. Con la variable vacía, el sistema vuelve a exigirlo a los tres roles: es la configuración prevista para uso real.
 
 ## Qué conviene probar
 
@@ -84,7 +86,9 @@ turnos distintos; abrir una historia a mano con la dirección de un paciente que
 | Las reglas de negocio y los casos borde | [PRD](../01-producto/PRD.md) |
 | Las decisiones técnicas | [TECH-DESIGN](../03-arquitectura/TECH-DESIGN.md) y [ADRs](../03-arquitectura/adrs/) |
 | Cómo se prueba | [Testing](../07-testing/README.md) |
-| Qué se encontró en la revisión de seguridad | [SECURITY-REPORT](../08-seguridad/SECURITY-REPORT.md) |
+| Qué se encontró en la revisión de seguridad | [SECURITY-REPORT](../08-seguridad/SECURITY-REPORT.md) y la [verificación previa a la presentación](../08-seguridad/VERIFICACION-2026-10-26.md) (qué se corrigió y qué queda abierto a propósito) |
+| El resultado de las pruebas automáticas en un navegador | [Informe E2E con Playwright](../07-testing/informe-e2e-2026-10-26.md): inicio de sesión por rol, reserva y cancelación del paciente, doble reserva |
+| El flujo de reserva de cita dibujado | [Diagrama del flujo de reserva](../../.archify/workflow-reserva-cita-20261026-203002/reserva-cita.html) (abrir en el navegador) |
 | Cómo se despliega | [DEPLOY-PLAN](DEPLOY-PLAN.md) |
 
 ## Aviso sobre las cuentas

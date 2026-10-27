@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:pgtap": "node scripts/ejecutar-pgtap.ts",
     "test:agenda": "node --test \"tests/agenda/*.test.ts\"",
+    "test:auth": "node --test \"tests/auth/*.test.ts\"",
     "test:atencion": "node --test \"tests/atencion/*.test.ts\"",
     "test:concurrencia": "node --test \"tests/concurrencia/*.test.ts\"",
     "test:historia": "node --test \"tests/historia/*.test.ts\"",
