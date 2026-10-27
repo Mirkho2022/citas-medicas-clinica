@@ -13,6 +13,8 @@ const cabecerasDeSeguridad = [
 ];
 
 const nextConfig: NextConfig = {
+  // SEC-19: no anunciar el framework en cada respuesta.
+  poweredByHeader: false,
   async headers() {
     return [
       { source: "/:path*", headers: cabecerasDeSeguridad },

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b230e736-0932-448d-8912-b1f595e53d07",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "C:\\Proyectos de IA\\DMC Institute\\Proyecto de Citas Medicas con Historiasl clinicas electronicas\\.archify\\workflow-reserva-cita-20261026-203002\\candidate.json",
+  "output": "C:\\Proyectos de IA\\DMC Institute\\Proyecto de Citas Medicas con Historiasl clinicas electronicas\\.archify\\workflow-reserva-cita-20261026-203002\\reserva-cita.html",
+  "specification": {
+    "sha256": "10a38037c8e4c9fa4305031df753906f0a5b1e2c672e72b0adaac30dc2268ebc",
+    "bytes": 3808
+  },
+  "artifact": {
+    "sha256": "5da74c0c83ed1f273f54c6bf86d351b9d761f7f321148bfdc3678cde4c4221e6",
+    "bytes": 761991
+  }
+}
