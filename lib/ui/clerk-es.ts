@@ -37,6 +37,8 @@ export const localizacionClerk: typeof esMX = {
       title: "Cree su cuenta",
       titleCombined: "Cree su cuenta",
       actionText: "¿Ya tiene una cuenta?",
+      // El paquete trae «Inicar sesión» (sin «ci»).
+      actionLink: "Iniciar sesión",
     },
     continue: {
       ...esMX.signUp?.continue,

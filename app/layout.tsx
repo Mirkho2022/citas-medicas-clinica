@@ -60,7 +60,16 @@ export default function RootLayout({
     // una variable definida en <body> no existe todavía allí (la fuente caería a la serif por defecto del navegador).
     <html lang="es" className={`${jakarta.variable} ${inter.variable}`}>
       <body className="antialiased">
-        <ClerkProvider localization={localizacionClerk} appearance={apariencia}>
+        <ClerkProvider
+          localization={localizacionClerk}
+          appearance={apariencia}
+          // Las rutas propias van en el código y no solo en NEXT_PUBLIC_CLERK_*_URL: sin ellas (Vercel no las tenía) el enlace
+          // «Iniciar sesión» del registro llevaba a la pantalla alojada de Clerk, en inglés y fuera de la aplicación.
+          signInUrl="/iniciar-sesion"
+          signUpUrl="/registro"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/completar-registro"
+        >
           {children}
         </ClerkProvider>
       </body>
