@@ -35,10 +35,12 @@ turnos distintos; abrir una historia a mano con la dirección de un paciente que
 1. Entrar a la aplicación y elegir «Iniciar sesión» con el correo y la contraseña de la cuenta.
 2. Si Clerk pide verificar el dispositivo con un código, usar `424242` (las cuentas `+clerk_test` de la instancia de desarrollo lo aceptan siempre).
 3. **Paciente:** entra directo al portal.
-4. **Personal (administrativo, médico, enfermera):** la regla del proyecto exige un segundo factor. **Estas cuentas ya lo tienen configurado**: al iniciar sesión,
-   Clerk pide un código de 6 dígitos. Para generarlo, añadir en una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy…) una
-   cuenta con «Ingresar clave de configuración» y el secreto TOTP de cada usuario, que se entrega **por separado** junto con las contraseñas.
+4. **Médico:** es el único rol que exige segundo factor, porque lee y firma historias clínicas (el riesgo principal del proyecto). **Las cuentas de médico ya lo tienen
+   configurado**: al iniciar sesión, Clerk pide un código de 6 dígitos. Para generarlo, añadir en una aplicación de autenticación (Google Authenticator, Microsoft
+   Authenticator, Authy…) una cuenta con «Ingresar clave de configuración» y el secreto TOTP del usuario, que se entrega **por separado** junto con las contraseñas.
    Si un código es rechazado, esperar al siguiente (cambian cada 30 segundos).
+5. **Administrativo y enfermera:** para esta revisión no piden segundo factor (`MFA_ROLES_EXIGIDOS=medico` en Vercel); basta la contraseña y, si Clerk pide verificar el
+   dispositivo, el código `424242`. Con la variable vacía, el sistema vuelve a exigirlo a los tres roles: es la configuración prevista para uso real.
 
 ## Qué conviene probar
 
